@@ -189,7 +189,7 @@ units['dario'] = createUnit('dario','Dario','player',52, 17, 6, 150,100, 0.75,0,
 units['karma'] = createUnit('karma','Karma','player',52, 17, 4, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 // 七海
 function applyAftermath(u){ u.hp = Math.max(1, Math.floor(u.hp * 0.75)); if(!u.passives.includes('aftermath')) u.passives.push('aftermath'); }
-units['haz']  = createUnit('haz','Haz（七海队长）','enemy',55, 4,21, 750,100, 1.0,0, ['hazObsess','hazHatred','hazOrders','hazWorth','hazCritWindow','hazHunt'], {team:'seven', stunThreshold:4, pullImmune:true}); applyAftermath(units['haz']);
+units['haz']  = createUnit('haz','Haz','enemy',55, 4,21, 750,100, 1.0,0, ['hazObsess','hazHatred','hazOrders','hazWorth','hazCritWindow','hazHunt'], {team:'seven', stunThreshold:4, pullImmune:true}); applyAftermath(units['haz']);
 units['katz'] = createUnit('katz','Katz','enemy',53, 3,19, 500,75, 1.0,0, ['katzHidden','katzExecution','katzStrong'], {team:'seven', stunThreshold:3, pullImmune:true}); applyAftermath(units['katz']);
 units['tusk'] = createUnit('tusk','Tusk','enemy',54, 6,19, 1000,60, 1.0,0, ['tuskGuard','tuskWall','tuskBull'], {team:'seven', size:2, stunThreshold:3, pullImmune:true}); applyAftermath(units['tusk']);
 units['neyla']= createUnit('neyla','Neyla','enemy',52, 2,15, 350,80, 1.0,0, ['neylaAim','neylaCold','neylaReload'], {team:'seven', stunThreshold:2}); applyAftermath(units['neyla']);
@@ -458,6 +458,8 @@ function updateCameraBounds(){
   const fitScale = Math.min(vw / BOARD_WIDTH, vh / BOARD_HEIGHT) || 1;
   const base = Math.min(1, fitScale);
   cameraState.baseScale = base;
+  cameraState.minScale = Math.max(0.5, base * 0.7);
+  cameraState.maxScale = Math.max(base * 1.75, base * 1.1);
   cameraState.minScale = Math.max(0.45, base * 0.6);
   cameraState.maxScale = Math.max(base * 2.2, base * 1.1);
   cameraState.targetScale = clampValue(cameraState.targetScale || base, cameraState.minScale, cameraState.maxScale);
@@ -468,6 +470,8 @@ function updateCameraBounds(){
 function startCameraLoop(){
   if(cameraLoopHandle) return;
   const step = ()=>{
+    const stiffness = 0.12;
+    const damping = 0.86;
     const stiffness = 0.16;
     const damping = 0.78;
 
@@ -523,6 +527,8 @@ function cellCenterOffset(r,c){
 function cameraFocusOnCell(r,c,{scale=null, hold=enemyActionCameraLock?0:360, immediate=false}={}){
   if(!battleAreaEl || !mapPaneEl) return;
   const offset = cellCenterOffset(r,c);
+  const autoScale = enemyActionCameraLock ? cameraState.baseScale * 1.05 : cameraState.baseScale * 1.1;
+  const desiredScale = clampValue(scale===null ? Math.min(autoScale, cameraState.maxScale) : scale, cameraState.minScale, cameraState.maxScale);
   const desiredScale = clampValue(scale===null ? Math.min(cameraState.baseScale * 1.2, cameraState.maxScale) : scale, cameraState.minScale, cameraState.maxScale);
   const tx = -offset.x * desiredScale;
   const ty = -offset.y * desiredScale;
@@ -563,6 +569,7 @@ function registerCameraInputs(){
   mapPaneEl.addEventListener('wheel', (e)=>{
     e.preventDefault();
     if(interactionLocked) return;
+    const factor = e.deltaY < 0 ? 1.08 : 0.94;
     const factor = e.deltaY < 0 ? 1.12 : 0.88;
     zoomCamera(factor, e);
   }, {passive:false});
@@ -594,11 +601,13 @@ function createCameraControls(){
   zoomInBtn.type='button';
   zoomInBtn.textContent = '+';
   zoomInBtn.title = '放大';
+  zoomInBtn.addEventListener('click', ()=>{ if(interactionLocked) return; zoomCamera(1.12); });
   zoomInBtn.addEventListener('click', ()=>{ if(interactionLocked) return; zoomCamera(1.18); });
   const zoomOutBtn = document.createElement('button');
   zoomOutBtn.type='button';
   zoomOutBtn.textContent = '−';
   zoomOutBtn.title = '缩小';
+  zoomOutBtn.addEventListener('click', ()=>{ if(interactionLocked) return; zoomCamera(0.9); });
   zoomOutBtn.addEventListener('click', ()=>{ if(interactionLocked) return; zoomCamera(0.86); });
   cameraControlsEl.appendChild(zoomInBtn);
   cameraControlsEl.appendChild(zoomOutBtn);
@@ -630,6 +639,17 @@ function ensureRoundBanner(){
 function showRoundBanner(text, duration=1800){
   const el = ensureRoundBanner();
   const inner = el.querySelector('.text');
+  if(inner){
+    inner.textContent = text;
+    inner.classList.remove('animate');
+    void inner.offsetWidth;
+    inner.classList.add('animate');
+  }
+  el.classList.add('show');
+  setTimeout(()=>{
+    el.classList.remove('show');
+    if(inner) inner.classList.remove('animate');
+  }, duration);
   if(inner) inner.textContent = text;
   el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), duration);
@@ -641,6 +661,18 @@ function ensureIntroDialog(){
     introDialogEl.style.display = 'none';
     const box = document.createElement('div');
     box.className = 'box';
+    const nameplate = document.createElement('div');
+    nameplate.className = 'nameplate';
+    const name = document.createElement('div');
+    name.className = 'name';
+    nameplate.appendChild(name);
+    box.appendChild(nameplate);
+    const body = document.createElement('div');
+    body.className = 'dialogBody';
+    const content = document.createElement('div');
+    content.className = 'content';
+    body.appendChild(content);
+    box.appendChild(body);
     const content = document.createElement('div');
     content.className = 'content';
     box.appendChild(content);
@@ -653,6 +685,22 @@ function ensureIntroDialog(){
   }
   return introDialogEl;
 }
+function showIntroLine(line){
+  const dialog = ensureIntroDialog();
+  const payload = (typeof line === 'string') ? {speaker: 'Haz', text: line} : line;
+  const speaker = payload && payload.speaker ? payload.speaker : 'Haz';
+  const text = payload && payload.text ? payload.text : '';
+  const content = dialog.querySelector('.content');
+  const name = dialog.querySelector('.nameplate .name');
+  if(name) name.textContent = speaker;
+  if(content){
+    content.textContent = text;
+    content.classList.remove('reveal');
+    void content.offsetWidth;
+    content.classList.add('reveal');
+  }
+  dialog.style.display = 'flex';
+  dialog.classList.add('show');
 function showIntroLine(text){
   const dialog = ensureIntroDialog();
   const content = dialog.querySelector('.content');
@@ -666,6 +714,7 @@ function showIntroLine(text){
     dialog.addEventListener('click', handler, {once:true});
   });
 }
+function hideIntroDialog(){ if(introDialogEl){ introDialogEl.style.display = 'none'; introDialogEl.classList.remove('show'); } }
 function hideIntroDialog(){ if(introDialogEl){ introDialogEl.style.display = 'none'; } }
 async function playIntroCinematic(){
   if(introPlayed) return;
@@ -679,6 +728,13 @@ async function playIntroCinematic(){
     cameraFocusOnCell(haz.r, haz.c, {scale: zoom, hold:0});
     await sleep(420);
   }
+  await showIntroLine({speaker:'Haz', text:'这种躲躲藏藏遮遮掩掩的人绝对不是什么好东西'});
+  await showIntroLine({speaker:'Haz', text:'准备好队员们，今晚不出意外的话，又能钓到一条大的。。。'});
+  hideIntroDialog();
+  cameraReset();
+  await sleep(520);
+  showRoundBanner('回合一', 2200);
+  await sleep(2000);
   await showIntroLine('这种躲躲藏藏遮遮掩掩的人绝对不是什么好东西');
   await showIntroLine('准备好队员们，今晚不出意外的话，又能钓到一条大的。。。');
   hideIntroDialog();
@@ -2078,6 +2134,10 @@ function placeUnits(){
     const div=document.createElement('div');
     div.className='unit ' + (u.side==='player'?'player':'enemy');
     div.dataset.id=id;
+    if(u.id==='haz'){
+      div.classList.add('hazUnit');
+      if(u._comeback) div.classList.add('comeback');
+    }
 
     div.addEventListener('click',(e)=>{
       if(interactionLocked) return;
@@ -2097,8 +2157,10 @@ function placeUnits(){
 
     const hpPct = Math.max(0, Math.min(100, (u.hp/u.maxHp*100)||0));
     const spPct = Math.max(0, Math.min(100, (u.maxSp ? (u.sp/u.maxSp*100) : 0)));
+    const aura = (u.id==='haz') ? '<div class="hazParticles"></div>' : '';
     div.innerHTML = `
-      <div>${u.name}</div>
+      ${aura}
+      <div class="name">${u.name}</div>
       <div class="hpbar"><div class="hpfill" style="width:${hpPct}%"></div></div>
       <div class="spbar"><div class="spfill" style="width:${spPct}%"></div></div>
     `;
@@ -2108,24 +2170,27 @@ function placeUnits(){
 
 //part 1 结束
 function renderLargeUnitOverlay(u){
-  const tl = getCellEl(u.r, u.c);
-  const br = getCellEl(u.r+1, u.c+1);
-  if(!tl || !br || !battleAreaEl) return;
-  const tlRect = tl.getBoundingClientRect();
-  const brRect = br.getBoundingClientRect();
-  const areaRect = battleAreaEl.getBoundingClientRect();
+  if(!battleAreaEl) return;
+
+  const cells = getCoveredCells(u);
+  const allVisible = cells.every(c=> !!getCellEl(c.r, c.c));
+  if(!allVisible) return;
 
   const overlay = document.createElement('div');
   overlay.className = 'largeOverlay ' + (u.side==='player'?'player':'enemy');
   overlay.dataset.id = u.id;
   overlay.style.position = 'absolute';
-  overlay.style.left   = `${tlRect.left - areaRect.left}px`;
-  overlay.style.top    = `${tlRect.top  - areaRect.top }px`;
-  overlay.style.width  = `${brRect.right  - tlRect.left}px`;
-  overlay.style.height = `${brRect.bottom - tlRect.top }px`;
+
+  const span = CELL_SIZE * u.size + GRID_GAP * (u.size - 1);
+  const left = BOARD_BORDER + BOARD_PADDING + (u.c - 1) * (CELL_SIZE + GRID_GAP);
+  const top = BOARD_BORDER + BOARD_PADDING + (u.r - 1) * (CELL_SIZE + GRID_GAP);
+  overlay.style.left = `${left}px`;
+  overlay.style.top = `${top}px`;
+  overlay.style.width = `${span}px`;
+  overlay.style.height = `${span}px`;
   overlay.style.background = (u.side==='player')?'rgba(82,196,26,0.15)':'rgba(245,34,45,0.12)';
   overlay.style.border = '1px solid rgba(255,255,255,0.25)';
-  overlay.style.borderRadius = '8px';
+  overlay.style.borderRadius = '10px';
   overlay.style.color = '#fff';
   overlay.style.display='flex';
   overlay.style.flexDirection='column';
@@ -2151,7 +2216,7 @@ function renderLargeUnitOverlay(u){
   const hpPct = Math.max(0, Math.min(100, (u.hp/u.maxHp*100)||0));
   const spPct = Math.max(0, Math.min(100, (u.maxSp ? (u.sp/u.maxSp*100) : 0)));
   overlay.innerHTML = `
-    <div class="title">${u.name} (2x2)</div>
+    <div class="title">${u.name}</div>
     <div class="hpbar" style="width:90%;height:6px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">
       <div class="hpfill" style="height:100%;width:${hpPct}%;background:#ff4d4f;"></div>
     </div>
@@ -2358,7 +2423,8 @@ function onCellClick(r,c){
   sel.r=r; sel.c=c;
   if(sel.side==='player') playerSteps=Math.max(0, playerSteps-1); else enemySteps=Math.max(0, enemySteps-1);
   appendLog(`${sel.name} 移动到 (${r},${c})`);
-  cameraFocusOnCell(r,c); pulseCell(r,c);
+  if(sel.side!=='player') cameraFocusOnCell(r,c);
+  pulseCell(r,c);
   if(sel.id==='karma' && sel.consecAttacks>0){ appendLog(`${sel.name} 的连击被打断（移动）`); sel.consecAttacks=0; }
   unitActed(sel);
   clearHighlights(); renderAll(); showSelected(sel);
