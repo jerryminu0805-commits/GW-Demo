@@ -1,0 +1,262 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+  margin: 0;
+  background: #11161f;
+  color: #f1f5ff;
+}
+
+header {
+  padding: 16px;
+  background: #1d2533;
+  border-bottom: 1px solid #2f3a4f;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.controls button,
+.controls input {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+}
+
+.controls button {
+  background: #3a78f2;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.controls button:hover {
+  background: #265bd0;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+.board-section {
+  grid-row: 1 / span 2;
+  background: #0d121b;
+  border: 1px solid #2f3a4f;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(22, 28px);
+  grid-template-rows: repeat(18, 28px);
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.cell {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.cell.player {
+  background: rgba(0, 194, 255, 0.75);
+}
+
+.cell.enemy {
+  background: rgba(255, 76, 76, 0.8);
+}
+
+.cell.cover {
+  background: rgba(173, 181, 189, 0.8);
+}
+
+.cell.cover-range {
+  background: rgba(255, 193, 7, 0.65);
+}
+
+.cell.void {
+  background: rgba(20, 23, 31, 0.6);
+}
+
+.cell .label {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 10px;
+  font-weight: bold;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+}
+
+.legend h3 {
+  margin: 0 0 8px;
+}
+
+.legend ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.legend-box {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.legend-box.player {
+  background: rgba(0, 194, 255, 0.75);
+}
+
+.legend-box.enemy {
+  background: rgba(255, 76, 76, 0.8);
+}
+
+.legend-box.cover {
+  background: rgba(173, 181, 189, 0.8);
+}
+
+.legend-box.cover-range {
+  background: rgba(255, 193, 7, 0.65);
+}
+
+.legend-box.void {
+  background: rgba(20, 23, 31, 0.6);
+}
+
+.status-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.status-column {
+  background: #0d121b;
+  border: 1px solid #2f3a4f;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 320px;
+  overflow-y: auto;
+}
+
+.status-column h2 {
+  margin-top: 0;
+  border-bottom: 1px solid #2f3a4f;
+  padding-bottom: 8px;
+}
+
+.unit-card {
+  background: rgba(33, 42, 61, 0.7);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(58, 120, 242, 0.35);
+}
+
+.unit-card.enemy {
+  border-color: rgba(255, 76, 76, 0.5);
+}
+
+.bar {
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0 8px;
+}
+
+.bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #3a78f2, #5bd3ff);
+}
+
+.bar-inner.sp {
+  background: linear-gradient(90deg, #ff9f43, #ff5f6d);
+}
+
+.stats {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.buff-list {
+  font-size: 12px;
+  color: #d9e3ff;
+  margin-top: 6px;
+}
+
+.log-section {
+  grid-column: 2 / span 1;
+  background: #0d121b;
+  border: 1px solid #2f3a4f;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.log {
+  height: 320px;
+  overflow-y: auto;
+  background: rgba(15, 19, 27, 0.9);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.log-entry {
+  margin-bottom: 6px;
+}
+
+footer {
+  text-align: center;
+  padding: 16px;
+  background: #1d2533;
+  border-top: 1px solid #2f3a4f;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+
+  .board-section {
+    grid-row: 1;
+  }
+
+  .log-section {
+    grid-column: 1;
+  }
+
+  .status-section {
+    grid-template-columns: 1fr;
+  }
+}
