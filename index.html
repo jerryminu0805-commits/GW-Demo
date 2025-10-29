@@ -1,118 +1,203 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-Hans">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GOD'S WILL Demo</title>
+  <title>GOD'S WILL - Demo Interface</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="transition-overlay" class="transition transition--reveal"></div>
-  <div id="app">
-    <main id="menu-screen" class="screen screen--active">
-      <div class="menu-background"></div>
-      <div class="menu-content">
-        <h1 class="game-title">GOD'S WILL</h1>
-        <nav class="menu-buttons">
-          <button class="menu-button" data-target="chapter">开始</button>
-          <button class="menu-button" data-action="settings">设置</button>
-          <button class="menu-button" data-action="exit">离开</button>
-          <button class="menu-button" data-target="tutorial">教学</button>
-        </nav>
-      </div>
+  <div class="app-shell">
+    <div class="transition-mask intro" aria-hidden="true"></div>
+
+    <main class="screens">
+      <section class="screen screen-menu active" data-screen="menu" aria-label="主菜单">
+        <div class="menu-background">
+          <div class="menu-stars"></div>
+          <div class="menu-glow"></div>
+        </div>
+        <div class="menu-content">
+          <div class="menu-title">
+            <span class="title-line"></span>
+            <h1>GOD'S WILL</h1>
+            <span class="title-line"></span>
+          </div>
+          <nav class="menu-buttons">
+            <button class="menu-btn" data-action="start">开始</button>
+            <button class="menu-btn" data-action="settings">设置</button>
+            <button class="menu-btn" data-action="exit">离开</button>
+            <button class="menu-btn" data-action="tutorial">教学</button>
+          </nav>
+        </div>
+      </section>
+
+      <section class="screen screen-chapters" data-screen="chapters" aria-label="章节选择">
+        <header class="screen-header">
+          <button class="ghost-btn" data-action="back-menu">返回菜单</button>
+          <h2>章节</h2>
+        </header>
+        <div class="chapter-wrapper">
+          <div class="chapter-board" role="list">
+            <button class="chapter-strip unlocked" data-chapter="demo">
+              <span class="chapter-name">Demo</span>
+              <span class="chapter-status">已解锁</span>
+            </button>
+            <button class="chapter-strip locked" disabled>
+              <span class="chapter-name">Chapter I</span>
+              <span class="chapter-status">锁定</span>
+            </button>
+            <button class="chapter-strip locked" disabled>
+              <span class="chapter-name">Chapter II</span>
+              <span class="chapter-status">锁定</span>
+            </button>
+            <button class="chapter-strip locked" disabled>
+              <span class="chapter-name">Chapter III</span>
+              <span class="chapter-status">锁定</span>
+            </button>
+            <button class="chapter-strip locked" disabled>
+              <span class="chapter-name">Chapter IV</span>
+              <span class="chapter-status">锁定</span>
+            </button>
+            <button class="chapter-strip locked" disabled>
+              <span class="chapter-name">Chapter V</span>
+              <span class="chapter-status">锁定</span>
+            </button>
+            <button class="chapter-strip locked" disabled>
+              <span class="chapter-name">Chapter VI</span>
+              <span class="chapter-status">锁定</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen screen-stage" data-screen="stage" aria-label="Demo章节">
+        <header class="screen-header">
+          <button class="ghost-btn" data-action="back-chapters">返回章节</button>
+          <h2>Demo</h2>
+          <button class="ghost-btn" data-action="open-characters">角色</button>
+        </header>
+        <div class="stage-layout">
+          <aside class="stage-list">
+            <h3>关卡</h3>
+            <ul>
+              <li><button class="stage-btn stage-intro active" data-stage="intro">Intro</button></li>
+              <li><button class="stage-btn stage-limit" data-stage="limit">疲惫的极限</button></li>
+              <li><button class="stage-btn stage-seven" data-stage="seven">七海</button></li>
+            </ul>
+            <div class="stage-description" data-description="intro"></div>
+            <div class="stage-description" data-description="limit" hidden></div>
+            <div class="stage-description" data-description="seven" hidden></div>
+          </aside>
+          <section class="stage-detail">
+            <header class="stage-head">
+              <div>
+                <h3 id="stageTitle">Intro</h3>
+                <p id="stageSubtitle">初次接触战术系统</p>
+              </div>
+              <div class="stage-meta" id="stageMeta"></div>
+            </header>
+            <div class="stage-preview">
+              <div class="map-preview" aria-labelledby="stageTitle"></div>
+              <div class="map-legend" hidden></div>
+            </div>
+            <section class="stage-intel" aria-label="敌方情报">
+              <h4>敌方情报</h4>
+              <div class="enemy-roster" id="enemyRoster"></div>
+            </section>
+            <footer class="stage-actions">
+              <button class="primary-btn" data-action="enter-stage">进入关卡</button>
+            </footer>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen screen-tutorial" data-screen="tutorial" aria-label="教学">
+        <header class="screen-header">
+          <button class="ghost-btn" data-action="back-menu">返回菜单</button>
+          <h2>教学</h2>
+        </header>
+        <div class="tutorial-body">
+          <nav class="tablist" role="tablist" aria-label="教学章节">
+            <button role="tab" aria-selected="true" class="tab-btn" data-tab="basics">简短游戏玩法</button>
+            <button role="tab" aria-selected="false" class="tab-btn" data-tab="skills">技能</button>
+            <button role="tab" aria-selected="false" class="tab-btn" data-tab="effects">特殊效果</button>
+            <button role="tab" aria-selected="false" class="tab-btn" data-tab="enemies">敌人</button>
+          </nav>
+          <div class="tab-panels">
+            <article class="tab-panel" data-tab-panel="basics"></article>
+            <article class="tab-panel" data-tab-panel="skills" hidden></article>
+            <article class="tab-panel" data-tab-panel="effects" hidden></article>
+            <article class="tab-panel" data-tab-panel="enemies" hidden></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen screen-characters" data-screen="characters" aria-label="角色信息">
+        <header class="screen-header">
+          <button class="ghost-btn" data-action="back-stage">返回关卡</button>
+          <h2>角色档案</h2>
+        </header>
+        <div class="characters-body">
+          <div class="character-portrait">
+            <div class="portrait-glow"></div>
+            <div class="portrait-silhouette" id="portraitLabel">Adora</div>
+            <div class="portrait-level"><span>Lv.</span><strong id="portraitLevel">20</strong></div>
+          </div>
+          <div class="character-panels">
+            <div class="character-tabs">
+              <nav class="character-switch" role="tablist" aria-label="角色">
+                <button class="character-tab active" data-character="adora">Adora</button>
+                <button class="character-tab" data-character="karma">Karma</button>
+                <button class="character-tab" data-character="dario">Dario</button>
+              </nav>
+              <div class="view-tabs">
+                <button class="view-tab active" data-view="intro">介绍</button>
+                <button class="view-tab" data-view="skills">技能</button>
+              </div>
+            </div>
+            <article class="character-content" data-view="intro"></article>
+            <article class="character-content" data-view="skills" hidden></article>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <section id="settings-panel" class="modal hidden">
-      <div class="modal-content">
-        <h2>设置</h2>
-        <p>设置界面正在施工中。</p>
-        <button class="pill-button" data-close="settings">返回</button>
+    <div class="settings-panel" data-dialog="settings" hidden>
+      <div class="panel-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <header>
+          <h3 id="settingsTitle">设置</h3>
+          <button class="close-btn" data-action="close-settings" aria-label="关闭设置">×</button>
+        </header>
+        <div class="panel-content">
+          <label>
+            <span>音乐</span>
+            <input type="range" min="0" max="100" value="60" />
+          </label>
+          <label>
+            <span>音效</span>
+            <input type="range" min="0" max="100" value="70" />
+          </label>
+          <label>
+            <span>显示模式</span>
+            <select>
+              <option>窗口化</option>
+              <option>全屏</option>
+            </select>
+          </label>
+          <p class="panel-tip">更多设置将在后续版本开放。</p>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section id="chapter-screen" class="screen">
-      <header class="screen-header">
-        <button class="pill-button" data-target="menu">返回</button>
-        <h2>章节选择</h2>
-        <button class="pill-button" data-target="character">角色</button>
-      </header>
-      <div class="chapter-grid">
-        <article class="chapter-card chapter-card--active" data-chapter="demo">
-          <h3>Demo</h3>
-          <p>唯一解锁的章节。</p>
-          <button class="pill-button" data-target="levels" data-chapter="demo">进入</button>
-        </article>
-        <article class="chapter-card chapter-card--locked">
-          <h3>Chapter 2</h3>
-          <p>锁定</p>
-        </article>
-        <article class="chapter-card chapter-card--locked">
-          <h3>Chapter 3</h3>
-          <p>锁定</p>
-        </article>
-        <article class="chapter-card chapter-card--locked">
-          <h3>Chapter 4</h3>
-          <p>锁定</p>
-        </article>
-        <article class="chapter-card chapter-card--locked">
-          <h3>Chapter 5</h3>
-          <p>锁定</p>
-        </article>
-        <article class="chapter-card chapter-card--locked">
-          <h3>Chapter 6</h3>
-          <p>锁定</p>
-        </article>
-        <article class="chapter-card chapter-card--locked">
-          <h3>Chapter 7</h3>
-          <p>锁定</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="level-screen" class="screen">
-      <header class="screen-header">
-        <button class="pill-button" data-target="chapter">返回</button>
-        <h2 id="level-chapter-title">Demo - 关卡选择</h2>
-      </header>
-      <div class="level-layout">
-        <aside class="level-list">
-          <button class="level-button" data-level="intro">Intro</button>
-          <button class="level-button" data-level="limit">疲惫的极限</button>
-          <button class="level-button" data-level="sevenSeas">七海</button>
-        </aside>
-        <section class="level-detail" id="level-detail"></section>
-      </div>
-    </section>
-
-    <section id="tutorial-screen" class="screen">
-      <header class="screen-header">
-        <button class="pill-button" data-target="menu">返回</button>
-        <h2>教学</h2>
-      </header>
-      <div class="tutorial-tabs">
-        <button class="tab-button active" data-tab="basics">简短游戏玩法</button>
-        <button class="tab-button" data-tab="skills">技能</button>
-        <button class="tab-button" data-tab="effects">特殊效果</button>
-        <button class="tab-button" data-tab="enemies">敌人</button>
-      </div>
-      <div class="tab-content" id="tutorial-content"></div>
-    </section>
-
-    <section id="character-screen" class="screen">
-      <header class="screen-header">
-        <button class="pill-button" data-target="chapter">返回</button>
-        <h2>角色档案</h2>
-      </header>
-      <div class="character-wrapper">
-        <aside class="character-list">
-          <button class="character-button active" data-character="adora">Adora</button>
-          <button class="character-button" data-character="karma">Karma</button>
-          <button class="character-button" data-character="dario">Dario</button>
-        </aside>
-        <section class="character-detail" id="character-detail"></section>
-      </div>
-    </section>
+    <div class="toast" role="status" aria-live="polite"></div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
