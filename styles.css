@@ -71,7 +71,6 @@ body {
 
 .transition-mask.visible {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .transition-mask.covering {

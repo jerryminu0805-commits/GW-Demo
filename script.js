@@ -17,6 +17,12 @@ const stageProgress = {
   sevenSeas: false,
 };
 
+function resetMaskState() {
+  if (!mask) return;
+  mask.classList.remove('visible', 'covering', 'revealing');
+  maskBusy = false;
+}
+
 function setActiveScreen(screenId) {
   screens.forEach((node, key) => {
     node.classList.toggle('active', key === screenId);
@@ -38,25 +44,45 @@ function transitionTo(targetScreen) {
   void mask.offsetWidth;
   mask.classList.add('covering');
 
+  let stage = 'cover';
+  let fallbackTimer;
+
+  const clearFallback = () => {
+    if (!fallbackTimer) return;
+    clearTimeout(fallbackTimer);
+    fallbackTimer = null;
+  };
+
+  const handleReveal = (event) => {
+    if (event.propertyName !== 'transform') return;
+    mask.removeEventListener('transitionend', handleReveal);
+    stage = 'done';
+    clearFallback();
+    resetMaskState();
+  };
+
   const handleCover = (event) => {
     if (event.propertyName !== 'transform') return;
     mask.removeEventListener('transitionend', handleCover);
     setActiveScreen(targetScreen);
+    stage = 'reveal';
     mask.classList.remove('covering');
     mask.classList.add('revealing');
-
-    const handleReveal = (evt) => {
-      if (evt.propertyName !== 'transform') return;
-      mask.removeEventListener('transitionend', handleReveal);
-      mask.classList.remove('visible');
-      mask.classList.remove('revealing');
-      maskBusy = false;
-    };
-
-    mask.addEventListener('transitionend', handleReveal, { once: true });
+    mask.addEventListener('transitionend', handleReveal);
   };
 
-  mask.addEventListener('transitionend', handleCover, { once: true });
+  fallbackTimer = setTimeout(() => {
+    if (stage === 'cover') {
+      setActiveScreen(targetScreen);
+    }
+    mask.removeEventListener('transitionend', handleCover);
+    mask.removeEventListener('transitionend', handleReveal);
+    stage = 'done';
+    resetMaskState();
+    fallbackTimer = null;
+  }, 2000);
+
+  mask.addEventListener('transitionend', handleCover);
 }
 
 function showToast(message) {
@@ -899,17 +925,27 @@ function bindNavigation() {
 
 function initialiseMaskReveal() {
   maskBusy = true;
+  let completed = false;
+
+  const finish = (event) => {
+    if (event.propertyName !== 'transform') return;
+    mask.removeEventListener('transitionend', finish);
+    completed = true;
+    resetMaskState();
+  };
+
   setTimeout(() => {
     mask.classList.remove('covering');
     mask.classList.add('revealing');
-    const finish = (event) => {
-      if (event.propertyName !== 'transform') return;
-      mask.removeEventListener('transitionend', finish);
-      mask.classList.remove('visible', 'revealing');
-      maskBusy = false;
-    };
-    mask.addEventListener('transitionend', finish, { once: true });
+    mask.addEventListener('transitionend', finish);
   }, 300);
+
+  setTimeout(() => {
+    if (completed) return;
+    mask.removeEventListener('transitionend', finish);
+    completed = true;
+    resetMaskState();
+  }, 1500);
 }
 
 function init() {
