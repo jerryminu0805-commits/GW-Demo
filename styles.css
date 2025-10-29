@@ -495,15 +495,27 @@ body {
 }
 
 .map-cell.enemy {
-  background: linear-gradient(135deg, rgba(243, 86, 86, 0.7), rgba(111, 22, 25, 0.85));
-  color: #fff2f2;
+  background: linear-gradient(135deg, rgba(255, 132, 132, 0.65), rgba(120, 30, 45, 0.88));
+  color: #ffeaea;
   font-weight: 600;
 }
 
-.map-cell.boss {
-  background: linear-gradient(135deg, rgba(239, 133, 50, 0.78), rgba(120, 35, 0, 0.85));
-  color: #2a0c00;
+.map-cell.miniboss {
+  background: linear-gradient(135deg, rgba(255, 186, 108, 0.85), rgba(131, 62, 6, 0.92));
+  color: #2d1200;
   font-weight: 700;
+}
+
+.map-cell.elite {
+  background: linear-gradient(135deg, rgba(206, 169, 255, 0.85), rgba(78, 39, 131, 0.92));
+  color: #f3ebff;
+  font-weight: 700;
+}
+
+.map-cell.boss {
+  background: linear-gradient(135deg, rgba(255, 96, 126, 0.88), rgba(102, 8, 24, 0.92));
+  color: #fff4f6;
+  font-weight: 800;
 }
 
 .map-cell.cover {
@@ -582,8 +594,29 @@ body {
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  background: rgba(12, 14, 24, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 14, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(12, 14, 24, 0.3);
+}
+
+.enemy-card.threat-boss {
+  border-left-color: rgba(255, 96, 126, 0.95);
+  box-shadow: 0 0 0 1px rgba(255, 96, 126, 0.18), 0 18px 36px -18px rgba(255, 96, 126, 0.35);
+}
+
+.enemy-card.threat-miniboss {
+  border-left-color: rgba(255, 176, 80, 0.95);
+  box-shadow: 0 0 0 1px rgba(255, 176, 80, 0.18), 0 18px 36px -18px rgba(255, 176, 80, 0.35);
+}
+
+.enemy-card.threat-elite {
+  border-left-color: rgba(190, 148, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(190, 148, 255, 0.18), 0 18px 36px -18px rgba(190, 148, 255, 0.35);
+}
+
+.enemy-card.threat-enemy {
+  border-left-color: rgba(255, 255, 255, 0.18);
 }
 
 .enemy-head {
@@ -601,6 +634,26 @@ body {
   place-items: center;
   font-size: 24px;
   background: rgba(255, 255, 255, 0.08);
+  transition: transform 0.25s ease;
+}
+
+.enemy-card:hover .enemy-icon {
+  transform: translateY(-2px);
+}
+
+.enemy-card.threat-boss .enemy-icon {
+  background: linear-gradient(135deg, rgba(255, 107, 132, 0.9), rgba(110, 16, 36, 0.9));
+  color: #fff7f8;
+}
+
+.enemy-card.threat-miniboss .enemy-icon {
+  background: linear-gradient(135deg, rgba(255, 190, 102, 0.92), rgba(133, 66, 10, 0.92));
+  color: #3a1400;
+}
+
+.enemy-card.threat-elite .enemy-icon {
+  background: linear-gradient(135deg, rgba(200, 160, 255, 0.9), rgba(77, 39, 134, 0.92));
+  color: #f5efff;
 }
 
 .enemy-meta {
@@ -681,9 +734,12 @@ body {
 .portrait-art {
   aspect-ratio: 3 / 4;
   border-radius: 16px;
-  background: radial-gradient(circle at 30% 20%, rgba(234, 65, 87, 0.45), rgba(16, 18, 30, 0.9)),
-    url("https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=800&q=80") center/cover;
-  filter: saturate(0.7);
+  background-color: #111321;
+  background-image: radial-gradient(circle at 30% 20%, rgba(234, 65, 87, 0.45), rgba(16, 18, 30, 0.9));
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat;
+  filter: saturate(0.85);
 }
 
 .character-level {
@@ -737,6 +793,110 @@ body {
 .detail-content ul {
   margin: 10px 0 16px;
   padding-left: 20px;
+}
+
+.passive-skill-list {
+  margin-bottom: 18px;
+}
+
+.active-skill-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.skill-entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.skill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  min-width: 90px;
+}
+
+.skill-body {
+  display: grid;
+  gap: 6px;
+}
+
+.skill-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.skill-header strong {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+
+.skill-cost {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.skill-body p {
+  margin: 0;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.skill-badge.skill-green {
+  background: linear-gradient(135deg, #a3f5c4, #3fa573);
+  color: #04371f;
+}
+
+.skill-badge.skill-gray {
+  background: linear-gradient(135deg, #d4d8de, #9fa4b0);
+  color: #1f2532;
+}
+
+.skill-badge.skill-blue {
+  background: linear-gradient(135deg, #9bd3ff, #2b5ba5);
+  color: #082443;
+}
+
+.skill-badge.skill-red {
+  background: linear-gradient(135deg, #ff8fa3, #a5233b);
+  color: #420312;
+}
+
+.skill-badge.skill-pink {
+  background: linear-gradient(135deg, #ffc3e3, #c15386);
+  color: #461022;
+}
+
+.skill-badge.skill-orange {
+  background: linear-gradient(135deg, #ffcf8a, #c46a1a);
+  color: #4a1e00;
+}
+
+.skill-badge.skill-white {
+  background: linear-gradient(135deg, #fefefe, #d8d8d8);
+  color: #2b2b2b;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .tutorial-tabs {
