@@ -1,6 +1,6 @@
 # GOD'S WILL Demo UI
 
-This repository contains a static prototype that visualises the requested menu, chapter selection, level briefing, character dossier, and tutorial flows for the GOD'S WILL demo.
+This repository contains a static prototype that visualises the requested menu, chapter selection, level briefing, character dossier, and tutorial flows for the GOD'S WILL demo. The in-game data reference for the "Seven Seas Squad" boss encounter can be found in [`docs/seven-seas-boss-battle.md`](docs/seven-seas-boss-battle.md).
 
 ## 运行方式
 
