@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#b79ec1" />
+      <stop offset="100%" stop-color="#7b5c8e" />
+    </linearGradient>
+    <linearGradient id="sweater" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f0dbe7" />
+      <stop offset="100%" stop-color="#d6b7cf" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#bg)" />
+  <ellipse cx="400" cy="860" rx="210" ry="240" fill="url(#sweater)" />
+  <ellipse cx="270" cy="910" rx="85" ry="140" fill="#e6c4d7" />
+  <ellipse cx="530" cy="910" rx="85" ry="140" fill="#e6c4d7" />
+  <rect x="235" y="1040" width="330" height="110" rx="60" fill="#f7f0f6" />
+  <rect x="320" y="1120" width="70" height="200" rx="45" fill="#f7f8fb" />
+  <rect x="410" y="1120" width="70" height="200" rx="45" fill="#f7f8fb" />
+  <ellipse cx="400" cy="520" rx="230" ry="220" fill="#5f616e" />
+  <ellipse cx="260" cy="720" rx="150" ry="200" fill="#5f616e" />
+  <ellipse cx="540" cy="720" rx="150" ry="200" fill="#5f616e" />
+  <ellipse cx="400" cy="520" rx="125" ry="150" fill="#f6ecef" />
+  <rect x="320" y="600" width="60" height="18" rx="8" fill="#4b4f58" />
+  <rect x="420" y="600" width="60" height="18" rx="8" fill="#4b4f58" />
+  <rect x="360" y="660" width="80" height="18" rx="8" fill="#73636d" />
+  <path d="M260 420 Q400 280 540 420 L540 500 Q400 460 260 500 Z" fill="#49384e" />
+  <rect x="240" y="480" width="320" height="80" rx="50" fill="#f2e7f4" />
+  <polygon points="270,430 320,280 380,430" fill="#49384e" />
+  <polygon points="520,430 580,280 630,430" fill="#49384e" />
+  <line x1="470" y1="460" x2="505" y2="495" stroke="#ef4a87" stroke-width="10" stroke-linecap="round" />
+  <line x1="505" y1="460" x2="540" y2="495" stroke="#ef4a87" stroke-width="10" stroke-linecap="round" />
+  <rect x="250" y="800" width="300" height="35" rx="18" fill="#f2e7f4" />
+</svg>

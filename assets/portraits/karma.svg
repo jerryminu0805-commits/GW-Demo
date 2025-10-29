@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200">
+  <defs>
+    <linearGradient id="karmaBg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#8e3b43" />
+      <stop offset="100%" stop-color="#441e23" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#karmaBg)" />
+  <ellipse cx="400" cy="880" rx="220" ry="250" fill="#d8d0d2" />
+  <ellipse cx="300" cy="940" rx="90" ry="150" fill="#c6bfc1" />
+  <ellipse cx="500" cy="940" rx="90" ry="150" fill="#c6bfc1" />
+  <rect x="360" y="1100" width="80" height="200" rx="40" fill="#1e1f27" />
+  <rect x="460" y="1100" width="80" height="200" rx="40" fill="#1e1f27" />
+  <ellipse cx="400" cy="540" rx="220" ry="210" fill="#7b4d40" />
+  <ellipse cx="240" cy="720" rx="150" ry="180" fill="#7b4d40" />
+  <ellipse cx="560" cy="720" rx="150" ry="180" fill="#7b4d40" />
+  <ellipse cx="400" cy="540" rx="135" ry="150" fill="#f4dbd6" />
+  <polygon points="260,760 150,700 210,840" fill="#7b4d40" />
+  <polygon points="540,760 650,700 590,840" fill="#7b4d40" />
+  <rect x="320" y="620" width="180" height="50" rx="8" fill="#3a2324" />
+  <rect x="360" y="680" width="90" height="18" rx="8" fill="#d6d6d6" />
+  <line x1="360" y1="688" x2="450" y2="688" stroke="#6b6b6b" stroke-width="3" />
+  <line x1="380" y1="680" x2="380" y2="698" stroke="#6b6b6b" stroke-width="3" />
+  <line x1="410" y1="680" x2="410" y2="698" stroke="#6b6b6b" stroke-width="3" />
+  <line x1="440" y1="680" x2="440" y2="698" stroke="#6b6b6b" stroke-width="3" />
+  <rect x="220" y="900" width="110" height="220" rx="50" fill="#c6bfc1" />
+  <rect x="470" y="900" width="110" height="220" rx="50" fill="#c6bfc1" />
+</svg>
