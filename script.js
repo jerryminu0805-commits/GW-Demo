@@ -30,9 +30,9 @@ const stageData = {
         { name: 'Karma', x: 2, y: 6 },
       ],
       enemies: [
-        { name: '刑警队员', x: 12, y: 3 },
-        { name: '刑警队员', x: 12, y: 4 },
-        { name: '刑警队员', x: 12, y: 5 },
+        { name: '刑警队员', x: 13, y: 3 },
+        { name: '刑警队员', x: 13, y: 4 },
+        { name: '刑警队员', x: 13, y: 5 },
       ],
     },
     enemies: [
@@ -78,7 +78,7 @@ const stageData = {
         { name: 'Karma', x: 2, y: 6 },
       ],
       enemies: [
-        { name: 'Khathia', x: 16, y: 4, size: { w: 2, h: 2 } },
+        { name: 'Khathia', x: 17, y: 4, size: { w: 2, h: 2 } },
       ],
     },
     enemies: [
@@ -129,27 +129,28 @@ const stageData = {
     subtitle: '与作战队的误会 · 七海作战队',
     map: {
       width: 22,
-      height: 22,
+      height: 18,
+      origin: 'bottom-left',
       displaySize: '18 × 22（右下 8×10 空缺）',
       covers: [
-        { x1: 2, x2: 4, y1: 18, y2: 20 },
-        { x1: 2, x2: 5, y1: 9, y2: 11 },
-        { x1: 10, x2: 12, y1: 10, y2: 12 },
+        { x1: 2, x2: 5, y1: 4, y2: 6 },
+        { x1: 2, x2: 6, y1: 13, y2: 15 },
+        { x1: 11, x2: 13, y1: 13, y2: 15 },
       ],
       voids: [
-        { x1: 15, x2: 22, y1: 13, y2: 22 },
+        { x1: 15, x2: 22, y1: 1, y2: 10 },
       ],
       players: [
-        { name: 'Adora', x: 3, y: 21 },
-        { name: 'Karma', x: 5, y: 21 },
-        { name: 'Dario', x: 7, y: 21 },
+        { name: 'Adora', x: 3, y: 2 },
+        { name: 'Karma', x: 5, y: 2 },
+        { name: 'Dario', x: 7, y: 2 },
       ],
       enemies: [
-        { name: 'Haz', x: 21, y: 5 },
-        { name: 'Tusk', x: 19, y: 7, size: { w: 2, h: 1 } },
-        { name: 'Katz', x: 19, y: 4 },
-        { name: 'Neyla', x: 15, y: 3 },
-        { name: 'Kyn', x: 15, y: 8 },
+        { name: 'Haz', x: 21, y: 15 },
+        { name: 'Tusk', x: 19, y: 12, size: { w: 2, h: 2 } },
+        { name: 'Katz', x: 19, y: 16 },
+        { name: 'Neyla', x: 15, y: 17 },
+        { name: 'Kyn', x: 15, y: 12 },
       ],
     },
     narrative: [
@@ -574,40 +575,54 @@ function buildMap(stage) {
   const canvas = document.querySelector('.map-canvas');
   const sizeLabel = document.querySelector('.map-size');
   canvas.innerHTML = '';
-  const { width, height, covers, voids, players, enemies } = stage.map;
+  const {
+    width,
+    height,
+    covers = [],
+    voids = [],
+    players = [],
+    enemies = [],
+    origin = 'top-left',
+  } = stage.map;
+  const mapOrigin = origin;
+
   sizeLabel.textContent = stage.map.displaySize || `${height} × ${width}`;
   canvas.style.gridTemplateColumns = `repeat(${width}, var(--cell-size))`;
-
-  const coverRects = covers || [];
-  const voidRects = voids || [];
+  canvas.style.gridTemplateRows = `repeat(${height}, var(--cell-size))`;
 
   const grid = Array.from({ length: height }, () => Array(width).fill(''));
+
+  const withinBounds = (x, y) => x >= 1 && x <= width && y >= 1 && y <= height;
+  const toRowIndex = (y) => (mapOrigin === 'bottom-left' ? height - y : y - 1);
+  const toColIndex = (x) => x - 1;
+
+  const placeCell = (x, y, cls) => {
+    if (!withinBounds(x, y)) return;
+    const rowIndex = toRowIndex(y);
+    const colIndex = toColIndex(x);
+    if (rowIndex < 0 || rowIndex >= height || colIndex < 0 || colIndex >= width) return;
+    grid[rowIndex][colIndex] = cls;
+  };
 
   const markRect = (rects, cls) => {
     rects.forEach((rect) => {
       for (let y = rect.y1; y <= rect.y2; y += 1) {
         for (let x = rect.x1; x <= rect.x2; x += 1) {
-          if (y >= 1 && y <= height && x >= 1 && x <= width) {
-            grid[y - 1][x - 1] = cls;
-          }
+          placeCell(x, y, cls);
         }
       }
     });
   };
 
-  markRect(voidRects, 'void');
-  markRect(coverRects, 'cover');
+  markRect(voids, 'void');
+  markRect(covers, 'cover');
 
   const paintUnit = (unit, cls) => {
     const widthSpan = unit.size?.w ?? 1;
     const heightSpan = unit.size?.h ?? 1;
     for (let dy = 0; dy < heightSpan; dy += 1) {
       for (let dx = 0; dx < widthSpan; dx += 1) {
-        const y = unit.y + dy;
-        const x = unit.x + dx;
-        if (y >= 1 && y <= height && x >= 1 && x <= width) {
-          grid[y - 1][x - 1] = cls;
-        }
+        placeCell(unit.x + dx, unit.y + dy, cls);
       }
     }
   };
