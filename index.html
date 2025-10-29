@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>七海作战队 Boss 战模拟器</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>七海作战队 Boss 战模拟器</h1>
+    <div class="controls">
+      <button id="startBtn">开始模拟</button>
+      <button id="nextBtn">执行下一动作</button>
+      <button id="autoBtn">自动播放</button>
+      <label>自动延迟(ms)
+        <input id="delayInput" type="number" value="800" min="100" step="100" />
+      </label>
+      <button id="resetBtn">重置战场</button>
+    </div>
+  </header>
+  <main>
+    <section class="board-section">
+      <div id="board" class="board"></div>
+      <div class="legend">
+        <h3>图例</h3>
+        <ul>
+          <li><span class="legend-box player"></span> 我方单位</li>
+          <li><span class="legend-box enemy"></span> 七海作战队</li>
+          <li><span class="legend-box cover"></span> 掩体（不可穿透/进入）</li>
+          <li><span class="legend-box cover-range"></span> 长距离防护掩体</li>
+          <li><span class="legend-box void"></span> 虚空（不可进入）</li>
+        </ul>
+      </div>
+    </section>
+    <section class="status-section">
+      <div id="playerStatus" class="status-column"></div>
+      <div id="enemyStatus" class="status-column"></div>
+    </section>
+    <section class="log-section">
+      <h2>战斗日志</h2>
+      <div id="log" class="log"></div>
+    </section>
+  </main>
+  <footer>
+    <p>所有规则、技能与单位按照规格实现。祝你好运！</p>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
