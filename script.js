@@ -155,7 +155,13 @@ const stageData = {
     map: {
       cols: 22,
       rows: 18,
-      voids: [{ from: [14, 0], to: [21, 9] }],
+      defaultTerrain: 'void',
+      floors: [
+        { from: [0, 0], to: [7, 17] },
+        { from: [8, 10], to: [21, 17] },
+        { from: [8, 8], to: [13, 9] },
+        { from: [14, 2], to: [21, 9] },
+      ],
       covers: [
         { from: [2, 3], to: [4, 5], type: 'cover-solid' },
         { from: [2, 12], to: [5, 14], type: 'cover-linear' },
@@ -493,7 +499,10 @@ function renderStageMap(mapData) {
 
   const cols = Math.max(1, mapData.cols || 12);
   const rows = Math.max(1, mapData.rows || 12);
-  const cells = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 'floor'));
+  const defaultTerrain = mapData.defaultTerrain || 'floor';
+  const cells = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => defaultTerrain)
+  );
 
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
   const toRowIndex = (y) => rows - 1 - y;
@@ -514,14 +523,17 @@ function renderStageMap(mapData) {
     }
   };
 
+  if (Array.isArray(mapData.voids)) {
+    mapData.voids.forEach((area) => applyArea(area, 'void'));
+  }
+  if (Array.isArray(mapData.floors)) {
+    mapData.floors.forEach((area) => applyArea(area, 'floor'));
+  }
   if (Array.isArray(mapData.hazards)) {
     mapData.hazards.forEach((area) => applyArea(area, area.type || 'hazard'));
   }
   if (Array.isArray(mapData.covers)) {
     mapData.covers.forEach((area) => applyArea(area, area.type || 'cover-solid'));
-  }
-  if (Array.isArray(mapData.voids)) {
-    mapData.voids.forEach((area) => applyArea(area, 'void'));
   }
 
   const tacticalMap = document.createElement('div');
