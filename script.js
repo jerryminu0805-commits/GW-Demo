@@ -139,10 +139,10 @@ const stageData = {
       <p>刑警队长指引下的暗潮汹涌之地。七海作战队以血腥威压迎接入侵者。</p>
       <h4>战斗配置</h4>
       <ul>
-        <li>地图尺寸：18 × 22，右下角存在 10 × 10 的坍塌空缺（x≥12 且 y≤9）。</li>
+        <li>地图尺寸：18 × 22，右下角存在 8 × 10 的坍塌空缺。</li>
         <li>掩体：正方形掩体（2,3)-(4,5)、长条掩体（2,12)-(5,14)、码头吊机（10,11)-(12,13）。</li>
-        <li>我方起始：Adora（2,2）、Karma（4,2）、Dario（6,2）。</li>
-        <li>敌方起始：Haz（20,15）、Tusk（20,13，占 2×2）、Katz（18,16）、Neyla（16,16）、Kyn（14,12）。</li>
+        <li>我方起始：Adora（17,2）、Karma（17,4）、Dario（17,6）。</li>
+        <li>敌方起始：Haz（21,4）、Tusk（19,6，占 2×2）、Katz（19,3）、Neyla（15,2）、Kyn（15,7）。</li>
         <li>全体敌方携带“作战余波”Debuff：最大 HP -25%，造成伤害 -5。</li>
       </ul>
       <h4>战术建议</h4>
@@ -152,31 +152,38 @@ const stageData = {
         <li>20 回合后禁忌技能解锁，务必在此之前削弱七海的火力。</li>
       </ul>
     `,
-        map: {
+    map: {
       cols: 22,
       rows: 18,
-      defaultTerrain: 'floor',
-      // 右下角 L 形坍塌：x ≥ 12 且 y ≤ 9（0 为底）
-      voids: [
-        { from: [12, 0], to: [21, 9] },
+      defaultTerrain: 'void',
+      floors: [
+        // 主码头平台
+        { from: [0, 0], to: [13, 17] },
+        // 上层吊装平台，与主码头相连
+        { from: [13, 10], to: [21, 17] },
+        // 通往七海作战队的枢纽桥面
+        { from: [15, 7], to: [18, 11] },
+        // 盟友起始的下层栈桥
+        { from: [15, 1], to: [18, 6] },
+        // Katz 与 Haz 所在的外延栈道
+        { from: [18, 3], to: [21, 6] },
+        // Tusk 驻守的重载平台
+        { from: [19, 6], to: [21, 8] },
       ],
-      floors: [],
-      // 掩体（与草图一致）
       covers: [
         { from: [2, 3], to: [4, 5], type: 'cover-solid' },
         { from: [2, 12], to: [5, 14], type: 'cover-linear' },
         { from: [10, 11], to: [12, 13], type: 'cover-linear' },
       ],
-      // 初始站位（A K D 在左下；敌人在右上）
       markers: [
-        { label: 'Adora', short: 'A', type: 'ally', x: 2, y: 2 },
-        { label: 'Karma', short: 'K', type: 'ally', x: 4, y: 2 },
-        { label: 'Dario', short: 'D', type: 'ally', x: 6, y: 2 },
-        { label: 'Haz', short: 'Hz', type: 'boss', x: 20, y: 15 },
-        { label: 'Tusk', short: 'Tu', type: 'mini-boss', x: 20, y: 13, width: 2, height: 2 },
-        { label: 'Katz', short: 'Ka', type: 'mini-boss', x: 18, y: 16 },
-        { label: 'Neyla', short: 'Ne', type: 'enemy-elite', x: 16, y: 16 },
-        { label: 'Kyn', short: 'Ky', type: 'enemy-elite', x: 14, y: 12 },
+        { label: 'Adora', short: 'A', type: 'ally', x: 17, y: 2 },
+        { label: 'Karma', short: 'K', type: 'ally', x: 17, y: 4 },
+        { label: 'Dario', short: 'D', type: 'ally', x: 17, y: 6 },
+        { label: 'Haz', short: 'Hz', type: 'boss', x: 21, y: 4 },
+        { label: 'Tusk', short: 'Tu', type: 'mini-boss', x: 19, y: 6, width: 2, height: 2 },
+        { label: 'Katz', short: 'Ka', type: 'mini-boss', x: 19, y: 3 },
+        { label: 'Neyla', short: 'Ne', type: 'enemy-elite', x: 15, y: 2 },
+        { label: 'Kyn', short: 'Ky', type: 'enemy-elite', x: 15, y: 7 },
       ],
       legend: [
         { type: 'cover-solid', label: '掩体（完全阻挡）' },
