@@ -23,6 +23,32 @@ const stageData = {
         <li>尝试触发被动“冷静分析”，熟悉不行动也能恢复 SP 的机制。</li>
       </ul>
     `,
+    map: {
+      cols: 12,
+      rows: 10,
+      covers: [
+        { from: [2, 5], to: [3, 6], type: 'cover-solid' },
+        { from: [6, 3], to: [7, 4], type: 'cover-low' },
+        { from: [9, 6], to: [10, 7], type: 'cover-low' },
+      ],
+      hazards: [
+        { from: [0, 0], to: [11, 0], type: 'hazard-training' },
+      ],
+      markers: [
+        { label: 'Karma', short: 'K', type: 'ally', x: 4, y: 1 },
+        { label: 'Adora', short: 'A', type: 'ally', x: 5, y: 1 },
+        { label: 'Dario', short: 'D', type: 'ally', x: 6, y: 1 },
+        { label: '侦察兵', short: 'R', type: 'enemy', x: 8, y: 5 },
+        { label: '破坏者', short: 'Sab', type: 'enemy', x: 10, y: 7 },
+      ],
+      legend: [
+        { type: 'cover-solid', label: '掩体（全阻挡）' },
+        { type: 'cover-low', label: '低掩体' },
+        { type: 'hazard-training', label: '训练区边界' },
+        { marker: 'ally', label: '我方初始' },
+        { marker: 'enemy', label: '敌方巡逻' },
+      ],
+    },
     enemySkills: `
       <h3>敌方技能情报</h3>
       <article>
@@ -59,6 +85,34 @@ const stageData = {
         <li>轮换主力输出，确保至少一人保持高 SP 以应对突发状况。</li>
       </ul>
     `,
+    map: {
+      cols: 14,
+      rows: 12,
+      covers: [
+        { from: [1, 8], to: [3, 9], type: 'cover-low' },
+        { from: [6, 4], to: [8, 6], type: 'cover-linear' },
+        { from: [10, 9], to: [12, 10], type: 'cover-solid' },
+      ],
+      hazards: [
+        { from: [0, 0], to: [13, 2], type: 'hazard-sp-drain' },
+      ],
+      markers: [
+        { label: '前锋', short: 'V', type: 'ally', x: 3, y: 1 },
+        { label: '支援', short: 'S', type: 'ally', x: 4, y: 1 },
+        { label: 'Karma', short: 'K', type: 'ally', x: 5, y: 1 },
+        { label: '狂信徒', short: 'Fan', type: 'enemy', x: 7, y: 7 },
+        { label: '咒术师', short: 'Hex', type: 'enemy-elite', x: 11, y: 8 },
+      ],
+      legend: [
+        { type: 'cover-solid', label: '掩体（全阻挡）' },
+        { type: 'cover-linear', label: '掩体（穿刺可破）' },
+        { type: 'cover-low', label: '低掩体' },
+        { type: 'hazard-sp-drain', label: '精神力消耗区域' },
+        { marker: 'ally', label: '我方初始' },
+        { marker: 'enemy', label: '敌方小队' },
+        { marker: 'enemy-elite', label: '精英单位' },
+      ],
+    },
     enemySkills: `
       <h3>敌方技能情报</h3>
       <article>
@@ -105,6 +159,37 @@ const stageData = {
         <li>利用掩体断绝 Tusk 的冲撞路线，等待其技能冷却后集火。</li>
       </ul>
     `,
+    map: {
+      cols: 22,
+      rows: 18,
+      voids: [
+        { from: [14, 0], to: [21, 9] },
+      ],
+      covers: [
+        { from: [2, 3], to: [4, 5], type: 'cover-solid' },
+        { from: [2, 12], to: [5, 14], type: 'cover-linear' },
+        { from: [10, 11], to: [12, 13], type: 'cover-linear' },
+      ],
+      markers: [
+        { label: 'Karma', short: 'K', type: 'ally', x: 3, y: 2 },
+        { label: 'Dario', short: 'D', type: 'ally', x: 5, y: 2 },
+        { label: 'Adora', short: 'A', type: 'ally', x: 7, y: 2 },
+        { label: 'Haz', short: 'Haz', type: 'boss', x: 21, y: 13 },
+        { label: 'Tusk', short: 'Tu', type: 'mini-boss', x: 19, y: 11, width: 2, height: 2 },
+        { label: 'Katz', short: 'Ka', type: 'mini-boss', x: 19, y: 9 },
+        { label: 'Neyla', short: 'Ne', type: 'enemy-elite', x: 15, y: 12 },
+        { label: 'Kyn', short: 'Ky', type: 'enemy-elite', x: 15, y: 7 },
+      ],
+      legend: [
+        { type: 'cover-solid', label: '掩体（全阻挡）' },
+        { type: 'cover-linear', label: '掩体（穿透受限）' },
+        { type: 'void', label: '坍塌海水区' },
+        { marker: 'ally', label: '我方初始' },
+        { marker: 'enemy-elite', label: '精英单位' },
+        { marker: 'mini-boss', label: '小 Boss' },
+        { marker: 'boss', label: 'Haz／Boss' },
+      ],
+    },
     enemySkills: `
       <h3>七海作战队技能情报</h3>
       <article>
@@ -115,7 +200,7 @@ const stageData = {
           <li><strong>弑神执念</strong>：HP 低于 50% 时，伤害 +30%。</li>
           <li><strong>难以抑制的仇恨</strong>：攻击时 40% 几率使目标 -5 SP，并附加“恐惧”。</li>
           <li><strong>队员们听令！</strong>：每个双数回合开始，自身 +10 SP，所有队员 +5 SP。</li>
-          <li><strong>一切牺牲都是值得的</strong>：20 回合后，队员获得“队长的压迫”解锁禁忌技能。</li>
+          <li><strong>一切牺牲都是值得的。。。。。。</strong>：20 回合后，队员获得“队长的压迫”解锁禁忌技能。</li>
           <li><strong>他们不是主菜！</strong>：1～15 回合队员获得 30% 暴击。</li>
           <li><strong>把他们追杀到天涯海角！</strong>：首个命中的敌人获得“猎杀标记”，队员对其伤害 +15%。</li>
           <li><strong>力挽狂澜</strong>：场上只剩 Haz 时，伤害 +10%、受伤 -10%，并解锁额外技能。</li>
@@ -323,6 +408,9 @@ const stageMeta = document.querySelector('.stage-info__meta');
 const stageLore = document.querySelector('.stage-info__lore');
 const enemySection = document.querySelector('.stage-info__enemies');
 const enemyContent = document.querySelector('.stage-info__enemy-content');
+const stageMapSection = document.querySelector('.stage-info__map');
+const stageMapCanvas = stageMapSection ? stageMapSection.querySelector('[data-map-canvas]') : null;
+const stageMapLegend = stageMapSection ? stageMapSection.querySelector('[data-map-legend]') : null;
 let activeStage = 'intro';
 const unlockedStages = new Set();
 
@@ -387,12 +475,139 @@ function renderStage(stageKey) {
   if (stageLore) {
     stageLore.innerHTML = data.lore || '';
   }
+  renderStageMap(data.map);
   if (enemyContent) {
     enemyContent.innerHTML = data.enemySkills || '';
   }
   if (enemySection) {
     enemySection.classList.toggle('is-locked', !unlockedStages.has(stageKey));
   }
+}
+
+function renderStageMap(mapData) {
+  if (!stageMapSection || !stageMapCanvas) return;
+  stageMapCanvas.innerHTML = '';
+  if (!mapData) {
+    stageMapSection.classList.add('is-hidden');
+    if (stageMapLegend) {
+      stageMapLegend.innerHTML = '';
+      stageMapLegend.classList.add('is-hidden');
+    }
+    return;
+  }
+
+  const cols = Math.max(1, mapData.cols || 12);
+  const rows = Math.max(1, mapData.rows || 12);
+  const cells = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 'floor'));
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+  const toRowIndex = (y) => rows - 1 - y;
+
+  const applyArea = (area, type) => {
+    if (!area) return;
+    const fromX = clamp(Math.min(area.from?.[0] ?? 0, area.to?.[0] ?? 0), 0, cols - 1);
+    const toX = clamp(Math.max(area.from?.[0] ?? 0, area.to?.[0] ?? 0), 0, cols - 1);
+    const fromY = clamp(Math.min(area.from?.[1] ?? 0, area.to?.[1] ?? 0), 0, rows - 1);
+    const toY = clamp(Math.max(area.from?.[1] ?? 0, area.to?.[1] ?? 0), 0, rows - 1);
+
+    for (let y = fromY; y <= toY; y += 1) {
+      const rowIndex = toRowIndex(y);
+      if (rowIndex < 0 || rowIndex >= rows) continue;
+      for (let x = fromX; x <= toX; x += 1) {
+        cells[rowIndex][x] = type;
+      }
+    }
+  };
+
+  if (Array.isArray(mapData.hazards)) {
+    mapData.hazards.forEach((area) => applyArea(area, area.type || 'hazard'));
+  }
+  if (Array.isArray(mapData.covers)) {
+    mapData.covers.forEach((area) => applyArea(area, area.type || 'cover-solid'));
+  }
+  if (Array.isArray(mapData.voids)) {
+    mapData.voids.forEach((area) => applyArea(area, 'void'));
+  }
+
+  const tacticalMap = document.createElement('div');
+  tacticalMap.className = 'tactical-map';
+  tacticalMap.style.setProperty('--map-cols', cols);
+  tacticalMap.style.setProperty('--map-rows', rows);
+
+  const grid = document.createElement('div');
+  grid.className = 'tactical-map__grid';
+  grid.style.setProperty('--map-cols', cols);
+  grid.style.setProperty('--map-rows', rows);
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const cell = document.createElement('div');
+      const type = cells[row][col];
+      cell.className = `map-cell map-cell--${type}`;
+      grid.appendChild(cell);
+    }
+  }
+
+  if (Array.isArray(mapData.markers)) {
+    mapData.markers.forEach((marker) => {
+      if (marker.x == null || marker.y == null) return;
+      const markerEl = document.createElement('div');
+      markerEl.className = `map-marker map-marker--${marker.type || 'neutral'}`;
+      if (marker.short) {
+        const short = document.createElement('span');
+        short.className = 'map-marker__code';
+        short.textContent = marker.short;
+        markerEl.appendChild(short);
+      }
+      const label = document.createElement('span');
+      label.className = 'map-marker__label';
+      label.textContent = marker.label || '';
+      markerEl.appendChild(label);
+
+      const spanX = clamp((marker.width || 1), 1, cols);
+      const spanY = clamp((marker.height || 1), 1, rows);
+      const columnStart = clamp(marker.x, 0, cols - 1) + 1;
+      const rowStart = clamp(rows - marker.y - spanY + 1, 1, rows);
+
+      markerEl.style.gridColumn = `${columnStart} / span ${spanX}`;
+      markerEl.style.gridRow = `${rowStart} / span ${spanY}`;
+      grid.appendChild(markerEl);
+    });
+  }
+
+  tacticalMap.appendChild(grid);
+  stageMapCanvas.appendChild(tacticalMap);
+
+  if (stageMapLegend) {
+    stageMapLegend.innerHTML = '';
+    if (Array.isArray(mapData.legend) && mapData.legend.length) {
+      stageMapLegend.classList.remove('is-hidden');
+      mapData.legend.forEach((entry) => {
+        const item = document.createElement('div');
+        item.className = 'map-legend__item';
+
+        if (entry.type) {
+          const swatch = document.createElement('span');
+          swatch.className = `map-legend__swatch map-legend__swatch--${entry.type}`;
+          item.appendChild(swatch);
+        } else if (entry.marker) {
+          const marker = document.createElement('span');
+          marker.className = `map-legend__marker map-legend__marker--${entry.marker}`;
+          item.appendChild(marker);
+        }
+
+        const text = document.createElement('span');
+        text.className = 'map-legend__label';
+        text.textContent = entry.label;
+        item.appendChild(text);
+        stageMapLegend.appendChild(item);
+      });
+    } else {
+      stageMapLegend.classList.add('is-hidden');
+    }
+  }
+
+  stageMapSection.classList.remove('is-hidden');
 }
 
 function setActiveStage(stageKey) {
@@ -514,14 +729,14 @@ function addSevenSeaParticles() {
   const container = document.querySelector('.stage-node--seven-seas .stage-node__particles');
   if (!container) return;
   container.innerHTML = '';
-  const count = 12;
+  const count = 26;
   for (let i = 0; i < count; i += 1) {
     const particle = document.createElement('span');
     particle.classList.add('particle');
-    particle.style.left = `${15 + Math.random() * 70}%`;
-    particle.style.bottom = `${-10 + Math.random() * 12}px`;
-    particle.style.animationDelay = `${Math.random() * 2.4}s`;
-    particle.style.animationDuration = `${2 + Math.random() * 1.6}s`;
+    particle.style.left = `${8 + Math.random() * 84}%`;
+    particle.style.bottom = `${-12 + Math.random() * 18}px`;
+    particle.style.animationDelay = `${Math.random() * 3.2}s`;
+    particle.style.animationDuration = `${2.2 + Math.random() * 2.4}s`;
     container.appendChild(particle);
   }
 }
