@@ -737,47 +737,200 @@ body {
   padding: 1.4rem 1.6rem;
   background: rgba(12, 18, 30, 0.6);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 }
 
-.stage-info__enemy-content article {
-  margin: 0 0 1.5rem;
-  padding: 1.1rem 1.2rem;
-  border-radius: 14px;
-  background: rgba(7, 12, 22, 0.7);
+.stage-info__enemy-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.enemy-roster__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  transition: border var(--transition), box-shadow var(--transition);
 }
 
-.stage-info__enemy-content article:last-child {
-  margin-bottom: 0;
+.enemy-roster__icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 0.1em;
 }
 
-.stage-info__enemy-content p {
-  margin: 0 0 0.6rem;
+.enemy-roster__name {
+  text-transform: none;
+  letter-spacing: 0.08em;
+}
+
+.enemy-roster__item--boss {
+  border-color: rgba(255, 84, 96, 0.55);
+  box-shadow: 0 0 16px rgba(255, 84, 96, 0.25);
+}
+
+.enemy-roster__item--mini-boss {
+  border-color: rgba(255, 145, 220, 0.45);
+  box-shadow: 0 0 12px rgba(255, 145, 220, 0.2);
+}
+
+.enemy-roster__item--elite {
+  border-color: rgba(255, 204, 92, 0.45);
+  box-shadow: 0 0 12px rgba(255, 204, 92, 0.18);
+}
+
+.enemy-roster__item--enemy {
+  border-color: rgba(255, 132, 132, 0.4);
+}
+
+.stage-info__enemy-content {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.enemy-card {
+  background: rgba(7, 12, 22, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 14px 34px rgba(2, 6, 12, 0.55);
+}
+
+.enemy-card__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.enemy-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.enemy-card__icon--boss {
+  background: linear-gradient(135deg, rgba(255, 84, 96, 0.95), rgba(161, 25, 63, 0.85));
+}
+
+.enemy-card__icon--mini-boss {
+  background: linear-gradient(135deg, rgba(255, 145, 220, 0.95), rgba(212, 98, 201, 0.82));
+}
+
+.enemy-card__icon--elite {
+  background: linear-gradient(135deg, rgba(255, 204, 92, 0.9), rgba(255, 150, 92, 0.8));
+}
+
+.enemy-card__icon--enemy {
+  background: linear-gradient(135deg, rgba(255, 132, 132, 0.9), rgba(255, 84, 96, 0.75));
+}
+
+.enemy-card__icon--ally {
+  background: linear-gradient(135deg, rgba(110, 194, 255, 0.9), rgba(64, 114, 255, 0.75));
+}
+
+.enemy-card__icon--neutral {
+  background: linear-gradient(135deg, rgba(132, 142, 164, 0.9), rgba(86, 96, 122, 0.75));
+}
+
+.enemy-card__title h4 {
+  margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.enemy-card__title {
+  display: flex;
+  flex-direction: column;
+}
+
+.enemy-card__role {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.enemy-card__body {
+  padding: 1.1rem 1.2rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.enemy-card__stats {
+  margin: 0;
   color: var(--text-secondary);
 }
 
-.stage-info__enemy-content h4 {
-  margin: 0 0 0.6rem;
+.enemy-card__section h5 {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-primary);
-}
-
-.stage-info__enemy-content h5 {
-  margin: 1rem 0 0.4rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.14em;
   color: rgba(255, 214, 184, 0.8);
-  text-transform: uppercase;
 }
 
-.stage-info__enemy-content ul {
+.enemy-card__list {
+  margin: 0;
   padding-left: 1.1rem;
-  margin: 0.4rem 0;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 0.35rem;
 }
 
-  .stage-info__enemies.is-locked .stage-info__enemy-content {
+.enemy-card__list li {
+  line-height: 1.6;
+}
+
+.enemy-card__cost {
+  color: rgba(255, 214, 184, 0.85);
+}
+
+.enemy-card__detail {
+  color: var(--text-secondary);
+}
+
+.enemy-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+  letter-spacing: 0.12em;
+}
+
+  .stage-info__enemies.is-locked .enemy-card__body {
     filter: blur(6px);
+    opacity: 0.45;
     pointer-events: none;
   }
 
@@ -790,9 +943,11 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.28em;
     font-size: 0.8rem;
-    background: rgba(5, 8, 14, 0.7);
-    color: rgba(255, 255, 255, 0.7);
+    background: rgba(5, 8, 14, 0.55);
+    color: rgba(255, 255, 255, 0.75);
     z-index: 1;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
   }
 
   .stage-info__enemies:not(.is-locked) .stage-info__lock {
