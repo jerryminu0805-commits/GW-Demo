@@ -20,6 +20,11 @@ let ROWS = 18;
 let COLS = 22;
 
 const CELL_SIZE = 56;
+const GRID_GAP = 6;
+const BOARD_PADDING = 8;
+const BOARD_BORDER = 1;
+const BOARD_WIDTH = COLS * CELL_SIZE + (COLS - 1) * GRID_GAP + (BOARD_PADDING + BOARD_BORDER) * 2;
+const BOARD_HEIGHT = ROWS * CELL_SIZE + (ROWS - 1) * GRID_GAP + (BOARD_PADDING + BOARD_BORDER) * 2;
 const MAX_STEPS = 10;
 const BASE_START_STEPS = 3;
 const SKILLPOOL_MAX = 13;
@@ -53,10 +58,37 @@ let _skillSelection = null;
 let fxLayer = null;
 let cameraEl = null;
 let battleAreaEl = null;
+let mapPaneEl = null;
+let cameraControlsEl = null;
+let roundBannerEl = null;
+let introDialogEl = null;
 
 let playerStepsEl, enemyStepsEl, roundCountEl, partyStatus, selectedInfo, skillPool, accomplish, damageSummary;
 
 let hazMarkedTargetId = null;
+
+let interactionLocked = false;
+let introPlayed = false;
+let cameraResetTimer = null;
+let enemyActionCameraLock = false;
+let cameraLoopHandle = null;
+let cameraDragState = null;
+let cameraInputsRegistered = false;
+
+const cameraState = {
+  x: 0,
+  y: 0,
+  scale: 1,
+  targetX: 0,
+  targetY: 0,
+  targetScale: 1,
+  vx: 0,
+  vy: 0,
+  vs: 0,
+  baseScale: 1,
+  minScale: 0.6,
+  maxScale: 1.6,
+};
 
 // GOD'S WILL
 let godsWillArmed = false;
@@ -157,7 +189,7 @@ units['dario'] = createUnit('dario','Dario','player',52, 17, 6, 150,100, 0.75,0,
 units['karma'] = createUnit('karma','Karma','player',52, 17, 4, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 // 七海
 function applyAftermath(u){ u.hp = Math.max(1, Math.floor(u.hp * 0.75)); if(!u.passives.includes('aftermath')) u.passives.push('aftermath'); }
-units['haz']  = createUnit('haz','Haz（七海队长）','enemy',55, 4,21, 750,100, 1.0,0, ['hazObsess','hazHatred','hazOrders','hazWorth','hazCritWindow','hazHunt'], {team:'seven', stunThreshold:4, pullImmune:true}); applyAftermath(units['haz']);
+units['haz']  = createUnit('haz','Haz','enemy',55, 4,21, 750,100, 1.0,0, ['hazObsess','hazHatred','hazOrders','hazWorth','hazCritWindow','hazHunt'], {team:'seven', stunThreshold:4, pullImmune:true}); applyAftermath(units['haz']);
 units['katz'] = createUnit('katz','Katz','enemy',53, 3,19, 500,75, 1.0,0, ['katzHidden','katzExecution','katzStrong'], {team:'seven', stunThreshold:3, pullImmune:true}); applyAftermath(units['katz']);
 units['tusk'] = createUnit('tusk','Tusk','enemy',54, 6,19, 1000,60, 1.0,0, ['tuskGuard','tuskWall','tuskBull'], {team:'seven', size:2, stunThreshold:3, pullImmune:true}); applyAftermath(units['tusk']);
 units['neyla']= createUnit('neyla','Neyla','enemy',52, 2,15, 350,80, 1.0,0, ['neylaAim','neylaCold','neylaReload'], {team:'seven', stunThreshold:2}); applyAftermath(units['neyla']);
@@ -167,6 +199,7 @@ units['kyn']  = createUnit('kyn','Kyn','enemy',51, 7,15, 250,70, 1.0,0, ['kynRet
 const DIRS = { up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1} };
 function mdist(a,b){ return Math.abs(a.r-b.r)+Math.abs(a.c-b.c); }
 function cardinalDirFromDelta(dr,dc){ if(Math.abs(dr)>=Math.abs(dc)) return dr<=0?'up':'down'; return dc<=0?'left':'right'; }
+function clampValue(value, min, max){ return Math.max(min, Math.min(max, value)); }
 function forwardCellAt(u, dir, dist){
   const d=DIRS[dir]; const r=u.r + d.dr*dist, c=u.c + d.dc*dist;
   if(u.size===2){ if(clampCell(r,c) && clampCell(r+1,c+1)) return {r,c}; return null; }
@@ -398,11 +431,292 @@ function showGainFloat(r,c,hp,sp){
   if(sp>0){ const el=makeEl('fx-number sp fx-float', `+${sp} SP`); el.style.color='#40a9ff'; el.style.transform='translate(-50%,-50%)'; const p=getCellCenter(r,c); el.style.left=`${p.x+16}px`; el.style.top=`${p.y-6}px`; fxLayer.appendChild(el); onAnimEndRemove(el,900); }
 }
 function pulseCell(r,c){ const cell=getCellEl(r,c); if(!cell) return; cell.classList.add('pulse'); setTimeout(()=>cell.classList.remove('pulse'),620); }
-function cameraShake(){ if(!cameraEl) return; cameraEl.classList.remove('shake'); void cameraEl.offsetWidth; cameraEl.classList.add('shake'); }
-function cameraFocusOnCell(r,c,{scale=1.05,hold=180}={}){ if(!cameraEl||!battleAreaEl) return; const cell=getCellEl(r,c); if(!cell) return; const areaRect=battleAreaEl.getBoundingClientRect(); const cellRect=cell.getBoundingClientRect(); const dx=(cellRect.left+cellRect.width/2)-(areaRect.left+areaRect.width/2); const dy=(cellRect.top+cellRect.height/2)-(areaRect.top+areaRect.height/2); cameraEl.style.transform=`translate(${-dx/10}px, ${-dy/10}px) scale(${scale})`; setTimeout(()=>{ cameraEl.style.transform='translate(0,0) scale(1)'; },hold); }
+function applyCameraTransform(){
+  if(!battleAreaEl) return;
+  battleAreaEl.style.setProperty('--cam-scale', cameraState.scale.toFixed(4));
+  battleAreaEl.style.setProperty('--cam-tx', `${cameraState.x.toFixed(2)}px`);
+  battleAreaEl.style.setProperty('--cam-ty', `${cameraState.y.toFixed(2)}px`);
+}
+function clampCameraTargets(){
+  if(!mapPaneEl) return;
+  const vw = mapPaneEl.clientWidth || BOARD_WIDTH;
+  const vh = mapPaneEl.clientHeight || BOARD_HEIGHT;
+  const scale = cameraState.targetScale;
+  const scaledWidth = BOARD_WIDTH * scale;
+  const scaledHeight = BOARD_HEIGHT * scale;
+  const maxX = Math.max(0, (scaledWidth - vw) / 2);
+  const maxY = Math.max(0, (scaledHeight - vh) / 2);
+  cameraState.targetX = clampValue(cameraState.targetX, -maxX, maxX);
+  cameraState.targetY = clampValue(cameraState.targetY, -maxY, maxY);
+  cameraState.x = clampValue(cameraState.x, -maxX, maxX);
+  cameraState.y = clampValue(cameraState.y, -maxY, maxY);
+}
+function updateCameraBounds(){
+  if(!mapPaneEl) return;
+  const vw = mapPaneEl.clientWidth || BOARD_WIDTH;
+  const vh = mapPaneEl.clientHeight || BOARD_HEIGHT;
+  const fitScale = Math.min(vw / BOARD_WIDTH, vh / BOARD_HEIGHT) || 1;
+  const base = Math.min(1, fitScale);
+  cameraState.baseScale = base;
+  cameraState.minScale = Math.max(0.5, base * 0.7);
+  cameraState.maxScale = Math.max(base * 1.75, base * 1.1);
+  cameraState.targetScale = clampValue(cameraState.targetScale || base, cameraState.minScale, cameraState.maxScale);
+  cameraState.scale = clampValue(cameraState.scale || base, cameraState.minScale, cameraState.maxScale);
+  clampCameraTargets();
+  applyCameraTransform();
+}
+function startCameraLoop(){
+  if(cameraLoopHandle) return;
+  const step = ()=>{
+    const stiffness = 0.12;
+    const damping = 0.86;
+
+    cameraState.vx += (cameraState.targetX - cameraState.x) * stiffness;
+    cameraState.vx *= damping;
+    cameraState.x += cameraState.vx;
+
+    cameraState.vy += (cameraState.targetY - cameraState.y) * stiffness;
+    cameraState.vy *= damping;
+    cameraState.y += cameraState.vy;
+
+    cameraState.vs += (cameraState.targetScale - cameraState.scale) * stiffness;
+    cameraState.vs *= damping;
+    cameraState.scale += cameraState.vs;
+
+    if(Math.abs(cameraState.x - cameraState.targetX) < 0.05 && Math.abs(cameraState.vx) < 0.05){ cameraState.x = cameraState.targetX; cameraState.vx = 0; }
+    if(Math.abs(cameraState.y - cameraState.targetY) < 0.05 && Math.abs(cameraState.vy) < 0.05){ cameraState.y = cameraState.targetY; cameraState.vy = 0; }
+    if(Math.abs(cameraState.scale - cameraState.targetScale) < 0.001 && Math.abs(cameraState.vs) < 0.001){ cameraState.scale = cameraState.targetScale; cameraState.vs = 0; }
+
+    applyCameraTransform();
+    cameraLoopHandle = requestAnimationFrame(step);
+  };
+  cameraLoopHandle = requestAnimationFrame(step);
+}
+function stopCameraLoop(){ if(cameraLoopHandle){ cancelAnimationFrame(cameraLoopHandle); cameraLoopHandle = null; } }
+function setCameraTarget({x=cameraState.targetX, y=cameraState.targetY, scale=cameraState.targetScale, immediate=false}={}){
+  cameraState.targetScale = clampValue(scale, cameraState.minScale, cameraState.maxScale);
+  cameraState.targetX = x;
+  cameraState.targetY = y;
+  clampCameraTargets();
+  if(immediate){
+    cameraState.x = cameraState.targetX;
+    cameraState.y = cameraState.targetY;
+    cameraState.scale = cameraState.targetScale;
+    cameraState.vx = cameraState.vy = cameraState.vs = 0;
+    applyCameraTransform();
+  } else {
+    startCameraLoop();
+  }
+}
+function cameraReset({immediate=false}={}){
+  if(cameraResetTimer){ clearTimeout(cameraResetTimer); cameraResetTimer=null; }
+  setCameraTarget({x:0, y:0, scale:cameraState.baseScale, immediate});
+}
+function cellCenterOffset(r,c){
+  const centerX = BOARD_BORDER + BOARD_PADDING + (c - 1) * (CELL_SIZE + GRID_GAP) + CELL_SIZE / 2;
+  const centerY = BOARD_BORDER + BOARD_PADDING + (r - 1) * (CELL_SIZE + GRID_GAP) + CELL_SIZE / 2;
+  return {
+    x: centerX - BOARD_WIDTH / 2,
+    y: centerY - BOARD_HEIGHT / 2,
+  };
+}
+function cameraFocusOnCell(r,c,{scale=null, hold=enemyActionCameraLock?0:360, immediate=false}={}){
+  if(!battleAreaEl || !mapPaneEl) return;
+  const offset = cellCenterOffset(r,c);
+  const autoScale = enemyActionCameraLock ? cameraState.baseScale * 1.05 : cameraState.baseScale * 1.1;
+  const desiredScale = clampValue(scale===null ? Math.min(autoScale, cameraState.maxScale) : scale, cameraState.minScale, cameraState.maxScale);
+  const tx = -offset.x * desiredScale;
+  const ty = -offset.y * desiredScale;
+  setCameraTarget({x:tx, y:ty, scale:desiredScale, immediate});
+  if(cameraResetTimer){ clearTimeout(cameraResetTimer); cameraResetTimer=null; }
+  if(hold>0){
+    cameraResetTimer = setTimeout(()=> cameraReset(), hold);
+  }
+}
+function cameraShake(){
+  if(!battleAreaEl) return;
+  battleAreaEl.classList.remove('shake');
+  void battleAreaEl.offsetWidth;
+  battleAreaEl.classList.add('shake');
+  setTimeout(()=> battleAreaEl && battleAreaEl.classList.remove('shake'), 260);
+}
+function zoomCamera(multiplier, focusEvent=null){
+  if(!mapPaneEl) return;
+  const prevScale = cameraState.targetScale;
+  const nextScale = clampValue(prevScale * multiplier, cameraState.minScale, cameraState.maxScale);
+  if(Math.abs(nextScale - prevScale) < 0.0001) return;
+
+  let focusX = 0;
+  let focusY = 0;
+  if(focusEvent){
+    const rect = mapPaneEl.getBoundingClientRect();
+    focusX = (focusEvent.clientX - (rect.left + rect.width/2));
+    focusY = (focusEvent.clientY - (rect.top + rect.height/2));
+  }
+  const ratio = nextScale / prevScale;
+  const newX = cameraState.targetX - focusX * (ratio - 1);
+  const newY = cameraState.targetY - focusY * (ratio - 1);
+  setCameraTarget({x:newX, y:newY, scale:nextScale});
+}
+function registerCameraInputs(){
+  if(!mapPaneEl || cameraInputsRegistered) return;
+  cameraInputsRegistered = true;
+  mapPaneEl.addEventListener('wheel', (e)=>{
+    e.preventDefault();
+    if(interactionLocked) return;
+    const factor = e.deltaY < 0 ? 1.08 : 0.94;
+    zoomCamera(factor, e);
+  }, {passive:false});
+  mapPaneEl.addEventListener('contextmenu', (e)=> e.preventDefault());
+  mapPaneEl.addEventListener('mousedown', (e)=>{
+    if(e.button!==2 || interactionLocked) return;
+    e.preventDefault();
+    cameraDragState = { startX: e.clientX, startY: e.clientY, originX: cameraState.targetX, originY: cameraState.targetY };
+    mapPaneEl.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!cameraDragState) return;
+    const dx = e.clientX - cameraDragState.startX;
+    const dy = e.clientY - cameraDragState.startY;
+    setCameraTarget({x: cameraDragState.originX + dx, y: cameraDragState.originY + dy});
+  });
+  window.addEventListener('mouseup', (e)=>{
+    if(e.button!==2 || !cameraDragState) return;
+    cameraDragState = null;
+    if(mapPaneEl) mapPaneEl.classList.remove('dragging');
+  });
+}
+function createCameraControls(){
+  if(!mapPaneEl) return;
+  if(cameraControlsEl && cameraControlsEl.isConnected) cameraControlsEl.remove();
+  cameraControlsEl = document.createElement('div');
+  cameraControlsEl.className = 'cameraControls';
+  const zoomInBtn = document.createElement('button');
+  zoomInBtn.type='button';
+  zoomInBtn.textContent = '+';
+  zoomInBtn.title = '放大';
+  zoomInBtn.addEventListener('click', ()=>{ if(interactionLocked) return; zoomCamera(1.12); });
+  const zoomOutBtn = document.createElement('button');
+  zoomOutBtn.type='button';
+  zoomOutBtn.textContent = '−';
+  zoomOutBtn.title = '缩小';
+  zoomOutBtn.addEventListener('click', ()=>{ if(interactionLocked) return; zoomCamera(0.9); });
+  cameraControlsEl.appendChild(zoomInBtn);
+  cameraControlsEl.appendChild(zoomOutBtn);
+  mapPaneEl.appendChild(cameraControlsEl);
+}
 
 // —— Telegraph/Impact 工具 —— 
 function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+function setInteractionLocked(on){
+  interactionLocked = !!on;
+  document.body.classList.toggle('interaction-locked', interactionLocked);
+  if(interactionLocked && cameraDragState){
+    cameraDragState = null;
+    if(mapPaneEl) mapPaneEl.classList.remove('dragging');
+  }
+  if(interactionLocked) clearSkillAiming();
+}
+function ensureRoundBanner(){
+  if(!roundBannerEl){
+    roundBannerEl = document.createElement('div');
+    roundBannerEl.className = 'roundBanner';
+    const inner = document.createElement('div');
+    inner.className = 'text';
+    roundBannerEl.appendChild(inner);
+    document.body.appendChild(roundBannerEl);
+  }
+  return roundBannerEl;
+}
+function showRoundBanner(text, duration=1800){
+  const el = ensureRoundBanner();
+  const inner = el.querySelector('.text');
+  if(inner){
+    inner.textContent = text;
+    inner.classList.remove('animate');
+    void inner.offsetWidth;
+    inner.classList.add('animate');
+  }
+  el.classList.add('show');
+  setTimeout(()=>{
+    el.classList.remove('show');
+    if(inner) inner.classList.remove('animate');
+  }, duration);
+}
+function ensureIntroDialog(){
+  if(!introDialogEl){
+    introDialogEl = document.createElement('div');
+    introDialogEl.className = 'introDialog';
+    introDialogEl.style.display = 'none';
+    const box = document.createElement('div');
+    box.className = 'box';
+    const nameplate = document.createElement('div');
+    nameplate.className = 'nameplate';
+    const name = document.createElement('div');
+    name.className = 'name';
+    nameplate.appendChild(name);
+    box.appendChild(nameplate);
+    const body = document.createElement('div');
+    body.className = 'dialogBody';
+    const content = document.createElement('div');
+    content.className = 'content';
+    body.appendChild(content);
+    box.appendChild(body);
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = '点击继续';
+    box.appendChild(hint);
+    introDialogEl.appendChild(box);
+    document.body.appendChild(introDialogEl);
+  }
+  return introDialogEl;
+}
+function showIntroLine(line){
+  const dialog = ensureIntroDialog();
+  const payload = (typeof line === 'string') ? {speaker: 'Haz', text: line} : line;
+  const speaker = payload && payload.speaker ? payload.speaker : 'Haz';
+  const text = payload && payload.text ? payload.text : '';
+  const content = dialog.querySelector('.content');
+  const name = dialog.querySelector('.nameplate .name');
+  if(name) name.textContent = speaker;
+  if(content){
+    content.textContent = text;
+    content.classList.remove('reveal');
+    void content.offsetWidth;
+    content.classList.add('reveal');
+  }
+  dialog.style.display = 'flex';
+  dialog.classList.add('show');
+  return new Promise(resolve=>{
+    const handler = ()=>{
+      dialog.removeEventListener('click', handler);
+      resolve();
+    };
+    dialog.addEventListener('click', handler, {once:true});
+  });
+}
+function hideIntroDialog(){ if(introDialogEl){ introDialogEl.style.display = 'none'; introDialogEl.classList.remove('show'); } }
+async function playIntroCinematic(){
+  if(introPlayed) return;
+  introPlayed = true;
+  setInteractionLocked(true);
+  cameraReset({immediate:true});
+  await sleep(260);
+  const haz = units['haz'];
+  if(haz && haz.hp>0){
+    const zoom = clampValue(cameraState.baseScale * 1.3, cameraState.minScale, cameraState.maxScale);
+    cameraFocusOnCell(haz.r, haz.c, {scale: zoom, hold:0});
+    await sleep(420);
+  }
+  await showIntroLine({speaker:'Haz', text:'这种躲躲藏藏遮遮掩掩的人绝对不是什么好东西'});
+  await showIntroLine({speaker:'Haz', text:'准备好队员们，今晚不出意外的话，又能钓到一条大的。。。'});
+  hideIntroDialog();
+  cameraReset();
+  await sleep(520);
+  showRoundBanner('回合一', 2200);
+  await sleep(2000);
+  setInteractionLocked(false);
+}
 function uniqueCells(cells){ const s=new Set(); const out=[]; for(const c of cells||[]){ const k=`${c.r},${c.c}`; if(!s.has(k)){ s.add(k); out.push(c);} } return out; }
 function addTempClassToCells(cells, cls, ms){
   const arr=uniqueCells(cells);
@@ -1740,6 +2054,7 @@ function buildGrid(){
       const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
 
       cell.addEventListener('click', ()=>{
+        if(interactionLocked) return;
         const rr=+cell.dataset.r, cc=+cell.dataset.c;
         if(_skillSelection){
           handleSkillConfirmCell(_skillSelection.unit,_skillSelection.skill,{r:rr,c:cc});
@@ -1753,12 +2068,13 @@ function buildGrid(){
         onCellClick(rr,cc);
       });
       cell.addEventListener('mouseenter', ()=>{
+        if(interactionLocked) return;
         if(_skillSelection){
           const rr=+cell.dataset.r, cc=+cell.dataset.c;
           handleSkillPreviewCell(_skillSelection.unit,_skillSelection.skill,{r:rr,c:cc});
         }
       });
-      cell.addEventListener('contextmenu', (e)=>{ e.preventDefault(); clearSkillAiming(); renderAll(); });
+      cell.addEventListener('contextmenu', (e)=>{ e.preventDefault(); if(interactionLocked) return; clearSkillAiming(); renderAll(); });
       battleAreaEl.appendChild(cell);
     }
   }
@@ -1791,8 +2107,13 @@ function placeUnits(){
     const div=document.createElement('div');
     div.className='unit ' + (u.side==='player'?'player':'enemy');
     div.dataset.id=id;
+    if(u.id==='haz'){
+      div.classList.add('hazUnit');
+      if(u._comeback) div.classList.add('comeback');
+    }
 
     div.addEventListener('click',(e)=>{
+      if(interactionLocked) return;
       if(godsWillArmed){
         e.stopPropagation();
         showGodsWillMenuAtUnit(u);
@@ -1809,8 +2130,10 @@ function placeUnits(){
 
     const hpPct = Math.max(0, Math.min(100, (u.hp/u.maxHp*100)||0));
     const spPct = Math.max(0, Math.min(100, (u.maxSp ? (u.sp/u.maxSp*100) : 0)));
+    const aura = (u.id==='haz') ? '<div class="hazParticles"></div>' : '';
     div.innerHTML = `
-      <div>${u.name}</div>
+      ${aura}
+      <div class="name">${u.name}</div>
       <div class="hpbar"><div class="hpfill" style="width:${hpPct}%"></div></div>
       <div class="spbar"><div class="spfill" style="width:${spPct}%"></div></div>
     `;
@@ -1820,24 +2143,27 @@ function placeUnits(){
 
 //part 1 结束
 function renderLargeUnitOverlay(u){
-  const tl = getCellEl(u.r, u.c);
-  const br = getCellEl(u.r+1, u.c+1);
-  if(!tl || !br || !battleAreaEl) return;
-  const tlRect = tl.getBoundingClientRect();
-  const brRect = br.getBoundingClientRect();
-  const areaRect = battleAreaEl.getBoundingClientRect();
+  if(!battleAreaEl) return;
+
+  const cells = getCoveredCells(u);
+  const allVisible = cells.every(c=> !!getCellEl(c.r, c.c));
+  if(!allVisible) return;
 
   const overlay = document.createElement('div');
   overlay.className = 'largeOverlay ' + (u.side==='player'?'player':'enemy');
   overlay.dataset.id = u.id;
   overlay.style.position = 'absolute';
-  overlay.style.left   = `${tlRect.left - areaRect.left}px`;
-  overlay.style.top    = `${tlRect.top  - areaRect.top }px`;
-  overlay.style.width  = `${brRect.right  - tlRect.left}px`;
-  overlay.style.height = `${brRect.bottom - tlRect.top }px`;
+
+  const span = CELL_SIZE * u.size + GRID_GAP * (u.size - 1);
+  const left = BOARD_BORDER + BOARD_PADDING + (u.c - 1) * (CELL_SIZE + GRID_GAP);
+  const top = BOARD_BORDER + BOARD_PADDING + (u.r - 1) * (CELL_SIZE + GRID_GAP);
+  overlay.style.left = `${left}px`;
+  overlay.style.top = `${top}px`;
+  overlay.style.width = `${span}px`;
+  overlay.style.height = `${span}px`;
   overlay.style.background = (u.side==='player')?'rgba(82,196,26,0.15)':'rgba(245,34,45,0.12)';
   overlay.style.border = '1px solid rgba(255,255,255,0.25)';
-  overlay.style.borderRadius = '8px';
+  overlay.style.borderRadius = '10px';
   overlay.style.color = '#fff';
   overlay.style.display='flex';
   overlay.style.flexDirection='column';
@@ -1846,6 +2172,7 @@ function renderLargeUnitOverlay(u){
   overlay.style.pointerEvents='auto';
 
   overlay.addEventListener('click',(e)=>{
+    if(interactionLocked) return;
     e.stopPropagation();
     if(godsWillArmed){ showGodsWillMenuAtUnit(u); return; }
     if(_skillSelection){
@@ -1862,7 +2189,7 @@ function renderLargeUnitOverlay(u){
   const hpPct = Math.max(0, Math.min(100, (u.hp/u.maxHp*100)||0));
   const spPct = Math.max(0, Math.min(100, (u.maxSp ? (u.sp/u.maxSp*100) : 0)));
   overlay.innerHTML = `
-    <div class="title">${u.name} (2x2)</div>
+    <div class="title">${u.name}</div>
     <div class="hpbar" style="width:90%;height:6px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">
       <div class="hpfill" style="height:100%;width:${hpPct}%;background:#ff4d4f;"></div>
     </div>
@@ -1951,7 +2278,13 @@ function canUnitMove(u){
 }
 function clearSkillAiming(){ _skillSelection=null; clearHighlights(); }
 function clearAllSelection(){ _skillSelection=null; selectedUnitId=null; clearHighlights(); if(skillPool) skillPool.innerHTML=''; if(selectedInfo) selectedInfo.innerHTML=''; }
-function startSkillAiming(u,sk){ clearHighlights(); _skillSelection={unit:u,skill:sk}; appendLog(`${u.name} 选择了技能：${sk.name}，移动鼠标到目标格以预览并点击`); handleSkillPreviewCell(u,sk,{r:u.r,c:u.c}); }
+function startSkillAiming(u,sk){
+  if(interactionLocked || !u || u.hp<=0) return;
+  clearHighlights();
+  _skillSelection={unit:u,skill:sk};
+  appendLog(`${u.name} 选择了技能：${sk.name}，移动鼠标到目标格以预览并点击`);
+  handleSkillPreviewCell(u,sk,{r:u.r,c:u.c});
+}
 function rangeIncludeCell(cells, aimCell){ return cells.some(c=>c.r===aimCell.r && c.c===aimCell.c); }
 function resolveAimDirForSkill(u, sk, aimCell){
   const vecDir = cardinalDirFromDelta(aimCell.r - u.r, aimCell.c - u.c);
@@ -1967,6 +2300,7 @@ function resolveAimDirForSkill(u, sk, aimCell){
   return vecDir;
 }
 function handleSkillPreviewCell(u, sk, aimCell){
+  if(interactionLocked || !u || u.hp<=0) return;
   clearHighlights();
   const aimDir = resolveAimDirForSkill(u, sk, aimCell);
   const cells = sk.rangeFn(u, aimDir, aimCell) || [];
@@ -1976,6 +2310,7 @@ function handleSkillPreviewCell(u, sk, aimCell){
 }
 function consumeCardFromHand(u, sk){ if(!u || !u.skillPool) return; const idx=u.skillPool.indexOf(sk); if(idx>=0) u.skillPool.splice(idx,1); }
 function discardSkill(u, sk){
+  if(interactionLocked) return;
   if(!u || !sk) return;
   if(u.side !== currentSide){ appendLog('现在不是你的回合'); return; }
   if(u.hp<=0){ appendLog('该单位已无法行动'); return; }
@@ -1985,6 +2320,7 @@ function discardSkill(u, sk){
   renderAll(); showSelected(u);
 }
 function handleSkillConfirmCell(u, sk, aimCell){
+  if(interactionLocked || !u || u.hp<=0) return;
   if(!_skillSelection) return;
 
   if(sk.meta && sk.meta.moveSkill && !canUnitMove(u)){
@@ -2029,6 +2365,7 @@ function handleSkillConfirmCell(u, sk, aimCell){
   setTimeout(()=>{ checkEndOfTurn(); }, 220);
 }
 function onUnitClick(id){
+  if(interactionLocked) return;
   const u=units[id]; if(!u) return;
   if(godsWillArmed){ showGodsWillMenuAtUnit(u); return; }
   if(u.side==='enemy' && ENEMY_IS_AI_CONTROLLED){ appendLog('敌方单位由 AI 控制，无法手动操作'); selectedUnitId=id; showSelected(u); return; }
@@ -2036,6 +2373,7 @@ function onUnitClick(id){
   selectedUnitId=id; showSelected(u);
 }
 function onCellClick(r,c){
+  if(interactionLocked) return;
   if(_skillSelection) return;
   if(!selectedUnitId) {
     if(godsWillArmed){ appendLog('GOD’S WILL：请直接点击单位，而非空格'); }
@@ -2058,7 +2396,8 @@ function onCellClick(r,c){
   sel.r=r; sel.c=c;
   if(sel.side==='player') playerSteps=Math.max(0, playerSteps-1); else enemySteps=Math.max(0, enemySteps-1);
   appendLog(`${sel.name} 移动到 (${r},${c})`);
-  cameraFocusOnCell(r,c); pulseCell(r,c);
+  if(sel.side!=='player') cameraFocusOnCell(r,c);
+  pulseCell(r,c);
   if(sel.id==='karma' && sel.consecAttacks>0){ appendLog(`${sel.name} 的连击被打断（移动）`); sel.consecAttacks=0; }
   unitActed(sel);
   clearHighlights(); renderAll(); showSelected(sel);
@@ -2103,7 +2442,7 @@ function showSelected(u){
         discardBtn.style.marginLeft='8px';
         discardBtn.style.fontSize='12px';
         discardBtn.style.padding='2px 6px';
-        discardBtn.addEventListener('click',(e)=>{ e.stopPropagation(); discardSkill(u, sk); });
+        discardBtn.addEventListener('click',(e)=>{ e.stopPropagation(); if(interactionLocked) return; discardSkill(u, sk); });
 
         const rightWrap=document.createElement('div');
         rightWrap.style.display='flex';
@@ -2116,10 +2455,12 @@ function showSelected(u){
         header.appendChild(rightWrap);
         card.appendChild(header);
 
-        card.addEventListener('contextmenu',(e)=>{ e.preventDefault(); discardSkill(u,sk); });
+        card.addEventListener('contextmenu',(e)=>{ e.preventDefault(); if(interactionLocked) return; discardSkill(u,sk); });
         card.addEventListener('click', ()=>{
+          if(interactionLocked) return;
           if(!stepsOk){ appendLog('步数不足'); return; }
           if(u.status.stunned){ appendLog(`${u.name} 眩晕中`); return; }
+          if(u.hp<=0){ appendLog(`${u.name} 已阵亡，无法行动`); return; }
           if(sk.meta && sk.meta.moveSkill && !canUnitMove(u)){ appendLog(`${u.name} 处于姿态中，无法移动`); return; }
           startSkillAiming(u, sk);
         });
@@ -2671,6 +3012,8 @@ async function enemyTurn(){
   }
   appendLog('敌方开始行动');
 
+  enemyActionCameraLock = true;
+
   // 用尽步数
   await exhaustEnemySteps();
 
@@ -2679,6 +3022,9 @@ async function enemyTurn(){
     appendLog('兜底：将剩余敌方步数清零');
     enemySteps = 0; updateStepsUI();
   }
+
+  enemyActionCameraLock = false;
+  cameraReset();
 
   // 正式结束敌方回合
   finishEnemyTurn();
@@ -2760,7 +3106,8 @@ function checkHazComebackStatus(){
 // —— 初始化 —— 
 document.addEventListener('DOMContentLoaded', ()=>{
   battleAreaEl = document.getElementById('battleArea');
-  cameraEl = document.getElementById('battleCamera') || document.body;
+  mapPaneEl = document.getElementById('mapPane');
+  cameraEl = battleAreaEl;
   playerStepsEl = document.getElementById('playerSteps');
   enemyStepsEl = document.getElementById('enemySteps');
   roundCountEl = document.getElementById('roundCount');
@@ -2770,6 +3117,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   logEl = document.getElementById('log');
   accomplish = document.getElementById('accomplish');
   damageSummary = document.getElementById('damageSummary');
+
+  updateCameraBounds();
+  createCameraControls();
+  registerCameraInputs();
+  cameraReset({immediate:true});
+  startCameraLoop();
 
   // 掩体（不可进入）
   addCoverRectBL(2,3,4,5);
@@ -2785,6 +3138,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   enemySteps = computeBaseSteps();
 
   renderAll();
+  updateCameraBounds();
+  applyCameraTransform();
 
   // 初次渲染后延迟刷新 2x2 覆盖
   setTimeout(()=> refreshLargeOverlays(), 0);
@@ -2801,14 +3156,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   appendLog('每个来回计 1 回合；20 回合后触发“队长的压迫”。');
 
   const endTurnBtn=document.getElementById('endTurnBtn');
-  if(endTurnBtn) endTurnBtn.addEventListener('click', ()=> endTurn());
+  if(endTurnBtn) endTurnBtn.addEventListener('click', ()=>{ if(interactionLocked) return; endTurn(); });
 
   // GOD'S WILL 按钮
   godsWillBtn = document.createElement('button');
   godsWillBtn.id = 'godsWillBtn';
   godsWillBtn.textContent = "GOD'S WILL";
   godsWillBtn.title = '调试：点击后选择任意单位 → 杀死或留 1 HP（ESC 取消）';
-  godsWillBtn.onclick = (e)=>{ e.stopPropagation(); toggleGodsWill(); };
+  godsWillBtn.onclick = (e)=>{ e.stopPropagation(); if(interactionLocked) return; toggleGodsWill(); };
   document.body.appendChild(godsWillBtn);
 
   // Full Screen 按钮
@@ -2816,7 +3171,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   fsBtn.id = 'fullscreenBtn';
   fsBtn.textContent = 'Full Screen';
   fsBtn.title = '切换全屏模式';
-  fsBtn.onclick = (e)=>{ e.stopPropagation(); toggleFullscreen(); };
+  fsBtn.onclick = (e)=>{ e.stopPropagation(); if(interactionLocked) return; toggleFullscreen(); };
   document.body.appendChild(fsBtn);
 
   // ESC 取消 GOD’S WILL
@@ -2837,6 +3192,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         godsWillMenuEl=null;
         if(godsWillArmed) appendLog('GOD’S WILL 菜单因窗口变化已移除，请重新点击单位');
       }
+      updateCameraBounds();
     }, 120);
   });
 
@@ -2844,4 +3200,5 @@ document.addEventListener('DOMContentLoaded', ()=>{
   applyParalysisAtTurnStart('player');
   processUnitsTurnStart('player');
   updateStepsUI();
+  setTimeout(()=> playIntroCinematic(), 80);
 });
