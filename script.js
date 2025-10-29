@@ -1489,6 +1489,7 @@ startBtn.addEventListener("click", () => {
   startBtn.disabled = true;
   stepBtn.disabled = false;
   autoBtn.disabled = false;
+  game.nextAction();
 });
 
 stepBtn.addEventListener("click", () => {
