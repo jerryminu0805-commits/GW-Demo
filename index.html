@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOD'S WILL</title>
+  <link rel="stylesheet" href="styles_Version12.css" />
+</head>
+<body>
+  <div id="app">
+    <div class="screen screen--menu active" data-screen="menu">
+      <div class="screen__background"></div>
+      <div class="intro-mask" aria-hidden="true"></div>
+      <div class="menu" role="navigation" aria-label="主菜单">
+        <div class="menu__logo">GOD'S WILL</div>
+        <div class="menu__buttons">
+          <button class="button button--primary" data-action="start">开始</button>
+          <button class="button" data-action="settings">设置</button>
+          <button class="button" data-action="exit">离开</button>
+          <button class="button button--accent" data-action="tutorial">教学</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen--chapters" data-screen="chapters" aria-hidden="true">
+      <div class="chapter__hero">
+        <button class="button button--ghost" data-action="back-to-menu">返回</button>
+        <div class="chapter__headline">
+          <h1>章节选择</h1>
+          <p>选择可用章节进入详细的关卡地图。</p>
+        </div>
+        <button class="button button--ghost" data-action="open-characters">角色</button>
+      </div>
+      <div class="chapter__timeline" aria-label="章节列表">
+        <button class="timeline__column is-active" type="button" data-action="open-demo" data-chapter="demo">
+          <span class="timeline__label">Demo</span>
+        </button>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+      </div>
+    </div>
+
+    <div class="screen screen--stages" data-screen="stages" aria-hidden="true">
+      <div class="screen__header stages__header">
+        <button class="button button--ghost" data-action="back-to-chapters">返回章节</button>
+        <h1>Demo 关卡选择</h1>
+        <button class="button button--ghost" data-action="open-characters">角色</button>
+      </div>
+      <div class="stages">
+        <div class="stage-map" aria-label="Demo 地图">
+          <div class="stage-map__grid">
+            <div class="stage-map__path"></div>
+            <button class="stage-node stage-node--intro is-active" type="button" data-stage="intro">
+              <span class="stage-node__name">Intro</span>
+            </button>
+            <button class="stage-node stage-node--limit" type="button" data-stage="limit">
+              <span class="stage-node__name">疲惫的极限</span>
+            </button>
+            <button class="stage-node stage-node--seven-seas" type="button" data-stage="seven-seas">
+              <span class="stage-node__name">七海</span>
+              <span class="stage-node__particles" aria-hidden="true"></span>
+            </button>
+            <div class="stage-map__legend">
+              <span class="legend--normal">主线</span>
+              <span class="legend--boss">Boss</span>
+            </div>
+          </div>
+        </div>
+        <div class="stage-info" aria-live="polite">
+          <header class="stage-info__header">
+            <h2 class="stage-info__title">Intro</h2>
+            <div class="stage-info__meta">推荐等级 20</div>
+          </header>
+          <div class="stage-info__body">
+            <section class="stage-info__lore"></section>
+            <section class="stage-info__enemies is-locked">
+              <div class="stage-info__lock">敌方技能已锁定。进入关卡后解锁。</div>
+              <div class="stage-info__enemy-content"></div>
+            </section>
+          </div>
+          <footer class="stage-info__actions">
+            <button class="button button--ghost" type="button" data-action="scan-stage">扫描情报</button>
+            <button class="button button--primary" type="button" data-action="enter-stage">进入关卡</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen screen--tutorial" data-screen="tutorial" aria-hidden="true">
+      <div class="screen__header">
+        <button class="button button--ghost" data-action="back-to-menu">返回</button>
+        <h1>作战教学</h1>
+      </div>
+      <div class="tutorial">
+        <nav class="tutorial__tabs" role="tablist">
+          <button role="tab" class="tutorial__tab is-active" data-tab="basics">简短游戏玩法</button>
+          <button role="tab" class="tutorial__tab" data-tab="skills">技能</button>
+          <button role="tab" class="tutorial__tab" data-tab="effects">特殊效果（目前有的）</button>
+          <button role="tab" class="tutorial__tab" data-tab="enemies">敌人</button>
+        </nav>
+        <section class="tutorial__panel is-active" data-tab-panel="basics" role="tabpanel">
+          <h2>核心概念</h2>
+          <h3>HP / SP</h3>
+          <ul>
+            <li>HP 降至 0 时立即死亡。</li>
+            <li>SP 降至 0 时会获得一层眩晕 Buff 并失去 1 步，眩晕结束后恢复部分 SP（各单位不同）。</li>
+          </ul>
+          <h3>步数</h3>
+          <ul>
+            <li>双方以 3 步开始战斗，每回合结束都会增加 1 步。</li>
+            <li>双方平均等级比较，更高者每回合额外获得 2 步。</li>
+            <li>步数是所有行动与技能的资源。默认上限为 10（可被技能修改）。</li>
+          </ul>
+          <h3>回合</h3>
+          <p>己方行动结束和敌方行动结束分别计入一回合。</p>
+          <h3>掩体</h3>
+          <p>非范围技能无法穿透掩体，且不可进入掩体格。</p>
+        </section>
+        <section class="tutorial__panel" data-tab-panel="skills" role="tabpanel" aria-hidden="true">
+          <h2>技能分类</h2>
+          <ul class="color-legend">
+            <li><span class="color color--green"></span>绿色（1 步）— 普通攻击</li>
+            <li><span class="color color--blue"></span>蓝色（2 步）— 移动技能</li>
+            <li><span class="color color--red"></span>红色（≥3 步）— 大招</li>
+            <li><span class="color color--white"></span>白色（不定）— 被动类技能</li>
+            <li><span class="color color--pink"></span>粉色（≥2 步）— 普通增益技能</li>
+            <li><span class="color color--orange"></span>橘色（≥2 步）— 特异增益功能</li>
+          </ul>
+          <h3>多阶段攻击</h3>
+          <p>单个技能拆分为多段，每段可拥有独立的范围、效果与触发条件。</p>
+          <h3>被动</h3>
+          <p>无需主动释放即可发挥效果。</p>
+        </section>
+        <section class="tutorial__panel" data-tab-panel="effects" role="tabpanel" aria-hidden="true">
+          <h2>当前特殊效果</h2>
+          <ul>
+            <li><strong>流血</strong>：每回合损失 5% HP，持续 2 回合，可叠加。</li>
+            <li><strong>眩晕层数</strong>：可叠加，无额外效果。</li>
+            <li><strong>眩晕 Debuff</strong>：达到指定层数后失去 1 回合行动并消耗 1 层。</li>
+            <li><strong>恐惧</strong>：下回合减少 1 步，可叠加。</li>
+            <li><strong>鸡血</strong>：下一次攻击伤害翻倍并消耗 1 层（每单位最多 1 层，多阶段攻击加在最后一段）。</li>
+            <li><strong>依赖</strong>：下一次攻击造成真实伤害并消耗 1 层，同时令自身 SP 归零（每单位最多 1 层）。</li>
+            <li><strong>“恢复” Buff</strong>：下一大回合开始时恢复 5 HP 并消耗 1 层，每个大回合最多消耗 1 层，可叠加。</li>
+          </ul>
+        </section>
+        <section class="tutorial__panel" data-tab-panel="enemies" role="tabpanel" aria-hidden="true">
+          <h2>敌人类型</h2>
+          <ul>
+            <li><strong>普通</strong>：无特殊能力。</li>
+            <li><strong>高级</strong>：尚未实装。</li>
+            <li><strong>精英</strong>：秒杀技能只能造成 100 HP，需要 2 层眩晕触发眩晕 Debuff。</li>
+            <li><strong>小 Boss</strong>：秒杀技能改为 80 HP，需要 3 层眩晕触发眩晕 Debuff，无法被位移。</li>
+            <li><strong>Boss</strong>：秒杀技能改为 75 HP，需要 4 层眩晕触发眩晕 Debuff，无法被位移。</li>
+            <li><strong>特殊</strong>：？？？</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <div class="screen screen--characters" data-screen="characters" aria-hidden="true">
+      <div class="screen__header">
+        <button class="button button--ghost" data-action="back-to-chapters">返回</button>
+        <h1>角色档案</h1>
+      </div>
+      <div class="characters">
+        <div class="character__portrait">
+          <div class="portrait__image" role="img" aria-label="角色立绘"></div>
+          <div class="portrait__level">等级 <span class="level-value">20</span></div>
+        </div>
+        <div class="character__details">
+          <div class="character__tabs" role="tablist">
+            <button class="character__tab is-active" data-tab="bio" role="tab">介绍</button>
+            <button class="character__tab" data-tab="skills" role="tab">技能</button>
+          </div>
+          <div class="character__content">
+            <article class="character__panel is-active" data-tab-panel="bio" role="tabpanel"></article>
+            <article class="character__panel" data-tab-panel="skills" role="tabpanel" aria-hidden="true"></article>
+          </div>
+        </div>
+        <aside class="character__list" aria-label="角色列表">
+          <button class="character__item is-active" data-character="adora">Adora</button>
+          <button class="character__item" data-character="karma">Karma</button>
+          <button class="character__item" data-character="dario">Dario</button>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div class="transition-mask" aria-hidden="true"></div>
+  <div class="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
