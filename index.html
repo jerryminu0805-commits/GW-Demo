@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOD'S WILL Demo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="transition-overlay" class="transition transition--reveal"></div>
+  <div id="app">
+    <main id="menu-screen" class="screen screen--active">
+      <div class="menu-background"></div>
+      <div class="menu-content">
+        <h1 class="game-title">GOD'S WILL</h1>
+        <nav class="menu-buttons">
+          <button class="menu-button" data-target="chapter">开始</button>
+          <button class="menu-button" data-action="settings">设置</button>
+          <button class="menu-button" data-action="exit">离开</button>
+          <button class="menu-button" data-target="tutorial">教学</button>
+        </nav>
+      </div>
+    </main>
+
+    <section id="settings-panel" class="modal hidden">
+      <div class="modal-content">
+        <h2>设置</h2>
+        <p>设置界面正在施工中。</p>
+        <button class="pill-button" data-close="settings">返回</button>
+      </div>
+    </section>
+
+    <section id="chapter-screen" class="screen">
+      <header class="screen-header">
+        <button class="pill-button" data-target="menu">返回</button>
+        <h2>章节选择</h2>
+        <button class="pill-button" data-target="character">角色</button>
+      </header>
+      <div class="chapter-grid">
+        <article class="chapter-card chapter-card--active" data-chapter="demo">
+          <h3>Demo</h3>
+          <p>唯一解锁的章节。</p>
+          <button class="pill-button" data-target="levels" data-chapter="demo">进入</button>
+        </article>
+        <article class="chapter-card chapter-card--locked">
+          <h3>Chapter 2</h3>
+          <p>锁定</p>
+        </article>
+        <article class="chapter-card chapter-card--locked">
+          <h3>Chapter 3</h3>
+          <p>锁定</p>
+        </article>
+        <article class="chapter-card chapter-card--locked">
+          <h3>Chapter 4</h3>
+          <p>锁定</p>
+        </article>
+        <article class="chapter-card chapter-card--locked">
+          <h3>Chapter 5</h3>
+          <p>锁定</p>
+        </article>
+        <article class="chapter-card chapter-card--locked">
+          <h3>Chapter 6</h3>
+          <p>锁定</p>
+        </article>
+        <article class="chapter-card chapter-card--locked">
+          <h3>Chapter 7</h3>
+          <p>锁定</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="level-screen" class="screen">
+      <header class="screen-header">
+        <button class="pill-button" data-target="chapter">返回</button>
+        <h2 id="level-chapter-title">Demo - 关卡选择</h2>
+      </header>
+      <div class="level-layout">
+        <aside class="level-list">
+          <button class="level-button" data-level="intro">Intro</button>
+          <button class="level-button" data-level="limit">疲惫的极限</button>
+          <button class="level-button" data-level="sevenSeas">七海</button>
+        </aside>
+        <section class="level-detail" id="level-detail"></section>
+      </div>
+    </section>
+
+    <section id="tutorial-screen" class="screen">
+      <header class="screen-header">
+        <button class="pill-button" data-target="menu">返回</button>
+        <h2>教学</h2>
+      </header>
+      <div class="tutorial-tabs">
+        <button class="tab-button active" data-tab="basics">简短游戏玩法</button>
+        <button class="tab-button" data-tab="skills">技能</button>
+        <button class="tab-button" data-tab="effects">特殊效果</button>
+        <button class="tab-button" data-tab="enemies">敌人</button>
+      </div>
+      <div class="tab-content" id="tutorial-content"></div>
+    </section>
+
+    <section id="character-screen" class="screen">
+      <header class="screen-header">
+        <button class="pill-button" data-target="chapter">返回</button>
+        <h2>角色档案</h2>
+      </header>
+      <div class="character-wrapper">
+        <aside class="character-list">
+          <button class="character-button active" data-character="adora">Adora</button>
+          <button class="character-button" data-character="karma">Karma</button>
+          <button class="character-button" data-character="dario">Dario</button>
+        </aside>
+        <section class="character-detail" id="character-detail"></section>
+      </div>
+    </section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
