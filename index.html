@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>七海作战队 Boss 战模拟器</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>七海作战队 Boss 战模拟器</h1>
+      <p>
+        根据设定自动演算 18×22 网格战斗，展示全部单位状态、技能释放与 Buff
+        变更。可单步执行或自动播放战斗流程。
+      </p>
+    </header>
+
+    <main>
+      <section class="controls">
+        <button id="startBtn">开始模拟</button>
+        <button id="nextBtn" disabled>执行下一动作</button>
+        <button id="autoBtn" disabled>自动播放</button>
+        <button id="resetBtn" disabled>重置战场</button>
+        <label>
+          自动延迟 (ms)
+          <input type="number" id="autoDelay" value="1200" min="200" step="100" />
+        </label>
+      </section>
+
+      <section class="board-and-info">
+        <div id="board" class="board"></div>
+        <aside>
+          <div class="round-info">
+            <h2>回合信息</h2>
+            <p>当前大回合：<span id="roundDisplay">-</span></p>
+            <p>当前行动方：<span id="activeSide">-</span></p>
+            <p>当前单位：<span id="activeUnit">-</span></p>
+          </div>
+          <div class="unit-panel">
+            <h2>单位状态</h2>
+            <div id="unitList" class="unit-list"></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="log-section">
+        <h2>战斗日志</h2>
+        <div id="log" class="log"></div>
+      </section>
+    </main>
+
+    <template id="unitCardTemplate">
+      <div class="unit-card">
+        <div class="unit-header">
+          <span class="unit-name"></span>
+          <span class="unit-pos"></span>
+        </div>
+        <div class="bars">
+          <div class="bar hp"><div class="value"></div></div>
+          <div class="bar sp"><div class="value"></div></div>
+        </div>
+        <ul class="unit-stats"></ul>
+        <div class="buffs"></div>
+      </div>
+    </template>
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
