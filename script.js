@@ -155,12 +155,13 @@ const stageData = {
     map: {
       cols: 22,
       rows: 18,
-      defaultTerrain: 'void',
+      defaultTerrain: 'floor',
+      voids: [
+        { from: [14, 0], to: [21, 9] },
+      ],
       floors: [
-        { from: [0, 0], to: [7, 17] },
-        { from: [8, 10], to: [21, 17] },
-        { from: [8, 8], to: [13, 9] },
-        { from: [14, 2], to: [21, 9] },
+        { from: [16, 0], to: [18, 9] },
+        { from: [19, 4], to: [21, 9] },
       ],
       covers: [
         { from: [2, 3], to: [4, 5], type: 'cover-solid' },
