@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GW Demo</title>
+  <title>GOD'S WILL</title>
   <link rel="stylesheet" href="styles_Version12.css" />
 </head>
 <body>
@@ -12,8 +12,7 @@
       <div class="screen__background"></div>
       <div class="intro-mask" aria-hidden="true"></div>
       <div class="menu" role="navigation" aria-label="主菜单">
-        <div class="menu__logo">Cultbreaker</div>
-        <p class="menu__subtitle">Dawn of the Broken Tide</p>
+        <div class="menu__logo">GOD'S WILL</div>
         <div class="menu__buttons">
           <button class="button button--primary" data-action="start">开始</button>
           <button class="button" data-action="settings">设置</button>
@@ -24,29 +23,69 @@
     </div>
 
     <div class="screen screen--chapters" data-screen="chapters" aria-hidden="true">
-      <div class="chapter__topbar">
+      <div class="chapter__hero">
         <button class="button button--ghost" data-action="back-to-menu">返回</button>
+        <div class="chapter__headline">
+          <h1>章节选择</h1>
+          <p>选择可用章节进入详细的关卡地图。</p>
+        </div>
         <button class="button button--ghost" data-action="open-characters">角色</button>
       </div>
-      <div class="chapter__content">
-        <div class="chapter__timeline" aria-label="章节列表">
-          <div class="timeline__column is-active">
-            <div class="timeline__label">Demo</div>
+      <div class="chapter__timeline" aria-label="章节列表">
+        <button class="timeline__column is-active" type="button" data-action="open-demo" data-chapter="demo">
+          <span class="timeline__label">Demo</span>
+        </button>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+        <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
+      </div>
+    </div>
+
+    <div class="screen screen--stages" data-screen="stages" aria-hidden="true">
+      <div class="screen__header stages__header">
+        <button class="button button--ghost" data-action="back-to-chapters">返回章节</button>
+        <h1>Demo 关卡选择</h1>
+        <button class="button button--ghost" data-action="open-characters">角色</button>
+      </div>
+      <div class="stages">
+        <div class="stage-map" aria-label="Demo 地图">
+          <div class="stage-map__grid">
+            <div class="stage-map__path"></div>
+            <button class="stage-node stage-node--intro is-active" type="button" data-stage="intro">
+              <span class="stage-node__name">Intro</span>
+            </button>
+            <button class="stage-node stage-node--limit" type="button" data-stage="limit">
+              <span class="stage-node__name">疲惫的极限</span>
+            </button>
+            <button class="stage-node stage-node--seven-seas" type="button" data-stage="seven-seas">
+              <span class="stage-node__name">七海</span>
+              <span class="stage-node__particles" aria-hidden="true"></span>
+            </button>
+            <div class="stage-map__legend">
+              <span class="legend--normal">主线</span>
+              <span class="legend--boss">Boss</span>
+            </div>
           </div>
-          <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
-          <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
-          <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
-          <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
-          <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
-          <div class="timeline__column is-locked" aria-hidden="true"><span class="lock">锁定</span></div>
         </div>
-        <div class="chapter__map">
-          <div class="chapter__map-inner">
-            <button class="stage stage--intro" data-stage="intro">Intro</button>
-            <button class="stage stage--limit" data-stage="limit">疲惫的极限</button>
-            <button class="stage stage--seven-seas" data-stage="seven-seas">七海</button>
+        <div class="stage-info" aria-live="polite">
+          <header class="stage-info__header">
+            <h2 class="stage-info__title">Intro</h2>
+            <div class="stage-info__meta">推荐等级 20</div>
+          </header>
+          <div class="stage-info__body">
+            <section class="stage-info__lore"></section>
+            <section class="stage-info__enemies is-locked">
+              <div class="stage-info__lock">敌方技能已锁定。进入关卡后解锁。</div>
+              <div class="stage-info__enemy-content"></div>
+            </section>
           </div>
-          <div class="stage__details" aria-live="polite"></div>
+          <footer class="stage-info__actions">
+            <button class="button button--ghost" type="button" data-action="scan-stage">扫描情报</button>
+            <button class="button button--primary" type="button" data-action="enter-stage">进入关卡</button>
+          </footer>
         </div>
       </div>
     </div>

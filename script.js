@@ -4,64 +4,211 @@ const toast = document.querySelector('.toast');
 let currentScreen = 'menu';
 let maskBusy = false;
 
-const stageDetails = {
-  intro: `
-    <h3>Intro</h3>
-    <p>示范章节的开端。为玩家铺垫世界观与操作，包含低威胁遭遇、基础掩体运用与步数管理教学。</p>
-    <ul>
-      <li>推荐队伍：Adora / Karma / Dario。</li>
-      <li>胜利条件：击败所有异端侦察兵。</li>
-      <li>提示：利用掩体吸收普通攻击，逐步熟悉 SP 与步数的消耗节奏。</li>
-    </ul>
-  `,
-  limit: `
-    <h3>疲惫的极限</h3>
-    <p>持续作战对队伍造成的精神消耗开始显现，考验玩家在负面状态与资源短缺中的调度能力。</p>
-    <ul>
-      <li>环境效果：所有单位每 2 回合额外损失 5 点 SP。</li>
-      <li>新增敌人：持盾的狂信徒，可在掩体后施放穿刺。</li>
-      <li>提示：合理安排粉色与橘色增益技能，避免进入眩晕循环。</li>
-    </ul>
-  `,
-  'seven-seas': `
-    <h3>七海</h3>
-    <p>夜幕低垂，海风裹挟着血腥味，从废弃码头吹来。这里是与七海作战队的首次交锋。</p>
-    <section>
-      <h4>序幕</h4>
-      <p>刑警队长的情报指向七海作战队——唯一一支不受政府调度的部队。三人组抵达破旧码头，迎接他们的，是浑身浴血的队长 Haz 与他的队伍。</p>
-    </section>
-    <section>
+const stageData = {
+  intro: {
+    name: 'Intro',
+    recommended: '推荐等级 20',
+    lore: `
+      <h3>作战背景</h3>
+      <p>示范章节的开端，提供给初次接触指挥系统的玩家熟悉行动点、掩体与敌人仇恨机制的空间。</p>
+      <h4>战场要点</h4>
+      <ul>
+        <li>初始站位紧凑，方便练习换位与支援。</li>
+        <li>掩体仅能阻挡非范围攻击，提醒玩家体验穿透与范围差异。</li>
+        <li>敌人以近战侦察兵为主，少量远程单位用于提示躲避。</li>
+      </ul>
+      <h4>建议战术</h4>
+      <ul>
+        <li>合理轮转普通攻击与移动技能，保持步数不过量溢出。</li>
+        <li>尝试触发被动“冷静分析”，熟悉不行动也能恢复 SP 的机制。</li>
+      </ul>
+    `,
+    enemySkills: `
+      <h3>敌方技能情报</h3>
+      <article>
+        <h4>异端侦察兵</h4>
+        <ul>
+          <li><strong>撕咬</strong>：单体近战攻击，造成 8 HP 伤害。</li>
+          <li><strong>盯防</strong>：自身获得 1 层减伤，持续 1 回合。</li>
+        </ul>
+      </article>
+      <article>
+        <h4>破坏者小队</h4>
+        <ul>
+          <li><strong>投掷燃瓶</strong>：以玩家为中心 1 格范围造成 5 HP + 灼烧。</li>
+          <li><strong>快速换位</strong>：消耗 2 步换到相邻掩体。</li>
+        </ul>
+      </article>
+    `,
+  },
+  limit: {
+    name: '疲惫的极限',
+    recommended: '推荐等级 24',
+    lore: `
+      <h3>连续作战模拟</h3>
+      <p>在连番战斗后，队伍的精神力逐渐紧张。环境持续施加 SP 压力，迫使玩家管理恢复技能。</p>
+      <h4>战场要点</h4>
+      <ul>
+        <li>环境效果：所有单位每 2 回合额外损失 5 点 SP。</li>
+        <li>新增持盾狂信徒，可在掩体后发动穿刺，强调位置控制。</li>
+        <li>掩体分布稀疏，需要轮班守卫或主动清理。</li>
+      </ul>
+      <h4>建议战术</h4>
+      <ul>
+        <li>善用粉色与橘色辅助技能，避免队伍陷入眩晕循环。</li>
+        <li>轮换主力输出，确保至少一人保持高 SP 以应对突发状况。</li>
+      </ul>
+    `,
+    enemySkills: `
+      <h3>敌方技能情报</h3>
+      <article>
+        <h4>持盾狂信徒</h4>
+        <ul>
+          <li><strong>穿刺</strong>：以直线 2 格造成 15 HP 伤害，可穿透单层掩体。</li>
+          <li><strong>铁壁</strong>：获得 30% 减伤，持续 2 回合；被打破后反击 5 HP。</li>
+        </ul>
+      </article>
+      <article>
+        <h4>疲劳咒术师</h4>
+        <ul>
+          <li><strong>心智抽离</strong>：对单体造成 10 SP 伤害并附加“恐惧”。</li>
+          <li><strong>虚弱雾</strong>：以 3×3 范围使敌方下回合步数 -1。</li>
+        </ul>
+      </article>
+    `,
+  },
+  'seven-seas': {
+    name: '七海',
+    recommended: '推荐等级 35+',
+    lore: `
+      <h3>废弃码头·夜</h3>
+      <p>夜幕低垂，海风夹杂血腥味。刑警队长提供的线索指向七海作战队——唯一一支不听命于政府的部队。</p>
+      <p>三人组抵达破旧码头，面对的是浑身浴血、鱼叉尚滴着残肉的队长 Haz 与他最信任的四位队员。</p>
       <h4>地图情报</h4>
       <ul>
-        <li>尺寸：18 × 22 格，右下存在 8 × 10 的缺口。</li>
-        <li>掩体：
+        <li>尺寸：18 × 22 格，右下方有 8 × 10 的缺口构成复杂地形。</li>
+        <li>掩体分布：
           <ul>
-            <li>(2,3)-(4,5) 正方形，阻挡所有非范围伤害。</li>
-            <li>(2,12)-(5,14) 长方形，阻挡长度超过 1 格的攻击。</li>
-            <li>(10,11)-(12,13) 正方形，同样阻挡长度超过 1 格的攻击。</li>
+            <li>(2,3)-(4,5) 正方形掩体，可阻挡所有非范围攻击。</li>
+            <li>(2,12)-(5,14) 长方形掩体，仅范围技能或穿透技能可突破。</li>
+            <li>(10,11)-(12,13) 正方形掩体，适合阻挡冲锋路线。</li>
           </ul>
         </li>
-        <li>初始站位：Karma (3,2)、Dario (5,2)、Adora (7,2)。</li>
-        <li>敌军：Haz、Tusk、Katz、Neyla、Kyn，全部带有“作战余波” Debuff（-25% HP，伤害 -5）。</li>
+        <li>我方初始站位：Karma (3,2)、Dario (5,2)、Adora (7,2)。</li>
+        <li>敌军初始站位：Haz(21,4)、Tusk(19,6)、Katz(19,3)、Neyla(15,2)、Kyn(15,7)。</li>
+        <li>全体敌人携带“作战余波”Debuff：-25% HP，伤害 -5。</li>
       </ul>
-    </section>
-    <section>
-      <h4>敌方概览</h4>
-      <p><strong>Haz（Boss）</strong>——Lv55，HP 750 / SP 100。被动“弑神执念”“难以抑制的仇恨”等让他在 50% HP 以下进入高爆发状态，并能为队友恢复 SP。开启“力挽狂澜”后将获得全新的猎杀技能组合。</p>
-      <p><strong>Katz（小 Boss）</strong>——Lv53，HP 500 / SP 75。擅长多段鞭击，随着“队长的压迫”转为高风险的自损技能“必须抹杀一切…”。</p>
-      <p><strong>Tusk（小 Boss）</strong>——Lv54，HP 1000 / SP 60。兼具分摊与减伤能力，必要时以“拼尽全力保卫队长……”为 Haz 回复生命与 SP。</p>
-      <p><strong>Neyla（精英）</strong>——Lv52，HP 350 / SP 80。静止射击时伤害翻倍，获得“队长的压迫”后会以“终末之影”覆盖战场，随后进入处决模式“执行…”。</p>
-      <p><strong>Kyn（精英）</strong>——Lv51，HP 250 / SP 70。擅长瞬移与处决，触发“自我了断……”时可换取敌我同归的秒杀。</p>
-    </section>
-    <section>
-      <h4>战术提示</h4>
+      <h4>战术建议</h4>
       <ul>
-        <li>优先控制 Neyla 与 Kyn，避免队伍在中后期遭到远程处决。</li>
-        <li>监控 Haz 的猎杀标记，防止被集火。</li>
-        <li>借助掩体限制 Tusk 的冲撞路线，等待其技能冷却后集中火力。</li>
+        <li>优先处理 Neyla、Kyn 等机动型威胁，防止远程处决或刺杀。</li>
+        <li>保持 Haz 的猎杀标记在可控范围内，随时准备驱散或护盾。</li>
+        <li>利用掩体断绝 Tusk 的冲撞路线，等待其技能冷却后集火。</li>
       </ul>
-    </section>
-  `,
+    `,
+    enemySkills: `
+      <h3>七海作战队技能情报</h3>
+      <article>
+        <h4>Haz（队长／Boss Lv55）</h4>
+        <p>HP 750　SP 100（归零后失控 1 回合，步数 -1，随后恢复满 SP 并回复 5% HP）</p>
+        <h5>被动</h5>
+        <ul>
+          <li><strong>弑神执念</strong>：HP 低于 50% 时，伤害 +30%。</li>
+          <li><strong>难以抑制的仇恨</strong>：攻击时 40% 几率使目标 -5 SP，并附加“恐惧”。</li>
+          <li><strong>队员们听令！</strong>：每个双数回合开始，自身 +10 SP，所有队员 +5 SP。</li>
+          <li><strong>一切牺牲都是值得的</strong>：20 回合后，队员获得“队长的压迫”解锁禁忌技能。</li>
+          <li><strong>他们不是主菜！</strong>：1～15 回合队员获得 30% 暴击。</li>
+          <li><strong>把他们追杀到天涯海角！</strong>：首个命中的敌人获得“猎杀标记”，队员对其伤害 +15%。</li>
+          <li><strong>力挽狂澜</strong>：场上只剩 Haz 时，伤害 +10%、受伤 -10%，并解锁额外技能。</li>
+        </ul>
+        <h5>主动</h5>
+        <ul>
+          <li><strong>鱼叉穿刺</strong>（1 步）：前方 1 格造成 20 HP，并回复 10 SP。</li>
+          <li><strong>深海猎杀</strong>（2 步）：投出鱼叉链条，3 格内造成 25 HP，将目标拉至身前并 -10 SP。</li>
+          <li><strong>猎神之叉</strong>（2 步）：瞬移至 5×5 内目标旁，造成 20 HP（50% 几率 ×2）与 15 SP 伤害，并附加 1 层流血。</li>
+          <li><strong>锁链缠绕</strong>（2 步）：两回合内减伤 40%，并令下一次攻击自己的敌人额外受到 10 SP 伤害；全队 +5 SP。</li>
+          <li><strong>鲸落</strong>（4 步）：以自身为中心 5×5 造成 50 HP + 20 SP，并使命中目标下回合 -1 步。</li>
+        </ul>
+        <h5>力挽狂澜后解锁</h5>
+        <ul>
+          <li><strong>怨念滋生</strong>（1 步）：对所有带猎杀标记的目标施加 1 层流血与恐惧。</li>
+          <li><strong>付出代价</strong>（2 步）：连续三段鱼叉连击（15 HP + 5 SP / 15 HP + 5 SP / 15 HP + Haz 流血）。</li>
+          <li><strong>仇恨之叉</strong>（2 步）：横扫 2×3 造成 15 HP + 10 SP，并以地面冲击对 5×5 范围造成 20 HP + Haz 流血。</li>
+        </ul>
+      </article>
+      <article>
+        <h4>Katz（小 Boss Lv53）</h4>
+        <p>HP 500　SP 75（归零后失控 1 回合，步数 -1，随后恢复满 SP）</p>
+        <h5>被动</h5>
+        <ul>
+          <li><strong>隐秘迷恋</strong>：Haz 在场时伤害 +20%，每回合额外 +5 SP。</li>
+          <li><strong>恐怖执行力</strong>：每回合命中 ≥2 次时追加一次“矛刺”并使伤害 +30%。</li>
+          <li><strong>女强人</strong>：SP ＞ 60 时伤害 +10%。</li>
+        </ul>
+        <h5>主动</h5>
+        <ul>
+          <li><strong>矛刺</strong>（1 步）：前方 1 格造成 20 HP，并回复 5 SP。</li>
+          <li><strong>链式鞭击</strong>（2 步）：直线 3 格造成 25 HP，下回合目标 -1 步。</li>
+          <li><strong>反复鞭尸</strong>（3 步）：前方 3 格造成 10 HP，再次挥击造成 15 HP 并回复 5 SP，可依据 SP 重复至多 5 次。</li>
+          <li><strong>终焉礼炮</strong>（4 步）：投出炸弹鱼叉，3×3 范围造成 60 HP + 15 SP，自身下回合 -1 步。</li>
+          <li><strong>必须抹杀一切…</strong>（2 步，禁忌技能）：两段鞭击各造成 20 / 30 HP，自损各 5 HP，并依据 SP 重复最多 5 次。</li>
+        </ul>
+      </article>
+      <article>
+        <h4>Tusk（小 Boss Lv54）</h4>
+        <p>HP 1000　SP 60（归零后失控 1 回合，步数 -1，随后恢复满 SP）</p>
+        <h5>被动</h5>
+        <ul>
+          <li><strong>家人的守护</strong>：Haz 受到伤害时改由 Tusk 承受，并额外减免 50%。</li>
+          <li><strong>铁壁如山</strong>：受到的所有伤害 -30%。</li>
+          <li><strong>猛牛之力</strong>：每次受伤，下次攻击额外 +5 HP，可叠加。</li>
+        </ul>
+        <h5>主动</h5>
+        <ul>
+          <li><strong>骨盾猛击</strong>（1 步）：前方 1 格造成 10 HP 并击退 1 格。</li>
+          <li><strong>来自深海的咆哮</strong>（2 步）：3×3 范围造成 20 SP，2 回合内额外减伤 20%。</li>
+          <li><strong>牛鲨冲撞</strong>（2 步）：沿 2×3 路径造成 25 HP 并眩晕 1 回合。</li>
+          <li><strong>战争堡垒</strong>（3 步）：3 回合减伤 50%，每回合 +10 SP，并令 Haz 伤害 +15%。</li>
+          <li><strong>拼尽全力保卫队长…</strong>（2 步，禁忌技能）：3 回合减伤 25% 并反伤 25%，每回合 +10 SP，Haz 回复 15% HP + 15 SP。</li>
+        </ul>
+      </article>
+      <article>
+        <h4>Neyla（精英 Lv52）</h4>
+        <p>HP 350　SP 80（归零后失控 1 回合，步数 -1，随后恢复满 SP）</p>
+        <h5>被动</h5>
+        <ul>
+          <li><strong>精确瞄准</strong>：回合内未移动则伤害 +50%。</li>
+          <li><strong>冷血执行者</strong>：对 HP 低于 50% 的目标造成双倍伤害。</li>
+          <li><strong>神速装填</strong>：每 3 回合额外 +10 SP。</li>
+        </ul>
+        <h5>主动</h5>
+        <ul>
+          <li><strong>迅捷射击</strong>（1 步）：4 格内造成 15 HP，并使目标 -5 SP。</li>
+          <li><strong>穿刺狙击</strong>（2 步）：直线 6 格造成 30 HP，并附加 2 回合流血。</li>
+          <li><strong>双钩牵制</strong>（2 步）：4 格内造成 15 HP，使目标下回合 -2 步。</li>
+          <li><strong>终末之影</strong>（3 步）：对任意目标造成 50 HP + 20 SP，自身下回合 -1 步。</li>
+          <li><strong>执行…</strong>（2 步，禁忌技能）：前方一排两次射击各造成 20 HP；若目标 HP &lt; 15% 直接处决。每次消耗自身 15 HP，第二次额外 -40 SP。</li>
+        </ul>
+      </article>
+      <article>
+        <h4>Kyn（精英 Lv51）</h4>
+        <p>HP 250　SP 70（归零后失控 1 回合，步数 -1，随后恢复满 SP）</p>
+        <h5>被动</h5>
+        <ul>
+          <li><strong>打道回府</strong>：击杀敌人后，下回合开始瞬移到 Haz 身旁。</li>
+          <li><strong>无情暗杀</strong>：若目标 HP 低于 25%，直接处决。</li>
+          <li><strong>迅捷如风</strong>：回合开始自动 +5 SP。</li>
+        </ul>
+        <h5>主动</h5>
+        <ul>
+          <li><strong>迅影突刺</strong>（1 步）：瞬移至 5×5 内敌人身旁，造成 20 HP。</li>
+          <li><strong>割喉飞刃</strong>（2 步）：直线 3 格造成 25 HP + 5 SP 伤害。</li>
+          <li><strong>影杀之舞</strong>（2 步）：3×3 范围造成 30 HP，并额外免费移动 1 格。</li>
+          <li><strong>死亡宣告</strong>（3 步）：对单体造成 50 HP + 30 SP，目标 HP &lt; 30% 时直接处决。</li>
+          <li><strong>自我了断…</strong>（2 步，禁忌技能）：瞬移至 5×5 内任意敌人并将其秒杀，同时自我牺牲。</li>
+        </ul>
+      </article>
+    `,
+  },
 };
 
 const characterData = {
@@ -170,8 +317,15 @@ const characterData = {
   },
 };
 
-const stageButtons = Array.from(document.querySelectorAll('.stage'));
-const detailsPanel = document.querySelector('.stage__details');
+const stageNodes = Array.from(document.querySelectorAll('.stage-node'));
+const stageTitle = document.querySelector('.stage-info__title');
+const stageMeta = document.querySelector('.stage-info__meta');
+const stageLore = document.querySelector('.stage-info__lore');
+const enemySection = document.querySelector('.stage-info__enemies');
+const enemyContent = document.querySelector('.stage-info__enemy-content');
+let activeStage = 'intro';
+const unlockedStages = new Set();
+
 const tutorialTabs = Array.from(document.querySelectorAll('.tutorial__tab'));
 const tutorialPanels = Array.from(document.querySelectorAll('.tutorial__panel'));
 const characterTabs = Array.from(document.querySelectorAll('.character__tab'));
@@ -220,25 +374,58 @@ function showToast(message) {
   }, 2200);
 }
 
-function setStageDetail(stageKey) {
-  detailsPanel.innerHTML = stageDetails[stageKey] || '';
+function renderStage(stageKey) {
+  const data = stageData[stageKey];
+  if (!data) return;
+  if (stageTitle) {
+    stageTitle.textContent = data.name || '???';
+  }
+  if (stageMeta) {
+    stageMeta.textContent = data.recommended || '';
+    stageMeta.classList.toggle('is-hidden', !data.recommended);
+  }
+  if (stageLore) {
+    stageLore.innerHTML = data.lore || '';
+  }
+  if (enemyContent) {
+    enemyContent.innerHTML = data.enemySkills || '';
+  }
+  if (enemySection) {
+    enemySection.classList.toggle('is-locked', !unlockedStages.has(stageKey));
+  }
 }
 
 function setActiveStage(stageKey) {
-  stageButtons.forEach((button) => {
-    const isActive = button.dataset.stage === stageKey;
-    button.classList.toggle('is-active', isActive);
-    button.setAttribute('aria-pressed', isActive.toString());
+  if (!stageData[stageKey]) return;
+  activeStage = stageKey;
+  stageNodes.forEach((node) => {
+    const isActive = node.dataset.stage === stageKey;
+    node.classList.toggle('is-active', isActive);
+    node.setAttribute('aria-pressed', isActive.toString());
   });
-  setStageDetail(stageKey);
+  renderStage(stageKey);
 }
 
-stageButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    const key = button.dataset.stage;
-    setActiveStage(key);
+stageNodes.forEach((node) => {
+  node.addEventListener('click', () => {
+    setActiveStage(node.dataset.stage);
   });
 });
+
+function scanStage(stageKey) {
+  const data = stageData[stageKey];
+  if (!data) return;
+  showToast(`已扫描 ${data.name} 战场。`);
+}
+
+function unlockStage(stageKey) {
+  const data = stageData[stageKey];
+  if (!data) return;
+  const firstUnlock = !unlockedStages.has(stageKey);
+  unlockedStages.add(stageKey);
+  renderStage(stageKey);
+  showToast(firstUnlock ? `${data.name} 敌方技能已解锁` : `${data.name} 情报已掌握`);
+}
 
 function setActiveTutorial(tabKey) {
   tutorialTabs.forEach((tab) => {
@@ -304,8 +491,14 @@ const actionHandlers = {
   exit: () => showToast('Demo 版本暂不支持离开'),
   tutorial: () => transitionToScreen('tutorial'),
   'back-to-menu': () => transitionToScreen('menu'),
+  'open-demo': () => {
+    setActiveStage(activeStage);
+    transitionToScreen('stages');
+  },
   'open-characters': () => transitionToScreen('characters'),
   'back-to-chapters': () => transitionToScreen('chapters'),
+  'scan-stage': () => scanStage(activeStage),
+  'enter-stage': () => unlockStage(activeStage),
 };
 
 document.addEventListener('click', (event) => {
@@ -318,12 +511,18 @@ document.addEventListener('click', (event) => {
 });
 
 function addSevenSeaParticles() {
-  const stage = document.querySelector('.stage--seven-seas');
-  if (!stage) return;
-  for (let i = 0; i < 3; i += 1) {
+  const container = document.querySelector('.stage-node--seven-seas .stage-node__particles');
+  if (!container) return;
+  container.innerHTML = '';
+  const count = 12;
+  for (let i = 0; i < count; i += 1) {
     const particle = document.createElement('span');
     particle.classList.add('particle');
-    stage.appendChild(particle);
+    particle.style.left = `${15 + Math.random() * 70}%`;
+    particle.style.bottom = `${-10 + Math.random() * 12}px`;
+    particle.style.animationDelay = `${Math.random() * 2.4}s`;
+    particle.style.animationDuration = `${2 + Math.random() * 1.6}s`;
+    container.appendChild(particle);
   }
 }
 
