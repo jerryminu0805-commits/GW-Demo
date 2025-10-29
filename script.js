@@ -245,44 +245,49 @@ const stageCatalog = {
     id: 'sevenSeas',
     name: '七海',
     subtitle: '七海作战队遭遇战',
-    size: '18 × 22（右下角 8×10 空缺）',
+    size: '18 × 25（右下角 8×10 空缺）',
     narrative: [
       '夜幕低垂，海风裹挟着血腥味，刑警队长指引三人组前往七海作战队所在的废弃码头。',
       '在破败铁轨间，Haz 与队员们现身。气氛骤然紧绷，谈判破裂之际，七海作战队全员戴上面具、摆开战阵。',
       'Haz 的仇恨和嗜杀在风暴中升腾，七海作战队准备动用禁忌武器。',
     ],
     brief: [
-      '地图 18×22，右下角 8×10 区域为空缺海水区。',
-      '掩体 A：坐标 (5,4)~(5,6) 竖直掩体；掩体 B：(5,13)~(6,15) 长条掩体；掩体 C：(11,13)~(13,15) 正方形。',
+      '地图 18×25，右下角 8×10 区域为空缺海水区。',
+      '掩体 A：原 (2,4)~(5,6) 方形向左扩展 3 格；掩体 B：原 (2,13)~(6,15) 长条同样左扩 3 格；掩体 C：(11,13)~(13,15) 正方形。',
       '我方：Adora (3,2)、Karma (5,2)、Dario (7,2)。',
       '敌方：Haz (21,15)、Tusk (19-20,12-13 占 2×2)、Katz (19,16)、Neyla (15,17)、Kyn (15,12)。',
       '全员附带“作战余波”Debuff（-25% HP，上限伤害 -5）。',
     ],
     map: (() => {
       const rows = 18;
-      const cols = 22;
+      const offsetX = 3;
+      const cols = 22 + offsetX;
+
+      const convert = (x, y) => ({
+        row: rows - y + 1,
+        col: x + offsetX,
+      });
+
       const voids = new Set();
       for (let x = 15; x <= 22; x += 1) {
         for (let y = 1; y <= 10; y += 1) {
-          const row = rows - y + 1;
-          const key = `${row}-${x}`;
-          voids.add(key);
+          const cell = convert(x, y);
+          voids.add(`${cell.row}-${cell.col}`);
         }
       }
+
       const cover = [];
       const pushRect = (x1, y1, x2, y2) => {
         for (let x = x1; x <= x2; x += 1) {
           for (let y = y1; y <= y2; y += 1) {
-            const row = rows - y + 1;
-            cover.push({ row, col: x });
+            const cell = convert(x, y);
+            cover.push(cell);
           }
         }
       };
-      pushRect(5, 4, 5, 6);
-      pushRect(5, 13, 6, 15);
+      pushRect(-1, 4, 5, 6);
+      pushRect(-1, 13, 6, 15);
       pushRect(11, 13, 13, 15);
-
-      const convert = (x, y) => ({ row: rows - y + 1, col: x });
 
       const players = [
         { ...convert(3, 2), label: 'Ad', type: 'player', tone: 'adora' },
@@ -543,11 +548,21 @@ function initStageBoard() {
   });
 }
 
+function applyPortraitImage(imageElement, character) {
+  if (!imageElement || !character) return;
+
+  imageElement.dataset.portraitCharacter = character.name;
+  imageElement.alt = `${character.name} 立绘`;
+  imageElement.src = character.portrait;
+}
+
+const portraitLibrary = typeof portraitAssets === 'undefined' ? {} : portraitAssets;
+
 const characterData = {
   adora: {
     name: 'Adora',
     level: 20,
-    portrait: 'url("assets/portraits/adora.svg")',
+    portrait: portraitLibrary.adora || '',
     bio: {
       intro: [
         '名字在西班牙语里意为“崇拜”。Adora 刚生时家人以为他是女孩，于是给了他一个偏女性化的名字。在英语里，他理解为“收养”；在日语里，“Ado”意味着喧嚣，象征他见证好友遭枪杀后转变的命运。',
@@ -650,7 +665,7 @@ const characterData = {
   karma: {
     name: 'Karma',
     level: 20,
-    portrait: 'url("assets/portraits/karma.svg")',
+    portrait: portraitLibrary.karma || '',
     bio: {
       intro: [
         '名字意为“命运、天意、行动”，象征着他的所作所为指向无法避免的致命结局。',
@@ -731,7 +746,7 @@ const characterData = {
   dario: {
     name: 'Dario',
     level: 20,
-    portrait: 'url("assets/portraits/dario.svg")',
+    portrait: portraitLibrary.dario || '',
     bio: {
       intro: [
         '名字意为“财富、富有、更多的钱”，象征他掌握的庞大资产。',
@@ -819,10 +834,13 @@ function renderCharacter(characterId) {
   });
 
   const portrait = document.querySelector('.portrait-art');
-  portrait.style.backgroundImage = `${data.portrait}, radial-gradient(circle at 30% 20%, rgba(234, 65, 87, 0.45), rgba(16, 18, 30, 0.9))`;
+  const portraitImg = portrait.querySelector('.portrait-image');
+  if (portraitImg) {
+    applyPortraitImage(portraitImg, data);
+  }
 
   document.querySelector('.level-number').textContent = data.level;
-  portrait.setAttribute('aria-label', `${data.name} 立绘预览`);
+  portrait.setAttribute('aria-label', `${data.name} 立绘`);
 
   renderCharacterSection('bio', characterId);
 }
