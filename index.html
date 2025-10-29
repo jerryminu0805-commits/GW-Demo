@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GOD'S WILL - Demo Interface</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Roboto+Condensed:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background-canvas"></div>
+    <div class="transition-mask" aria-hidden="true"></div>
+    <div class="toast" role="status" aria-live="polite"></div>
+    <main id="app">
+      <section class="screen screen-menu active" data-screen="menu" aria-labelledby="menu-title">
+        <div class="menu-overlay"></div>
+        <div class="menu-content">
+          <div class="menu-logo" id="menu-title">GOD'S WILL</div>
+          <p class="menu-tagline">Demo Navigation Prototype</p>
+          <nav class="menu-buttons" aria-label="主选单">
+            <button class="ghost" data-action="start">开始</button>
+            <button class="ghost" data-action="settings">设置</button>
+            <button class="ghost" data-action="tutorial">教学</button>
+            <button class="ghost" data-action="exit">离开</button>
+          </nav>
+        </div>
+      </section>
+
+      <section class="screen screen-chapter" data-screen="chapters" aria-labelledby="chapter-title">
+        <header class="screen-header">
+          <button class="back" data-back="menu">返回</button>
+          <h1 id="chapter-title">章节选择</h1>
+          <div class="header-spacer"></div>
+        </header>
+        <div class="chapter-hint">点击可用章节以继续。Demo章节为唯一解锁内容。</div>
+        <div class="chapter-scroll" role="list">
+          <button class="chapter-card unlocked" role="listitem" data-chapter="demo">
+            <span class="chapter-label">Demo</span>
+            <span class="chapter-status">已解锁</span>
+          </button>
+          <button class="chapter-card locked" role="listitem" disabled>
+            <span class="chapter-label">Chapter 2</span>
+            <span class="chapter-status">锁定</span>
+          </button>
+          <button class="chapter-card locked" role="listitem" disabled>
+            <span class="chapter-label">Chapter 3</span>
+            <span class="chapter-status">锁定</span>
+          </button>
+          <button class="chapter-card locked" role="listitem" disabled>
+            <span class="chapter-label">Chapter 4</span>
+            <span class="chapter-status">锁定</span>
+          </button>
+          <button class="chapter-card locked" role="listitem" disabled>
+            <span class="chapter-label">Chapter 5</span>
+            <span class="chapter-status">锁定</span>
+          </button>
+          <button class="chapter-card locked" role="listitem" disabled>
+            <span class="chapter-label">Chapter 6</span>
+            <span class="chapter-status">锁定</span>
+          </button>
+          <button class="chapter-card locked" role="listitem" disabled>
+            <span class="chapter-label">Chapter 7</span>
+            <span class="chapter-status">锁定</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="screen screen-stages" data-screen="stages" aria-labelledby="stages-title">
+        <header class="screen-header">
+          <button class="back" data-back="chapters">章节</button>
+          <h1 id="stages-title">Demo · 关卡情报</h1>
+          <button class="link" data-action="roster">角色</button>
+        </header>
+        <div class="stages-body">
+          <aside class="stage-list" aria-label="关卡列表">
+            <button class="stage-card" data-stage="intro">
+              <span class="stage-name stage-intro">Intro</span>
+              <span class="stage-sub">「初次接触战术系统」</span>
+            </button>
+            <button class="stage-card" data-stage="limit">
+              <span class="stage-name stage-limit">疲惫的极限</span>
+              <span class="stage-sub">「赫雷西第六干部」</span>
+            </button>
+            <button class="stage-card" data-stage="seven-seas">
+              <span class="stage-name stage-seven">七海</span>
+              <span class="stage-sub">「与作战队的误会」</span>
+            </button>
+          </aside>
+          <section class="stage-detail" aria-live="polite">
+            <div class="detail-scroll">
+              <h2 class="detail-title"></h2>
+              <p class="detail-subtitle"></p>
+              <div class="map-wrapper">
+                <div class="map-header">
+                  <span>战术地图预览</span>
+                  <span class="map-size"></span>
+                </div>
+                <div class="map-canvas" aria-hidden="true"></div>
+                <div class="map-legend">
+                  <span><span class="legend-chip player"></span> 我方</span>
+                  <span><span class="legend-chip enemy"></span> 敌方</span>
+                  <span><span class="legend-chip cover"></span> 掩体</span>
+                  <span><span class="legend-chip void"></span> 空缺</span>
+                </div>
+              </div>
+              <div class="stage-narrative" hidden></div>
+              <div class="enemy-panel">
+                <h3>敌方情报</h3>
+                <div class="enemy-list"></div>
+              </div>
+            </div>
+            <footer class="detail-footer">
+              <button class="primary" data-action="enter">进入关卡</button>
+            </footer>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen screen-roster" data-screen="roster" aria-labelledby="roster-title">
+        <header class="screen-header">
+          <button class="back" data-back="stages">关卡</button>
+          <h1 id="roster-title">角色档案</h1>
+          <div class="header-spacer"></div>
+        </header>
+        <div class="roster-body">
+          <div class="portrait-panel">
+            <div class="portrait-frame">
+              <div class="portrait-figure" aria-hidden="true"></div>
+              <div class="level-tag">Lv.20</div>
+            </div>
+          </div>
+          <section class="roster-content">
+            <nav class="roster-tabs" aria-label="角色信息类别">
+              <button class="tab active" data-roster-tab="bio">介绍</button>
+              <button class="tab" data-roster-tab="skills">技能</button>
+            </nav>
+            <article class="roster-info">
+              <div class="roster-scroll"></div>
+            </article>
+          </section>
+          <aside class="roster-select" aria-label="角色选择">
+            <button class="roster-pill active" data-character="adora">Adora</button>
+            <button class="roster-pill" data-character="karma">Karma</button>
+            <button class="roster-pill" data-character="dario">Dario</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen screen-tutorial" data-screen="tutorial" aria-labelledby="tutorial-title">
+        <header class="screen-header">
+          <button class="back" data-back="menu">主菜单</button>
+          <h1 id="tutorial-title">教学索引</h1>
+          <div class="header-spacer"></div>
+        </header>
+        <div class="tutorial-body">
+          <nav class="tutorial-tabs" aria-label="教学章节">
+            <button class="tab active" data-tutorial-tab="basics">简短游戏玩法</button>
+            <button class="tab" data-tutorial-tab="skill-types">技能</button>
+            <button class="tab" data-tutorial-tab="effects">特殊效果</button>
+            <button class="tab" data-tutorial-tab="enemies">敌人</button>
+          </nav>
+          <section class="tutorial-content">
+            <div class="tutorial-scroll"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen screen-settings" data-screen="settings" aria-labelledby="settings-title">
+        <header class="screen-header">
+          <button class="back" data-back="menu">主菜单</button>
+          <h1 id="settings-title">设置</h1>
+          <div class="header-spacer"></div>
+        </header>
+        <div class="settings-body">
+          <div class="settings-panel">
+            <h2>演示选项</h2>
+            <label class="toggle">
+              <input type="checkbox" id="audio-toggle" checked />
+              <span>启用环境音乐</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="animation-toggle" checked />
+              <span>保留过场动画</span>
+            </label>
+            <p class="settings-note">所有设置仅影响本地演示效果。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
