@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seven Seas Tactical Boss Battle</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>七海作战队 Boss 战模拟器</h1>
+    <p>根据提供的规则与技能数据实时演算的 18×22 格战斗模拟。</p>
+  </header>
+
+  <main>
+    <section id="battlefield">
+      <div id="grid"></div>
+      <aside id="unit-panel">
+        <h2>单位信息</h2>
+        <div id="unit-list"></div>
+      </aside>
+    </section>
+
+    <section id="controls">
+      <div class="controls-group">
+        <button id="start-btn">开始模拟</button>
+        <button id="step-btn" disabled>执行下一动作</button>
+        <button id="auto-btn" disabled>自动播放</button>
+        <button id="reset-btn">重置战场</button>
+      </div>
+      <div class="controls-group">
+        <label>
+          动作延迟（毫秒）：
+          <input id="auto-delay" type="number" min="50" step="50" value="800" />
+        </label>
+      </div>
+    </section>
+
+    <section id="log-section">
+      <h2>战斗日志</h2>
+      <div id="log"></div>
+    </section>
+  </main>
+
+  <template id="unit-card-template">
+    <article class="unit-card">
+      <header>
+        <h3 class="unit-name"></h3>
+        <span class="unit-role"></span>
+      </header>
+      <p class="unit-coords"></p>
+      <div class="bar hp-bar"><span></span></div>
+      <div class="bar sp-bar"><span></span></div>
+      <p class="unit-steps"></p>
+      <p class="unit-status"></p>
+    </article>
+  </template>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>

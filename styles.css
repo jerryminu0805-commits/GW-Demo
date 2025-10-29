@@ -1,0 +1,250 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", "PingFang SC", system-ui, sans-serif;
+  background: #0e1824;
+  color: #f1f5f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 1.5rem 2rem;
+}
+
+header {
+  text-align: center;
+  margin: 1.5rem auto 2rem;
+}
+
+h1 {
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+#battlefield {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 1rem;
+}
+
+#grid {
+  position: relative;
+  width: min(100%, 880px);
+  aspect-ratio: 22 / 18;
+  border: 2px solid #1f2a37;
+  background: linear-gradient(#142033, #0f172a);
+  display: grid;
+  grid-template-columns: repeat(22, 1fr);
+  grid-template-rows: repeat(18, 1fr);
+}
+
+.grid-cell {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  position: relative;
+}
+
+.grid-cell.cover-soft::after,
+.grid-cell.cover-hard::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 2px;
+}
+
+.grid-cell.cover-soft::after {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.grid-cell.cover-hard::after {
+  background: rgba(236, 72, 153, 0.35);
+}
+
+.unit-token {
+  position: absolute;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  text-align: center;
+  padding: 2px;
+  transition: transform 0.2s ease;
+}
+
+.unit-token.player {
+  background: rgba(34, 197, 94, 0.8);
+  color: #022c22;
+}
+
+.unit-token.enemy {
+  background: rgba(248, 113, 113, 0.85);
+  color: #450a0a;
+}
+
+#unit-panel {
+  border: 2px solid #1f2a37;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 8px;
+  height: fit-content;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+
+#unit-panel h2 {
+  margin-top: 0;
+}
+
+.unit-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.4);
+}
+
+.unit-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 0.35rem;
+}
+
+.unit-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.unit-role {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.bar {
+  position: relative;
+  height: 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.4rem 0;
+}
+
+.bar span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  display: block;
+  transform-origin: left center;
+}
+
+.hp-bar span {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.sp-bar span {
+  background: linear-gradient(90deg, #38bdf8, #60a5fa);
+}
+
+#controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+button {
+  background: #1d4ed8;
+  border: none;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+#log-section {
+  border: 2px solid #1f2a37;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 1rem;
+  min-height: 220px;
+}
+
+#log {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.log-entry {
+  margin: 0.25rem 0;
+}
+
+.log-entry.round {
+  margin-top: 0.6rem;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.log-entry.ko {
+  font-weight: 700;
+  color: #facc15;
+}
+
+.log-entry.buff {
+  color: #f9a8d4;
+}
+
+.log-entry.debuff {
+  color: #f87171;
+}
+
+.log-entry.heal {
+  color: #86efac;
+}
+
+.log-entry.sp {
+  color: #93c5fd;
+}
+
+.log-entry.damage {
+  color: #f97316;
+}
+
+@media (max-width: 960px) {
+  #battlefield {
+    grid-template-columns: 1fr;
+  }
+
+  #unit-panel {
+    order: -1;
+    max-height: none;
+  }
+}
