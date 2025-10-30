@@ -412,6 +412,378 @@ const stageCatalog = {
   },
 };
 
+const sevenSeasStage = stageCatalog.sevenSeas;
+const sevenSeasBriefFallback = sevenSeasStage ? [...sevenSeasStage.brief] : [];
+const sevenSeasDebuffNote = sevenSeasStage
+  ? sevenSeasStage.brief.find((line) => line.includes('作战余波'))
+  : '';
+
+function normaliseRectFromNumbers(numbers) {
+  if (!Array.isArray(numbers) || numbers.length < 2) return null;
+  if (numbers.length === 2) {
+    const [x, y] = numbers;
+    return {
+      x1: x,
+      x2: x,
+      y1: y,
+      y2: y,
+    };
+  }
+
+  if (numbers.length === 3) {
+    const [x1, x2, y] = numbers;
+    return {
+      x1: Math.min(x1, x2),
+      x2: Math.max(x1, x2),
+      y1: y,
+      y2: y,
+    };
+  }
+
+  const [x1, x2, y1, y2] = numbers;
+  return {
+    x1: Math.min(x1, x2),
+    x2: Math.max(x1, x2),
+    y1: Math.min(y1, y2),
+    y2: Math.max(y1, y2),
+  };
+}
+
+const sevenSeasPlayerMeta = {
+  adora: {
+    key: 'adora',
+    name: 'Adora',
+    label: 'Ad',
+    tone: 'adora',
+    aliases: ['adora', '阿多拉'],
+  },
+  karma: {
+    key: 'karma',
+    name: 'Karma',
+    label: 'Ka',
+    tone: 'karma',
+    aliases: ['karma', '卡尔玛', '卡玛'],
+  },
+  dario: {
+    key: 'dario',
+    name: 'Dario',
+    label: 'Da',
+    tone: 'dario',
+    aliases: ['dario', '达里奥'],
+  },
+};
+
+const sevenSeasEnemyMeta = {
+  haz: {
+    key: 'haz',
+    name: 'Haz',
+    label: 'Haz',
+    type: 'boss',
+    aliases: ['haz', '哈兹'],
+  },
+  tusk: {
+    key: 'tusk',
+    name: 'Tusk',
+    label: 'Tu',
+    type: 'miniboss',
+    aliases: ['tusk', '塔斯克'],
+  },
+  katz: {
+    key: 'katz',
+    name: 'Katz',
+    label: 'Kz',
+    type: 'miniboss',
+    aliases: ['katz', '卡兹'],
+  },
+  neyla: {
+    key: 'neyla',
+    name: 'Neyla',
+    label: 'Ne',
+    type: 'elite',
+    aliases: ['neyl', 'neyla', '尼拉'],
+  },
+  kyn: {
+    key: 'kyn',
+    name: 'Kyn',
+    label: 'Ky',
+    type: 'elite',
+    aliases: ['kyn', '金'],
+  },
+  khathia: {
+    key: 'khathia',
+    name: 'Khathia',
+    label: 'Kh',
+    type: 'boss',
+    aliases: ['khathia', '卡西亚'],
+  },
+};
+
+function extractNumbers(line) {
+  return (line.match(/-?\d+/g) || []).map((token) => Number(token));
+}
+
+function identifyMeta(line, lookup) {
+  const lower = line.toLowerCase();
+  return (
+    Object.values(lookup).find((meta) => {
+      if (lower.includes(meta.key)) return true;
+      if (Array.isArray(meta.aliases)) {
+        return meta.aliases.some((alias) => {
+          const aliasLower = alias.toLowerCase();
+          return lower.includes(aliasLower) || line.includes(alias);
+        });
+      }
+      return false;
+    }) || null
+  );
+}
+
+function formatRange(start, end) {
+  if (start === end) return `${start}`;
+  return `${Math.min(start, end)}～${Math.max(start, end)}`;
+}
+
+function formatRect(rect) {
+  if (!rect) return '';
+  return `（${formatRange(rect.x1, rect.x2)}，${formatRange(rect.y1, rect.y2)}）`;
+}
+
+function parseSevenSeasGameTxt(text) {
+  if (!text || !sevenSeasStage) return null;
+
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length && !line.startsWith('//') && !line.startsWith('#'));
+
+  if (!lines.length) return null;
+
+  const rects = { cover: [], voids: [] };
+  const players = [];
+  const enemies = [];
+  const notes = [];
+  const bounds = {
+    minX: Number.POSITIVE_INFINITY,
+    maxX: Number.NEGATIVE_INFINITY,
+    minY: Number.POSITIVE_INFINITY,
+    maxY: Number.NEGATIVE_INFINITY,
+  };
+
+  const updateBounds = (rect) => {
+    if (!rect) return;
+    bounds.minX = Math.min(bounds.minX, rect.x1);
+    bounds.maxX = Math.max(bounds.maxX, rect.x2);
+    bounds.minY = Math.min(bounds.minY, rect.y1);
+    bounds.maxY = Math.max(bounds.maxY, rect.y2);
+  };
+
+  let declaredSize = null;
+
+  lines.forEach((line) => {
+    const lower = line.toLowerCase();
+    const numbers = extractNumbers(lower);
+
+    if (lower.startsWith('size') || lower.includes('尺寸')) {
+      declaredSize = numbers.slice(0, 2);
+      return;
+    }
+
+    if (lower.startsWith('note') || lower.includes('备注')) {
+      const note = line.replace(/^\s*note\s*[:：]?\s*/i, '').trim();
+      if (note) {
+        notes.push(note);
+      }
+      return;
+    }
+
+    if (lower.includes('void') || lower.includes('空缺') || lower.includes('缺口') || lower.includes('海水')) {
+      const rect = normaliseRectFromNumbers(numbers);
+      if (rect) {
+        rects.voids.push(rect);
+        updateBounds(rect);
+      }
+      return;
+    }
+
+    if (lower.includes('cover') || lower.includes('掩体')) {
+      const rect = normaliseRectFromNumbers(numbers);
+      if (rect) {
+        rects.cover.push(rect);
+        updateBounds(rect);
+      }
+      return;
+    }
+
+    const playerMeta = identifyMeta(lower, sevenSeasPlayerMeta);
+    if (playerMeta) {
+      const rect = normaliseRectFromNumbers(numbers);
+      if (rect) {
+        players.push({ meta: playerMeta, rect });
+        updateBounds(rect);
+      }
+      return;
+    }
+
+    const enemyMeta = identifyMeta(lower, sevenSeasEnemyMeta);
+    if (enemyMeta) {
+      const rect = normaliseRectFromNumbers(numbers);
+      if (rect) {
+        enemies.push({ meta: enemyMeta, rect });
+        updateBounds(rect);
+      }
+    }
+  });
+
+  if (!Number.isFinite(bounds.minX) || !Number.isFinite(bounds.maxX) || !Number.isFinite(bounds.minY) || !Number.isFinite(bounds.maxY)) {
+    return null;
+  }
+
+  const rows = Math.max(1, bounds.maxY - bounds.minY + 1);
+  const cols = Math.max(1, bounds.maxX - bounds.minX + 1);
+
+  const convert = (x, y) => ({
+    row: rows - (y - bounds.minY),
+    col: x - bounds.minX + 1,
+  });
+
+  const voids = new Set();
+  rects.voids.forEach((rect) => {
+    for (let x = rect.x1; x <= rect.x2; x += 1) {
+      for (let y = rect.y1; y <= rect.y2; y += 1) {
+        const cell = convert(x, y);
+        voids.add(`${cell.row}-${cell.col}`);
+      }
+    }
+  });
+
+  const cover = [];
+  rects.cover.forEach((rect) => {
+    for (let x = rect.x1; x <= rect.x2; x += 1) {
+      for (let y = rect.y1; y <= rect.y2; y += 1) {
+        cover.push(convert(x, y));
+      }
+    }
+  });
+
+  const playerCells = [];
+  players.forEach(({ meta, rect }) => {
+    for (let x = rect.x1; x <= rect.x2; x += 1) {
+      for (let y = rect.y1; y <= rect.y2; y += 1) {
+        playerCells.push({
+          ...convert(x, y),
+          label: meta.label,
+          type: 'player',
+          tone: meta.tone,
+        });
+      }
+    }
+  });
+
+  const enemyCells = [];
+  enemies.forEach(({ meta, rect }) => {
+    for (let x = rect.x1; x <= rect.x2; x += 1) {
+      for (let y = rect.y1; y <= rect.y2; y += 1) {
+        enemyCells.push({
+          ...convert(x, y),
+          label: meta.label,
+          type: meta.type,
+        });
+      }
+    }
+  });
+
+  const voidNote = rects.voids.length
+    ? rects.voids
+        .map((rect) => {
+          const width = rect.x2 - rect.x1 + 1;
+          const height = rect.y2 - rect.y1 + 1;
+          return `空缺 ${width}×${height}${formatRect(rect)}`;
+        })
+        .join('；')
+    : '';
+
+  const brief = [];
+  const computedSize = `${rows} × ${cols}${voidNote ? `（${voidNote}）` : ''}`;
+  brief.push(`地图 ${rows}×${cols}${voidNote ? `（${voidNote}）` : ''}。`);
+
+  if (rects.cover.length) {
+    const coverSummary = rects.cover
+      .map((rect, index) => `区域 ${index + 1}${formatRect(rect)}`)
+      .join('；');
+    brief.push(`掩体：${coverSummary}。`);
+  }
+
+  if (players.length) {
+    const playerSummary = players
+      .map((entry) => `${entry.meta.name}${formatRect(entry.rect)}`)
+      .join('；');
+    brief.push(`我方：${playerSummary}。`);
+  }
+
+  if (enemies.length) {
+    const enemySummary = enemies
+      .map((entry) => `${entry.meta.name}${formatRect(entry.rect)}`)
+      .join('；');
+    brief.push(`敌方：${enemySummary}。`);
+  }
+
+  notes.forEach((note) => {
+    brief.push(note.endsWith('。') ? note : `${note}。`);
+  });
+
+  const map = {
+    rows,
+    cols,
+    voids,
+    cover,
+    players: playerCells,
+    enemies: enemyCells,
+  };
+
+  const preferredSize = declaredSize && declaredSize.length >= 2
+    ? `${declaredSize[0]} × ${declaredSize[1]}${voidNote ? `（${voidNote}）` : ''}`
+    : computedSize;
+
+  return {
+    map,
+    brief,
+    sizeLabel: preferredSize,
+    fallbackSize: computedSize,
+  };
+}
+
+function loadSevenSeasMapFromFile() {
+  if (!sevenSeasStage || typeof fetch !== 'function') return;
+
+  fetch('files/Game.txt')
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.text();
+    })
+    .then((text) => {
+      const parsed = parseSevenSeasGameTxt(text);
+      if (!parsed) return;
+
+      sevenSeasStage.map = parsed.map;
+      sevenSeasStage.size = parsed.sizeLabel || parsed.fallbackSize;
+
+      const newBrief = [...parsed.brief];
+      if (sevenSeasDebuffNote && !newBrief.some((line) => line.includes('作战余波'))) {
+        newBrief.push(sevenSeasDebuffNote);
+      }
+
+      sevenSeasStage.brief = newBrief;
+
+      if (currentStageId === 'sevenSeas') {
+        renderStage('sevenSeas');
+      }
+    })
+    .catch((error) => {
+      console.warn('无法根据 Game.txt 更新七海地图，保留默认配置。', error);
+      sevenSeasStage.brief = [...sevenSeasBriefFallback];
+    });
+}
+
 function renderStage(stageId) {
   const stage = stageCatalog[stageId];
   if (!stage) return;
@@ -1132,6 +1504,7 @@ function init() {
   initCharacterBoard();
   initTutorialBoard();
   bindNavigation();
+  loadSevenSeasMapFromFile();
   renderStage('intro');
 }
 
