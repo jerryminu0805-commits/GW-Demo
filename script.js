@@ -519,7 +519,9 @@ const sevenSeasEnemyMeta = {
 };
 
 function extractNumbers(line) {
-  return (line.match(/-?\d+/g) || []).map((token) => Number(token));
+  if (!line) return [];
+  const normalised = line.replace(/(?<=\d)\s*-\s*(?=\d)/g, ' ');
+  return (normalised.match(/-?\d+/g) || []).map((token) => Number(token));
 }
 
 function identifyMeta(line, lookup) {
@@ -553,8 +555,13 @@ function parseSevenSeasGameTxt(text) {
 
   const lines = text
     .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length && !line.startsWith('//') && !line.startsWith('#'));
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return '';
+      const withoutComment = trimmed.replace(/\s+#.*$/, '').trim();
+      return withoutComment;
+    })
+    .filter((line) => line.length);
 
   if (!lines.length) return null;
 
