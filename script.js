@@ -641,24 +641,47 @@ function parseSevenSeasGameTxt(text) {
     }
   });
 
-  if (!Number.isFinite(bounds.minX) || !Number.isFinite(bounds.maxX) || !Number.isFinite(bounds.minY) || !Number.isFinite(bounds.maxY)) {
+  const hasDeclaredSize =
+    Array.isArray(declaredSize) &&
+    declaredSize.length >= 2 &&
+    declaredSize.every((value) => Number.isFinite(value) && value > 0);
+
+  if (
+    !hasDeclaredSize &&
+    (!Number.isFinite(bounds.minX) ||
+      !Number.isFinite(bounds.maxX) ||
+      !Number.isFinite(bounds.minY) ||
+      !Number.isFinite(bounds.maxY))
+  ) {
     return null;
   }
 
-  const rows = Math.max(1, bounds.maxY - bounds.minY + 1);
-  const cols = Math.max(1, bounds.maxX - bounds.minX + 1);
+  const baseMinX = hasDeclaredSize ? 1 : bounds.minX;
+  const baseMinY = hasDeclaredSize ? 1 : bounds.minY;
+
+  const rows = hasDeclaredSize
+    ? Math.max(1, Math.round(declaredSize[0]))
+    : Math.max(1, bounds.maxY - bounds.minY + 1);
+  const cols = hasDeclaredSize
+    ? Math.max(1, Math.round(declaredSize[1]))
+    : Math.max(1, bounds.maxX - bounds.minX + 1);
 
   const convert = (x, y) => ({
-    row: rows - (y - bounds.minY),
-    col: x - bounds.minX + 1,
+    row: rows - (y - baseMinY),
+    col: x - baseMinX + 1,
   });
+
+  const withinBounds = (cell) =>
+    cell && cell.row >= 1 && cell.row <= rows && cell.col >= 1 && cell.col <= cols;
 
   const voids = new Set();
   rects.voids.forEach((rect) => {
     for (let x = rect.x1; x <= rect.x2; x += 1) {
       for (let y = rect.y1; y <= rect.y2; y += 1) {
         const cell = convert(x, y);
-        voids.add(`${cell.row}-${cell.col}`);
+        if (withinBounds(cell)) {
+          voids.add(`${cell.row}-${cell.col}`);
+        }
       }
     }
   });
@@ -667,7 +690,10 @@ function parseSevenSeasGameTxt(text) {
   rects.cover.forEach((rect) => {
     for (let x = rect.x1; x <= rect.x2; x += 1) {
       for (let y = rect.y1; y <= rect.y2; y += 1) {
-        cover.push(convert(x, y));
+        const cell = convert(x, y);
+        if (withinBounds(cell)) {
+          cover.push(cell);
+        }
       }
     }
   });
@@ -676,12 +702,15 @@ function parseSevenSeasGameTxt(text) {
   players.forEach(({ meta, rect }) => {
     for (let x = rect.x1; x <= rect.x2; x += 1) {
       for (let y = rect.y1; y <= rect.y2; y += 1) {
-        playerCells.push({
-          ...convert(x, y),
-          label: meta.label,
-          type: 'player',
-          tone: meta.tone,
-        });
+        const cell = convert(x, y);
+        if (withinBounds(cell)) {
+          playerCells.push({
+            ...cell,
+            label: meta.label,
+            type: 'player',
+            tone: meta.tone,
+          });
+        }
       }
     }
   });
@@ -690,11 +719,14 @@ function parseSevenSeasGameTxt(text) {
   enemies.forEach(({ meta, rect }) => {
     for (let x = rect.x1; x <= rect.x2; x += 1) {
       for (let y = rect.y1; y <= rect.y2; y += 1) {
-        enemyCells.push({
-          ...convert(x, y),
-          label: meta.label,
-          type: meta.type,
-        });
+        const cell = convert(x, y);
+        if (withinBounds(cell)) {
+          enemyCells.push({
+            ...cell,
+            label: meta.label,
+            type: meta.type,
+          });
+        }
       }
     }
   });
@@ -747,8 +779,8 @@ function parseSevenSeasGameTxt(text) {
     enemies: enemyCells,
   };
 
-  const preferredSize = declaredSize && declaredSize.length >= 2
-    ? `${declaredSize[0]} × ${declaredSize[1]}${voidNote ? `（${voidNote}）` : ''}`
+  const preferredSize = hasDeclaredSize
+    ? `${rows} × ${cols}${voidNote ? `（${voidNote}）` : ''}`
     : computedSize;
 
   return {
