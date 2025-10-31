@@ -1,0 +1,17 @@
+# GOD'S WILL Demo - 七海作战队地图摘录
+# 坐标基于底部为 y=1、左侧为 x=1 的描述。
+# 使用范围 a-b 表示连续坐标闭区间。
+size: 18x22
+void: 15-22,1-10   # 右下角 8x10 的海水缺口
+cover: 2-4,4-6     # 左下方形掩体（3×3）
+cover: 7-9,13-15   # 上方靠左掩体（3×3）
+cover: 11-13,13-15 # 上方靠右掩体（3×3）
+player: Adora 3,2
+player: Karma 5,2
+player: Dario 7,2
+enemy: Haz 21,15 boss
+enemy: Tusk 19-20,12-13 miniboss
+enemy: Katz 19,16 miniboss
+enemy: Neyla 15,17 elite
+enemy: Kyn 15,12 elite
+note: 全员初始附带“作战余波”Debuff（减少25%HP，造成伤害-5）
