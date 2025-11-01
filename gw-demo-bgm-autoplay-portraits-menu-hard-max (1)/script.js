@@ -1156,6 +1156,9 @@ function initStageBoard() {
   if (enterBtn) {
     enterBtn.addEventListener('click', () => {
       if (currentStageId === 'sevenSeas') {
+        if (bgmController && typeof bgmController.fadeTo === 'function') {
+          bgmController.fadeTo(0, { duration: 0 });
+        }
         startStageStory('sevenSeas');
         return;
       }
