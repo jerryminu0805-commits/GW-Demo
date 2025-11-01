@@ -6,10 +6,17 @@ document.querySelectorAll('.screen').forEach((screen) => {
 const mask = document.querySelector('.transition-mask');
 const settingsPanel = document.querySelector('.settings-panel');
 const toast = document.querySelector('.toast');
+const storyOverlay = document.querySelector('.story-overlay');
+const storySpeaker = storyOverlay ? storyOverlay.querySelector('.story-speaker') : null;
+const storyText = storyOverlay ? storyOverlay.querySelector('.story-text') : null;
+const storyNextButton = storyOverlay ? storyOverlay.querySelector('.story-next') : null;
+const storySkipButton = storyOverlay ? storyOverlay.querySelector('.story-skip') : null;
 
 let currentScreen = 'menu';
 let maskBusy = false;
 let currentStageId = 'intro';
+let storyState = null;
+let bgmController = null;
 
 const stageProgress = {
   intro: false,
@@ -414,6 +421,43 @@ pushRect(3, 4, 5, 6);
       },
     ],
   },
+};
+
+const stageStories = {
+  sevenSeas: [
+    { type: 'narration', text: '夜幕低垂，海风裹挟着血腥味，从远方破旧的码头吹来。' },
+    {
+      speaker: '刑警队长',
+      text: '……你们想查 Cult，那就去码头找他们。“七海作战队”，唯一一支不归我们政府调度的队伍。如果你们还有命回来，我们再谈下一步。',
+    },
+    { type: 'narration', text: '昏暗的灯光下，三人组沿着杂草丛生的铁轨踏进废弃码头。' },
+    { speaker: 'Dario', text: '哈？这地方也太破了吧……你确定这里能找人合作？' },
+    { speaker: 'Karma', text: '啧，这周围好浓的血腥味。' },
+    { speaker: 'Adora', text: '好闷的感觉……' },
+    { speaker: '？？？', text: '站住。' },
+    { type: 'narration', text: '地面突然震动，一队身穿军装、面罩遮面的异装者从黑暗中走出。' },
+    { type: 'narration', text: '为首者戴着深灰色军帽，满身是血，鱼叉末端还挂着未干的肉屑。' },
+    { speaker: 'Haz', text: '你们就是他所说的……' },
+    {
+      speaker: 'Dario',
+      text: '对对，我们是被派来找你们合作的。老头子说你们……“不太听话”，和我们挺搭。',
+    },
+    { type: 'narration', text: 'Haz 没有回应，只是目光缓缓转向 Adora。' },
+    { type: 'narration', text: '他深深吸了一口气，表情骤变。' },
+    { speaker: 'Haz', text: '……这味道……' },
+    { type: 'narration', text: '身后的七海成员顿时警觉，手中的武器开始颤动。' },
+    { speaker: 'Haz', text: '把帽子摘了。' },
+    { speaker: 'Adora', text: '啊……？为什么那么突然？' },
+    { speaker: 'Karma', text: '他不想摘的话就别勉强他。' },
+    { speaker: 'Dario', text: '诶诶诶，别一上来就动手动脚的啊！' },
+    { type: 'narration', text: '气氛瞬间绷紧，海雾里连呼吸都变得沉重。' },
+    { speaker: 'Haz', text: '你们身上有腐蚀的味……尤其是他。你们和 Cult 脱不开关系。' },
+    { speaker: 'Katz', text: '队长，可能是误会……' },
+    { type: 'narration', text: 'Haz 的笑声低沉而危险。' },
+    { speaker: 'Haz', text: '我的直觉，从未有任何偏差。' },
+    { type: 'narration', text: '下一秒，七海作战队全员拉开架势，面罩下的红光在夜色中燃起。' },
+    { type: 'narration', text: '他们把满脸癫狂笑容的队长护在身后，杀意在废弃码头的黑暗里蔓延。' },
+  ],
 };
 
 const sevenSeasStage = stageCatalog.sevenSeas;
@@ -827,6 +871,158 @@ function loadSevenSeasMapFromFile() {
     });
 }
 
+function markStageVisited(stageId, { showRepeat = true } = {}) {
+  const stage = stageCatalog[stageId];
+  if (!stage) return;
+
+  const visitedBefore = Boolean(stageProgress[stageId]);
+  stageProgress[stageId] = true;
+  renderStage(stageId);
+
+  if (!visitedBefore) {
+    showToast(`关卡「${stage.name}」资料已解锁。`);
+  } else if (showRepeat) {
+    showToast(`关卡「${stage.name}」资料已在情报库中。`);
+  }
+}
+
+function formatStoryParagraphs(raw) {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((segment) => (typeof segment === 'string' ? segment.trim() : ''))
+      .filter(Boolean)
+      .map((segment) => `<p>${segment}</p>`)
+      .join('');
+  }
+
+  if (typeof raw === 'string') {
+    return raw
+      .split(/\s*\n+\s*/)
+      .map((segment) => segment.trim())
+      .filter(Boolean)
+      .map((segment) => `<p>${segment}</p>`)
+      .join('');
+  }
+
+  return '';
+}
+
+function updateStoryEntry(entry, isLastEntry) {
+  if (!storyOverlay) return;
+
+  const isNarration = !entry?.speaker || entry?.type === 'narration';
+  storyOverlay.classList.toggle('is-narration', isNarration);
+
+  if (storySpeaker) {
+    if (entry?.speaker) {
+      storySpeaker.textContent = entry.speaker;
+      storySpeaker.classList.add('visible');
+    } else {
+      storySpeaker.textContent = '';
+      storySpeaker.classList.remove('visible');
+    }
+  }
+
+  if (storyText) {
+    storyText.innerHTML = formatStoryParagraphs(entry?.text || '');
+  }
+
+  if (storyNextButton) {
+    storyNextButton.textContent = isLastEntry ? '结束' : '继续';
+  }
+}
+
+function advanceStory() {
+  if (!storyState || !Array.isArray(storyState.script)) return;
+
+  storyState.index += 1;
+  const { script } = storyState;
+
+  if (storyState.index >= script.length) {
+    finishStageStory();
+    return;
+  }
+
+  const entry = script[storyState.index];
+  const isLastEntry = storyState.index >= script.length - 1;
+  updateStoryEntry(entry, isLastEntry);
+}
+
+function startStageStory(stageId) {
+  if (!storyOverlay) {
+    markStageVisited(stageId);
+    return;
+  }
+
+  if (storyState) return;
+
+  const script = stageStories[stageId];
+  if (!Array.isArray(script) || script.length === 0) {
+    markStageVisited(stageId);
+    return;
+  }
+
+  storyState = { stageId, script, index: -1 };
+
+  storyOverlay.dataset.stage = stageId;
+  storyOverlay.setAttribute('aria-hidden', 'false');
+  storyOverlay.classList.remove('show-panel', 'is-narration');
+  storyOverlay.classList.add('active');
+
+  if (bgmController && typeof bgmController.fadeOut === 'function') {
+    bgmController.fadeOut(700);
+  }
+
+  if (storySpeaker) {
+    storySpeaker.textContent = '';
+    storySpeaker.classList.remove('visible');
+  }
+
+  if (storyText) {
+    storyText.innerHTML = '';
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (!storyOverlay || !storyState) return;
+      storyOverlay.classList.add('show-panel');
+      setTimeout(() => {
+        if (!storyState) return;
+        advanceStory();
+      }, 320);
+    });
+  });
+}
+
+function finishStageStory(skipped = false) {
+  if (!storyOverlay || !storyState) return;
+
+  const { stageId } = storyState;
+  storyOverlay.classList.remove('show-panel', 'is-narration');
+  storyOverlay.setAttribute('aria-hidden', 'true');
+
+  storyState = null;
+
+  if (bgmController && typeof bgmController.fadeIn === 'function') {
+    bgmController.fadeIn(1100);
+  }
+
+  setTimeout(() => {
+    storyOverlay.classList.remove('active');
+    if (storySpeaker) {
+      storySpeaker.textContent = '';
+      storySpeaker.classList.remove('visible');
+    }
+    if (storyText) {
+      storyText.innerHTML = '';
+    }
+  }, 420);
+
+  setTimeout(() => {
+    markStageVisited(stageId, { showRepeat: skipped });
+  }, 450);
+}
+
 function renderStage(stageId) {
   const stage = stageCatalog[stageId];
   if (!stage) return;
@@ -956,10 +1152,38 @@ function initStageBoard() {
     });
   });
 
-  document.querySelector('.enter-btn').addEventListener('click', () => {
-    stageProgress[currentStageId] = true;
-    renderStage(currentStageId);
-    showToast(`关卡「${stageCatalog[currentStageId].name}」资料已解锁。`);
+  const enterBtn = document.querySelector('.enter-btn');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', () => {
+      if (currentStageId === 'sevenSeas') {
+        startStageStory('sevenSeas');
+        return;
+      }
+
+      markStageVisited(currentStageId);
+    });
+  }
+}
+
+if (storyNextButton) {
+  storyNextButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    advanceStory();
+  });
+}
+
+if (storySkipButton) {
+  storySkipButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    finishStageStory(true);
+  });
+}
+
+if (storyOverlay) {
+  storyOverlay.addEventListener('click', (event) => {
+    if (!storyState) return;
+    if (event.target.closest('.story-controls')) return;
+    advanceStory();
   });
 }
 
@@ -1558,7 +1782,23 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
+  const { key, code } = event;
+
+  if (storyState) {
+    if (key === 'Escape') {
+      event.preventDefault();
+      finishStageStory(true);
+      return;
+    }
+
+    if (key === 'Enter' || key === ' ' || key === 'ArrowRight' || code === 'Space' || code === 'Enter') {
+      event.preventDefault();
+      advanceStory();
+      return;
+    }
+  }
+
+  if (key === 'Escape') {
     toggleSettings(false);
   }
 });
@@ -1592,22 +1832,106 @@ document.addEventListener('keydown', (event) => {
   audioEl.volume = 0.0;
   audioEl.muted = true;
 
-  function fadeIn() {
-    try {
-      audioEl.muted = false;
-      const target = 0.8;
-      const steps = 22;
-      let v = 0;
-      const timer = setInterval(() => {
-        v += target/steps;
-        audioEl.volume = Math.min(target, v);
-        if (audioEl.volume >= target) clearInterval(timer);
-      }, 45);
-    } catch {}
+  let defaultVolume = 0.8;
+  let fadeFrame = null;
+  let fadeResolver = null;
+
+  function cancelFade() {
+    if (fadeFrame) {
+      cancelAnimationFrame(fadeFrame);
+      fadeFrame = null;
+    }
+    if (fadeResolver) {
+      fadeResolver();
+      fadeResolver = null;
+    }
   }
-  audioEl.addEventListener('playing', fadeIn, { once: true });
+
+  function fadeTo(target, { duration = 800, easing } = {}) {
+    if (!audioEl) return Promise.resolve();
+
+    cancelFade();
+
+    const clamped = Math.max(0, Math.min(1, target));
+    const targetIsSilent = clamped <= 0;
+    const startVolume = audioEl.volume;
+    if (Math.abs(clamped - startVolume) <= 0.001 || duration <= 0) {
+      audioEl.volume = clamped;
+      if (clamped > 0 && audioEl.muted) {
+        try {
+          audioEl.muted = false;
+        } catch {}
+      } else if (targetIsSilent && !audioEl.muted) {
+        audioEl.muted = true;
+      }
+      return Promise.resolve();
+    }
+
+    if (clamped > 0 && audioEl.muted) {
+      try {
+        audioEl.muted = false;
+      } catch {}
+    }
+
+    const startTime = performance.now();
+    const delta = clamped - startVolume;
+
+    return new Promise((resolve) => {
+      fadeResolver = resolve;
+      function step(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(1, elapsed / duration);
+        const easedProgress = typeof easing === 'function' ? easing(t) : 1 - Math.pow(1 - t, 3);
+        const eased = Math.max(0, Math.min(1, easedProgress));
+        audioEl.volume = startVolume + delta * eased;
+        if (t < 1) {
+          fadeFrame = requestAnimationFrame(step);
+        } else {
+          fadeFrame = null;
+          fadeResolver = null;
+          if (targetIsSilent && !audioEl.muted) {
+            audioEl.muted = true;
+          }
+          resolve();
+        }
+      }
+      fadeFrame = requestAnimationFrame(step);
+    });
+  }
+
+  function fadeIn(targetDuration = 1000) {
+    return fadeTo(defaultVolume, { duration: targetDuration });
+  }
+
+  function fadeOut(targetDuration = 650) {
+    return fadeTo(0, {
+      duration: targetDuration,
+      easing: (t) => t * t,
+    });
+  }
+
+  audioEl.addEventListener(
+    'playing',
+    () => {
+      fadeIn(1400);
+    },
+    { once: true },
+  );
   audioEl.addEventListener('canplay', () => { try { audioEl.play(); } catch {} }, { once: true });
   try { const p = audioEl.play(); if (p && p.catch) p.catch(() => { audioEl.muted = true; audioEl.play().catch(()=>{}); }); } catch {}
+
+  bgmController = {
+    audio: audioEl,
+    fadeTo,
+    fadeIn: (duration) => fadeIn(duration ?? 1000),
+    fadeOut: (duration) => fadeOut(duration ?? 650),
+    get defaultVolume() {
+      return defaultVolume;
+    },
+    set defaultVolume(value) {
+      defaultVolume = Math.max(0, Math.min(1, Number.isFinite(value) ? value : defaultVolume));
+    },
+  };
 
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1731,8 +2055,6 @@ document.addEventListener('keydown', (event) => {
     requestAnimationFrame(breath);
   }
 })();
-;
-;
 
 
 
