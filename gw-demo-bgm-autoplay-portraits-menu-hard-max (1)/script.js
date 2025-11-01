@@ -16,6 +16,7 @@ let currentScreen = 'menu';
 let maskBusy = false;
 let currentStageId = 'intro';
 let storyState = null;
+let bgmController = null;
 
 const stageProgress = {
   intro: false,
@@ -968,6 +969,10 @@ function startStageStory(stageId) {
   storyOverlay.classList.remove('show-panel', 'is-narration');
   storyOverlay.classList.add('active');
 
+  if (bgmController && typeof bgmController.fadeOut === 'function') {
+    bgmController.fadeOut(1200);
+  }
+
   if (storySpeaker) {
     storySpeaker.textContent = '';
     storySpeaker.classList.remove('visible');
@@ -997,6 +1002,10 @@ function finishStageStory(skipped = false) {
   storyOverlay.setAttribute('aria-hidden', 'true');
 
   storyState = null;
+
+  if (bgmController && typeof bgmController.fadeIn === 'function') {
+    bgmController.fadeIn(1400);
+  }
 
   setTimeout(() => {
     storyOverlay.classList.remove('active');
@@ -1823,22 +1832,96 @@ document.addEventListener('keydown', (event) => {
   audioEl.volume = 0.0;
   audioEl.muted = true;
 
-  function fadeIn() {
-    try {
-      audioEl.muted = false;
-      const target = 0.8;
-      const steps = 22;
-      let v = 0;
-      const timer = setInterval(() => {
-        v += target/steps;
-        audioEl.volume = Math.min(target, v);
-        if (audioEl.volume >= target) clearInterval(timer);
-      }, 45);
-    } catch {}
+  let defaultVolume = 0.8;
+  let fadeFrame = null;
+  let fadeResolver = null;
+
+  function cancelFade() {
+    if (fadeFrame) {
+      cancelAnimationFrame(fadeFrame);
+      fadeFrame = null;
+    }
+    if (fadeResolver) {
+      fadeResolver();
+      fadeResolver = null;
+    }
   }
-  audioEl.addEventListener('playing', fadeIn, { once: true });
+
+  function fadeTo(target, { duration = 800 } = {}) {
+    if (!audioEl) return Promise.resolve();
+
+    cancelFade();
+
+    const clamped = Math.max(0, Math.min(1, target));
+    const startVolume = audioEl.volume;
+    if (Math.abs(clamped - startVolume) <= 0.001 || duration <= 0) {
+      audioEl.volume = clamped;
+      if (clamped > 0 && audioEl.muted) {
+        try {
+          audioEl.muted = false;
+        } catch {}
+      }
+      return Promise.resolve();
+    }
+
+    if (clamped > 0 && audioEl.muted) {
+      try {
+        audioEl.muted = false;
+      } catch {}
+    }
+
+    const startTime = performance.now();
+    const delta = clamped - startVolume;
+
+    return new Promise((resolve) => {
+      fadeResolver = resolve;
+      function step(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(1, elapsed / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        audioEl.volume = startVolume + delta * eased;
+        if (t < 1) {
+          fadeFrame = requestAnimationFrame(step);
+        } else {
+          fadeFrame = null;
+          fadeResolver = null;
+          resolve();
+        }
+      }
+      fadeFrame = requestAnimationFrame(step);
+    });
+  }
+
+  function fadeIn(targetDuration = 1000) {
+    return fadeTo(defaultVolume, { duration: targetDuration });
+  }
+
+  function fadeOut(targetDuration = 900) {
+    return fadeTo(0, { duration: targetDuration });
+  }
+
+  audioEl.addEventListener(
+    'playing',
+    () => {
+      fadeIn(1400);
+    },
+    { once: true },
+  );
   audioEl.addEventListener('canplay', () => { try { audioEl.play(); } catch {} }, { once: true });
   try { const p = audioEl.play(); if (p && p.catch) p.catch(() => { audioEl.muted = true; audioEl.play().catch(()=>{}); }); } catch {}
+
+  bgmController = {
+    audio: audioEl,
+    fadeTo,
+    fadeIn: (duration) => fadeIn(duration ?? 1000),
+    fadeOut: (duration) => fadeOut(duration ?? 900),
+    get defaultVolume() {
+      return defaultVolume;
+    },
+    set defaultVolume(value) {
+      defaultVolume = Math.max(0, Math.min(1, Number.isFinite(value) ? value : defaultVolume));
+    },
+  };
 
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;

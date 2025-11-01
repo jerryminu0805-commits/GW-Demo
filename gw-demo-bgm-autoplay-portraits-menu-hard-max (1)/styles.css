@@ -973,7 +973,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: clamp(28px, 6vw, 96px);
+  padding: clamp(24px, 5vw, 80px);
   background: rgba(0, 0, 0, 0.92);
   opacity: 0;
   pointer-events: none;
@@ -1002,10 +1002,10 @@ body {
   position: relative;
   width: min(960px, 100%);
   background: linear-gradient(155deg, rgba(18, 22, 34, 0.94), rgba(7, 9, 16, 0.92));
-  border-radius: 28px;
+  border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: clamp(26px, 4vw, 52px);
-  box-shadow: 0 32px 88px rgba(0, 0, 0, 0.6);
+  padding: clamp(22px, 3.6vw, 44px);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
   opacity: 0;
   transform: translateY(48px);
   transition: opacity 0.6s ease, transform 0.6s ease;
@@ -1043,9 +1043,9 @@ body {
 }
 
 .story-text {
-  min-height: clamp(140px, 24vh, 220px);
+  min-height: clamp(110px, 18vh, 170px);
   font-size: clamp(15px, 1.4vw, 18px);
-  line-height: 1.85;
+  line-height: 1.8;
   color: rgba(241, 245, 255, 0.88);
   letter-spacing: 0.04em;
 }
@@ -1059,7 +1059,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
-  margin-top: clamp(18px, 3vw, 32px);
+  margin-top: clamp(16px, 2.6vw, 28px);
 }
 
 .story-controls button {
