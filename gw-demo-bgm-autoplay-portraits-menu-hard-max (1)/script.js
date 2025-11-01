@@ -970,7 +970,7 @@ function startStageStory(stageId) {
   storyOverlay.classList.add('active');
 
   if (bgmController && typeof bgmController.fadeOut === 'function') {
-    bgmController.fadeOut(1200);
+    bgmController.fadeOut(700);
   }
 
   if (storySpeaker) {
@@ -1004,7 +1004,7 @@ function finishStageStory(skipped = false) {
   storyState = null;
 
   if (bgmController && typeof bgmController.fadeIn === 'function') {
-    bgmController.fadeIn(1400);
+    bgmController.fadeIn(1100);
   }
 
   setTimeout(() => {
@@ -1902,7 +1902,7 @@ document.addEventListener('keydown', (event) => {
     return fadeTo(defaultVolume, { duration: targetDuration });
   }
 
-  function fadeOut(targetDuration = 900) {
+  function fadeOut(targetDuration = 650) {
     return fadeTo(0, { duration: targetDuration });
   }
 
@@ -1920,7 +1920,7 @@ document.addEventListener('keydown', (event) => {
     audio: audioEl,
     fadeTo,
     fadeIn: (duration) => fadeIn(duration ?? 1000),
-    fadeOut: (duration) => fadeOut(duration ?? 900),
+    fadeOut: (duration) => fadeOut(duration ?? 650),
     get defaultVolume() {
       return defaultVolume;
     },
