@@ -967,6 +967,146 @@ body {
   transform: translate(-50%, 0);
 }
 
+.story-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 80px);
+  background: rgba(0, 0, 0, 0.92);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+  z-index: 20;
+}
+
+.story-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.story-overlay .story-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(46, 60, 94, 0.35) 0%, rgba(10, 12, 20, 0.88) 60%, rgba(0, 0, 0, 0.98) 100%);
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+.story-overlay.show-panel .story-backdrop {
+  opacity: 1;
+}
+
+.story-panel {
+  position: relative;
+  width: min(960px, 100%);
+  background: linear-gradient(155deg, rgba(18, 22, 34, 0.94), rgba(7, 9, 16, 0.92));
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: clamp(22px, 3.6vw, 44px);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transform: translateY(48px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  z-index: 1;
+}
+
+.story-overlay.show-panel .story-panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.story-speaker {
+  font-family: var(--font-display);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: clamp(16px, 2vw, 22px);
+  margin: 0 0 18px;
+  color: rgba(255, 173, 183, 0.92);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.story-speaker.visible {
+  opacity: 1;
+}
+
+.story-speaker:not(.visible) {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.story-overlay.is-narration .story-speaker {
+  display: none;
+}
+
+.story-text {
+  min-height: clamp(110px, 18vh, 170px);
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.8;
+  color: rgba(241, 245, 255, 0.88);
+  letter-spacing: 0.04em;
+}
+
+.story-text p {
+  margin: 0;
+  animation: storyLineFade 0.5s ease;
+}
+
+.story-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: clamp(16px, 2.6vw, 28px);
+}
+
+.story-controls button {
+  position: relative;
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.story-controls button:hover {
+  background: rgba(234, 65, 87, 0.28);
+  box-shadow: 0 12px 28px rgba(234, 65, 87, 0.35);
+  transform: translateY(-1px);
+}
+
+.story-controls .story-next {
+  background: linear-gradient(135deg, rgba(234, 65, 87, 0.92), rgba(144, 30, 42, 0.95));
+  border-color: rgba(234, 65, 87, 0.72);
+  color: #ffffff;
+}
+
+.story-controls .story-next:hover {
+  box-shadow: 0 16px 36px rgba(234, 65, 87, 0.45);
+}
+
+.story-overlay.is-narration .story-panel {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes storyLineFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -1033,6 +1173,25 @@ body {
 
   .stage-detail {
     padding: 20px;
+  }
+
+  .story-panel {
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  .story-text {
+    min-height: 120px;
+  }
+
+  .story-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .story-controls button {
+    width: 100%;
   }
 }
 
