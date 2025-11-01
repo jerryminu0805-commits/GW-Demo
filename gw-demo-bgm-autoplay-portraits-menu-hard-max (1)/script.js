@@ -1853,6 +1853,7 @@ document.addEventListener('keydown', (event) => {
     cancelFade();
 
     const clamped = Math.max(0, Math.min(1, target));
+    const targetIsSilent = clamped <= 0;
     const startVolume = audioEl.volume;
     if (Math.abs(clamped - startVolume) <= 0.001 || duration <= 0) {
       audioEl.volume = clamped;
@@ -1860,6 +1861,8 @@ document.addEventListener('keydown', (event) => {
         try {
           audioEl.muted = false;
         } catch {}
+      } else if (targetIsSilent && !audioEl.muted) {
+        audioEl.muted = true;
       }
       return Promise.resolve();
     }
@@ -1885,6 +1888,9 @@ document.addEventListener('keydown', (event) => {
         } else {
           fadeFrame = null;
           fadeResolver = null;
+          if (targetIsSilent && !audioEl.muted) {
+            audioEl.muted = true;
+          }
           resolve();
         }
       }
@@ -2045,8 +2051,6 @@ document.addEventListener('keydown', (event) => {
     requestAnimationFrame(breath);
   }
 })();
-;
-;
 
 
 
