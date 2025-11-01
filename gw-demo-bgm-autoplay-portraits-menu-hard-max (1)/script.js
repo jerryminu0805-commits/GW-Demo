@@ -1847,7 +1847,7 @@ document.addEventListener('keydown', (event) => {
     }
   }
 
-  function fadeTo(target, { duration = 800 } = {}) {
+  function fadeTo(target, { duration = 800, easing } = {}) {
     if (!audioEl) return Promise.resolve();
 
     cancelFade();
@@ -1881,7 +1881,8 @@ document.addEventListener('keydown', (event) => {
       function step(now) {
         const elapsed = now - startTime;
         const t = Math.min(1, elapsed / duration);
-        const eased = 1 - Math.pow(1 - t, 3);
+        const easedProgress = typeof easing === 'function' ? easing(t) : 1 - Math.pow(1 - t, 3);
+        const eased = Math.max(0, Math.min(1, easedProgress));
         audioEl.volume = startVolume + delta * eased;
         if (t < 1) {
           fadeFrame = requestAnimationFrame(step);
@@ -1903,7 +1904,10 @@ document.addEventListener('keydown', (event) => {
   }
 
   function fadeOut(targetDuration = 650) {
-    return fadeTo(0, { duration: targetDuration });
+    return fadeTo(0, {
+      duration: targetDuration,
+      easing: (t) => t * t,
+    });
   }
 
   audioEl.addEventListener(
