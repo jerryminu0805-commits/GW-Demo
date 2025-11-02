@@ -65,6 +65,11 @@ function setActiveScreen(screenId) {
   screens.forEach((node, key) => {
     node.classList.toggle('active', key === screenId);
   });
+  if (screenId === 'menu') {
+    try {
+      bossBGMController?.stop?.();
+    } catch (e) {}
+  }
   currentScreen = screenId;
 }
 
