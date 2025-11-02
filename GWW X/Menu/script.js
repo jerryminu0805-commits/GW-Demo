@@ -2117,6 +2117,10 @@ if (document.readyState === 'loading') {
 function getBossOverlay(){ return document.getElementById('bossOverlay'); }
 function getBossFrame(){ return document.getElementById('bossFrame'); }
 
+// Delay in milliseconds before starting menu BGM after boss battle ends
+// This ensures boss BGM is fully stopped before menu BGM starts, preventing duplicate BGM
+const BOSS_BGM_STOP_DELAY = 300;
+
 function openBossOverlay(){
   const overlay = getBossOverlay();
   if(!overlay) return;
@@ -2149,7 +2153,10 @@ function closeBossOverlay(){
   overlay.classList.remove('active');
   overlay.setAttribute('aria-hidden','true');
   try{ transitionTo('stages'); }catch(e){}
-  try{ if (typeof bgmController?.fadeIn === 'function') bgmController.fadeIn(1000); }catch(e){}
+  // Delay menu BGM fade-in to ensure boss BGM is fully stopped (prevents duplicate BGM)
+  setTimeout(() => {
+    try{ if (typeof bgmController?.fadeIn === 'function') bgmController.fadeIn(1000); }catch(e){}
+  }, BOSS_BGM_STOP_DELAY);
 }
 
 (function setupInlineBossBridge(){
