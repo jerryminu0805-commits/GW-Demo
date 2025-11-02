@@ -4,6 +4,18 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
 (() => {
   const store = window.__GW_AUDIO__;
 
+  function getDelegateStore(){
+    try {
+      if (window.parent && window.parent !== window) {
+        const parentStore = window.parent.__GW_AUDIO__;
+        if (parentStore && typeof parentStore.startBossBGM === 'function' && typeof parentStore.stopBossBGM === 'function') {
+          return parentStore;
+        }
+      }
+    } catch (err) {}
+    return null;
+  }
+
   function safeFadeOut(audio, ms=800){
     if (!audio) return;
     const steps = 20, iv = ms/steps;
@@ -33,35 +45,72 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
     }, iv);
   }
 
-  // reuse single instance across scenes
-  if (!store.bossBGM) {
-    store.bossBGM = new Audio('../Menu/boss_bgm.mp3'); // ← 如果你有不同路径，改这里
-    store.bossBGM.loop = true;
-    store.bossBGM.volume = 0.9;
+  function ensureLocalAudio(){
+    if (!store.bossBGM) {
+      store.bossBGM = new Audio('../Menu/boss_bgm.mp3'); // ← 如果你有不同路径，改这里
+      store.bossBGM.loop = true;
+      store.bossBGM.volume = 0.9;
+    }
+    return store.bossBGM;
   }
 
   if (!store.__unlocked_init__) {
     store.__unlocked_init__ = true;
-    window.addEventListener('pointerdown', () => {
-      try {
-        store.bossBGM.play().then(() => store.bossBGM.pause()).catch(()=>{});
-      } catch(e){}
+    const delegate = getDelegateStore();
+    if (!delegate) {
+      window.addEventListener('pointerdown', () => {
+        const audio = ensureLocalAudio();
+        try {
+          audio.play().then(() => audio.pause()).catch(()=>{});
+        } catch(e){}
+        store.unlocked = true;
+      }, { once:true });
+    } else {
       store.unlocked = true;
-    }, { once:true });
+    }
   }
 
   store.startBossBGM = function(){
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try { delegate.startBossBGM(); } catch (e) {}
+      return;
+    }
+    const audio = ensureLocalAudio();
     try {
-      store.bossBGM.currentTime = 0;
+      audio.currentTime = 0;
     } catch(e){}
-    safeFadeIn(store.bossBGM, 0.9, 600);
+    safeFadeIn(audio, 0.9, 600);
   };
-  store.stopBossBGM = function(){
-    safeFadeOut(store.bossBGM, 600);
+  store.stopBossBGM = function(opts){
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try { delegate.stopBossBGM(opts); } catch (e) {}
+      return;
+    }
+    const audio = store.bossBGM;
+    if (!audio) return;
+    if(opts && opts.immediate){
+      try{
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 0;
+      }catch(e){}
+      return;
+    }
+    safeFadeOut(audio, 600);
   };
+  try{
+    window.addEventListener('message', (event) => {
+      const data = event?.data;
+      if(data && data.type === 'GW_FORCE_BOSS_BGM_STOP'){
+        try{ store.stopBossBGM({ immediate:true }); }catch(e){}
+      }
+    });
+  }catch(e){}
 })();
 
-function __returnToStage(result){ try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
+function __returnToStage(result){ try{ const store = window.__GW_AUDIO__; if(store && typeof store.stopBossBGM === 'function'){ store.stopBossBGM({ immediate:true }); } }catch(e){} try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
 // 2D 回合制 RPG Demo - 七海作战队Boss战
 // 变更摘要：
 // - 注入基础栅格/单位样式与 --cell 默认值，修复“又没角色了”（无 CSS 时看不到格子/单位）。

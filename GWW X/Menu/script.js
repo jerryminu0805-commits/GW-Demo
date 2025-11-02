@@ -23,30 +23,96 @@ let stageAmbientController = null;
 function getBossBGMEl(){
   return document.getElementById('boss-bgm');
 }
+
+function getBossAudioStore(){
+  try {
+    const store = window.__GW_AUDIO__;
+    if (store && typeof store.startBossBGM === 'function' && typeof store.stopBossBGM === 'function') {
+      return store;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function playBossBGMViaElement(el){
+  if (!el) return;
+  try {
+    el.addEventListener('error', function onErr(){
+      el.removeEventListener('error', onErr);
+      try {
+        el.src = 'LYSS (Cover).mp3';
+        el.load();
+        el.play().catch(()=>{});
+      } catch (err) {}
+    }, { once: true });
+  } catch (err) {}
+
+  try {
+    el.muted = false;
+    el.volume = 1.0;
+    const playPromise = el.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+function stopBossBGMViaElement(el, immediate){
+  if (!el) return;
+  try {
+    el.pause();
+  } catch (err) {}
+  if (immediate) {
+    try {
+      el.currentTime = 0;
+    } catch (err) {}
+    try {
+      el.volume = 0;
+    } catch (err) {}
+  }
+}
+
 let bossBGMController = {
   play(){
-    const el = getBossBGMEl();
-    if(!el) return;
-    try{
-      // 若 boss_bgm.mp3 加载失败，回退到菜单曲目作为占位
-      el.addEventListener('error', function onErr(){
-        el.removeEventListener('error', onErr);
-        try{ el.src = 'LYSS (Cover).mp3'; el.load(); el.play().catch(()=>{}); }catch(e){}
-      }, { once:true });
-    }catch(e){}
-    try{
-      el.muted = false;
-      el.volume = 1.0;
-      const p = el.play();
-      if (p && typeof p.catch === 'function') p.catch(()=>{});
-    }catch(e){}
+    const store = getBossAudioStore();
+    if (store) {
+      try { store.startBossBGM(); return; } catch (e) {}
+    }
+    playBossBGMViaElement(getBossBGMEl());
   },
-  stop(){
-    const el = getBossBGMEl();
-    if(!el) return;
-    try{ el.pause(); el.currentTime = 0; }catch(e){}
+  stop(opts){
+    const immediate = !!(opts && opts.immediate);
+    const store = getBossAudioStore();
+    if (store) {
+      try { store.stopBossBGM({ immediate }); } catch (e) {}
+    }
+    stopBossBGMViaElement(getBossBGMEl(), immediate);
   }
 };
+
+function stopGlobalBossBGM(){
+  try { bossBGMController?.stop?.({ immediate: true }); } catch (e) {}
+  try {
+    const audioStore = window.__GW_AUDIO__;
+    if (audioStore && typeof audioStore.stopBossBGM === 'function') {
+      audioStore.stopBossBGM({ immediate: true });
+    }
+  } catch (e) {}
+  try {
+    const frame = document.getElementById('bossFrame');
+    if (frame && frame.contentWindow) {
+      try {
+        const store = frame.contentWindow.__GW_AUDIO__;
+        if (store && typeof store.stopBossBGM === 'function') {
+          store.stopBossBGM({ immediate: true });
+        }
+      } catch (err) {}
+      try {
+        frame.contentWindow.postMessage({ type: 'GW_FORCE_BOSS_BGM_STOP' }, '*');
+      } catch (err) {}
+    }
+  } catch (e) {}
+}
 
 
 const stageProgress = {
@@ -65,6 +131,9 @@ function setActiveScreen(screenId) {
   screens.forEach((node, key) => {
     node.classList.toggle('active', key === screenId);
   });
+  if (screenId === 'menu') {
+    stopGlobalBossBGM();
+  }
   currentScreen = screenId;
 }
 
@@ -2040,7 +2109,14 @@ function openBossOverlay(){
 function closeBossOverlay(){
   const overlay = getBossOverlay();
   if(!overlay) return;
-  try{ if (bossBGMController) bossBGMController.stop(); }catch(e){}
+  stopGlobalBossBGM();
+  const frame = getBossFrame();
+  if(frame){
+    try{
+      frame.removeAttribute('src');
+      frame.srcdoc = '<!doctype html><title>Boss unloaded</title>';
+    }catch(e){}
+  }
   overlay.classList.remove('active');
   overlay.setAttribute('aria-hidden','true');
   try{ transitionTo('stages'); }catch(e){}
