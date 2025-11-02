@@ -969,8 +969,8 @@ function startStageStory(stageId) {
   storyOverlay.classList.remove('show-panel', 'is-narration');
   storyOverlay.classList.add('active');
 
-  if (bgmController && typeof bgmController.fadeTo === 'function') {
-    bgmController.fadeTo(0, { duration: 0 });
+  if (bgmController && typeof bgmController.fadeOut === 'function') {
+    bgmController.fadeOut(850);
   }
 
   if (storySpeaker) {
@@ -1156,8 +1156,8 @@ function initStageBoard() {
   if (enterBtn) {
     enterBtn.addEventListener('click', () => {
       if (currentStageId === 'sevenSeas') {
-        if (bgmController && typeof bgmController.fadeTo === 'function') {
-          bgmController.fadeTo(0, { duration: 0 });
+        if (bgmController && typeof bgmController.fadeOut === 'function') {
+          bgmController.fadeOut(850);
         }
         startStageStory('sevenSeas');
         return;
