@@ -4,6 +4,18 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
 (() => {
   const store = window.__GW_AUDIO__;
 
+  function getDelegateStore(){
+    try {
+      if (window.parent && window.parent !== window) {
+        const parentStore = window.parent.__GW_AUDIO__;
+        if (parentStore && typeof parentStore.startBossBGM === 'function' && typeof parentStore.stopBossBGM === 'function') {
+          return parentStore;
+        }
+      }
+    } catch (err) {}
+    return null;
+  }
+
   function safeFadeOut(audio, ms=800){
     if (!audio) return;
     const steps = 20, iv = ms/steps;
@@ -33,39 +45,60 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
     }, iv);
   }
 
-  // reuse single instance across scenes
-  if (!store.bossBGM) {
-    store.bossBGM = new Audio('../Menu/boss_bgm.mp3'); // ← 如果你有不同路径，改这里
-    store.bossBGM.loop = true;
-    store.bossBGM.volume = 0.9;
+  function ensureLocalAudio(){
+    if (!store.bossBGM) {
+      store.bossBGM = new Audio('../Menu/boss_bgm.mp3'); // ← 如果你有不同路径，改这里
+      store.bossBGM.loop = true;
+      store.bossBGM.volume = 0.9;
+    }
+    return store.bossBGM;
   }
 
   if (!store.__unlocked_init__) {
     store.__unlocked_init__ = true;
-    window.addEventListener('pointerdown', () => {
-      try {
-        store.bossBGM.play().then(() => store.bossBGM.pause()).catch(()=>{});
-      } catch(e){}
+    const delegate = getDelegateStore();
+    if (!delegate) {
+      window.addEventListener('pointerdown', () => {
+        const audio = ensureLocalAudio();
+        try {
+          audio.play().then(() => audio.pause()).catch(()=>{});
+        } catch(e){}
+        store.unlocked = true;
+      }, { once:true });
+    } else {
       store.unlocked = true;
-    }, { once:true });
+    }
   }
 
   store.startBossBGM = function(){
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try { delegate.startBossBGM(); } catch (e) {}
+      return;
+    }
+    const audio = ensureLocalAudio();
     try {
-      store.bossBGM.currentTime = 0;
+      audio.currentTime = 0;
     } catch(e){}
-    safeFadeIn(store.bossBGM, 0.9, 600);
+    safeFadeIn(audio, 0.9, 600);
   };
   store.stopBossBGM = function(opts){
-    if(opts && opts.immediate && store.bossBGM){
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try { delegate.stopBossBGM(opts); } catch (e) {}
+      return;
+    }
+    const audio = store.bossBGM;
+    if (!audio) return;
+    if(opts && opts.immediate){
       try{
-        store.bossBGM.pause();
-        store.bossBGM.currentTime = 0;
-        store.bossBGM.volume = 0;
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 0;
       }catch(e){}
       return;
     }
-    safeFadeOut(store.bossBGM, 600);
+    safeFadeOut(audio, 600);
   };
   try{
     window.addEventListener('message', (event) => {
