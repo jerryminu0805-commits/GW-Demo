@@ -2149,7 +2149,10 @@ function closeBossOverlay(){
   overlay.classList.remove('active');
   overlay.setAttribute('aria-hidden','true');
   try{ transitionTo('stages'); }catch(e){}
-  try{ if (typeof bgmController?.fadeIn === 'function') bgmController.fadeIn(1000); }catch(e){}
+  // Delay menu BGM fade-in to ensure boss BGM is fully stopped (prevents duplicate BGM)
+  setTimeout(() => {
+    try{ if (typeof bgmController?.fadeIn === 'function') bgmController.fadeIn(1000); }catch(e){}
+  }, 300);
 }
 
 (function setupInlineBossBridge(){
