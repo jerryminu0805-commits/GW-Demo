@@ -2159,6 +2159,9 @@ function closeBossOverlay(){
   // Listen boss results (when iframe posts message)
   window.addEventListener('message', (event) => {
     const data = event?.data || {};
+    if(data && data.type === 'GW_FORCE_BOSS_BGM_STOP'){
+      stopGlobalBossBGM();
+    }
     if(data && data.type === 'GW_BOSS_DONE'){
       closeBossOverlay();
     }

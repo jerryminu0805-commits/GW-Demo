@@ -189,7 +189,7 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
   }catch(e){}
 })();
 
-function __returnToStage(result){ try{ const store = window.__GW_AUDIO__; if(store && typeof store.stopBossBGM === 'function'){ store.stopBossBGM({ immediate:true }); } }catch(e){} try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
+function __returnToStage(result){ try{ const store = window.__GW_AUDIO__; if(store && typeof store.stopBossBGM === 'function'){ store.stopBossBGM({ immediate:true }); } }catch(e){} try{ if(parent && parent!==window){ try{ parent.postMessage({type:'GW_FORCE_BOSS_BGM_STOP'}, '*'); }catch(err){} parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
 
 function __silenceBossBGMImmediate(){
   try{
@@ -210,6 +210,11 @@ function __silenceBossBGMImmediate(){
         try{ audio.volume = 0; }catch(e){}
       }
     }catch(e){}
+  }catch(e){}
+  try{
+    if(parent && parent!==window){
+      parent.postMessage({ type:'GW_FORCE_BOSS_BGM_STOP' }, '*');
+    }
   }catch(e){}
 }
 
