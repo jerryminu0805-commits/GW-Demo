@@ -4,64 +4,192 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
 (() => {
   const store = window.__GW_AUDIO__;
 
-  function safeFadeOut(audio, ms=800){
-    if (!audio) return;
-    const steps = 20, iv = ms/steps;
-    const volStep = (audio.volume || 0)/steps;
-    const t = setInterval(() => {
-      audio.volume = Math.max(0, audio.volume - volStep);
-      if (audio.volume <= 0.001) {
-        audio.pause();
-        audio.volume = 0;
-        clearInterval(t);
+  let fadeTimer = null;
+  let pendingPlay = null;
+  let forceSilence = false;
+
+  function getDelegateStore(){
+    try {
+      if (window.parent && window.parent !== window) {
+        const parentStore = window.parent.__GW_AUDIO__;
+        if (parentStore && typeof parentStore.startBossBGM === 'function' && typeof parentStore.stopBossBGM === 'function') {
+          return parentStore;
+        }
       }
-    }, iv);
+    } catch (err) {}
+    return null;
   }
 
-  function safeFadeIn(audio, target=0.9, ms=800){
+  function clearFadeTimer(){
+    if (fadeTimer) {
+      clearInterval(fadeTimer);
+      fadeTimer = null;
+    }
+  }
+
+  function clampVolume(value){
+    if (!Number.isFinite(value)) return 0;
+    if (value < 0) return 0;
+    if (value > 1) return 1;
+    return value;
+  }
+
+  function hardSilence(audio){
     if (!audio) return;
-    audio.volume = 0;
-    audio.play().catch(()=>{});
-    const steps = 20, iv = ms/steps;
-    const volStep = target/steps;
-    const t = setInterval(() => {
-      audio.volume = Math.min(target, audio.volume + volStep);
-      if (audio.volume >= (target - 0.001)) {
+    try { audio.pause(); } catch (e) {}
+    try { audio.currentTime = 0; } catch (e) {}
+    try { audio.volume = 0; } catch (e) {}
+  }
+
+  function monitorPlay(audio){
+    if (!audio) return;
+    try {
+      const result = audio.play();
+      if (result && typeof result.then === 'function') {
+        pendingPlay = result;
+        result.catch(() => {}).finally(() => {
+          if (forceSilence) {
+            hardSilence(audio);
+          }
+          if (pendingPlay === result) {
+            pendingPlay = null;
+          }
+        });
+      } else {
+        pendingPlay = null;
+      }
+    } catch (e) {
+      pendingPlay = null;
+    }
+  }
+
+  function fadeVolume(audio, target, ms, options){
+    if (!audio) return;
+    const opts = options || {};
+    target = clampVolume(target);
+    const start = clampVolume(audio.volume || 0);
+    clearFadeTimer();
+
+    if (!Number.isFinite(ms) || ms <= 0 || Math.abs(target - start) <= 0.0005) {
+      audio.volume = target;
+      if (opts.stopAtEnd && target <= 0.0005) {
+        hardSilence(audio);
+      }
+      return;
+    }
+
+    const steps = Math.max(1, Math.round(ms / 40));
+    const stepMs = ms / steps;
+    let tick = 0;
+
+    fadeTimer = setInterval(() => {
+      tick += 1;
+      const progress = Math.min(1, tick / steps);
+      const next = start + (target - start) * progress;
+      audio.volume = clampVolume(next);
+      if (progress >= 0.999) {
+        clearFadeTimer();
         audio.volume = target;
-        clearInterval(t);
+        if (opts.stopAtEnd && target <= 0.0005) {
+          hardSilence(audio);
+        }
       }
-    }, iv);
+    }, stepMs);
   }
 
-  // reuse single instance across scenes
-  if (!store.bossBGM) {
-    store.bossBGM = new Audio('../Menu/boss_bgm.mp3'); // ← 如果你有不同路径，改这里
-    store.bossBGM.loop = true;
-    store.bossBGM.volume = 0.9;
+  function ensureLocalAudio(){
+    if (!store.bossBGM) {
+      const audio = new Audio('../Menu/boss_bgm.mp3'); // ← 如果你有不同路径，改这里
+      audio.loop = true;
+      audio.volume = 0.9;
+      store.bossBGM = audio;
+    }
+    return store.bossBGM;
   }
 
   if (!store.__unlocked_init__) {
     store.__unlocked_init__ = true;
-    window.addEventListener('pointerdown', () => {
-      try {
-        store.bossBGM.play().then(() => store.bossBGM.pause()).catch(()=>{});
-      } catch(e){}
+    const delegate = getDelegateStore();
+    if (!delegate) {
+      window.addEventListener('pointerdown', () => {
+        const audio = ensureLocalAudio();
+        try {
+          audio.play().then(() => audio.pause()).catch(() => {});
+        } catch(e){}
+        store.unlocked = true;
+      }, { once:true });
+    } else {
       store.unlocked = true;
-    }, { once:true });
+    }
   }
 
   store.startBossBGM = function(){
-    try {
-      store.bossBGM.currentTime = 0;
-    } catch(e){}
-    safeFadeIn(store.bossBGM, 0.9, 600);
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try { delegate.startBossBGM(); } catch (e) {}
+      return;
+    }
+    const audio = ensureLocalAudio();
+    forceSilence = false;
+    clearFadeTimer();
+    try { audio.pause(); } catch (e) {}
+    try { audio.currentTime = 0; } catch (e) {}
+    try { audio.volume = 0; } catch (e) {}
+    monitorPlay(audio);
+    fadeVolume(audio, 0.9, 600);
   };
-  store.stopBossBGM = function(){
-    safeFadeOut(store.bossBGM, 600);
+
+  store.stopBossBGM = function(opts){
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try {
+        if (opts && opts.immediate && typeof delegate.forceSilenceBossBGM === 'function') {
+          delegate.forceSilenceBossBGM();
+        } else {
+          delegate.stopBossBGM(opts);
+        }
+      } catch (e) {}
+      return;
+    }
+    const audio = ensureLocalAudio();
+    forceSilence = true;
+    clearFadeTimer();
+    if(opts && opts.immediate){
+      hardSilence(audio);
+      return;
+    }
+    fadeVolume(audio, 0, 600, { stopAtEnd: true });
   };
+
+  store.forceSilenceBossBGM = function(){
+    const delegate = getDelegateStore();
+    if (delegate) {
+      try {
+        if (typeof delegate.forceSilenceBossBGM === 'function') {
+          delegate.forceSilenceBossBGM();
+        } else {
+          delegate.stopBossBGM({ immediate: true });
+        }
+      } catch (e) {}
+      return;
+    }
+    const audio = store.bossBGM;
+    forceSilence = true;
+    clearFadeTimer();
+    hardSilence(audio);
+  };
+
+  try{
+    window.addEventListener('message', (event) => {
+      const data = event?.data;
+      if(data && data.type === 'GW_FORCE_BOSS_BGM_STOP'){
+        try{ store.forceSilenceBossBGM(); }catch(e){}
+      }
+    });
+  }catch(e){}
 })();
 
-function __returnToStage(result){ try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
+function __returnToStage(result){ try{ const store = window.__GW_AUDIO__; if(store && typeof store.stopBossBGM === 'function'){ store.stopBossBGM({ immediate:true }); } }catch(e){} try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
 // 2D 回合制 RPG Demo - 七海作战队Boss战
 // 变更摘要：
 // - 注入基础栅格/单位样式与 --cell 默认值，修复“又没角色了”（无 CSS 时看不到格子/单位）。
