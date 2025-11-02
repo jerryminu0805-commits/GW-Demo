@@ -17,6 +17,7 @@ let maskBusy = false;
 let currentStageId = 'intro';
 let storyState = null;
 let bgmController = null;
+let stageAmbientController = null;
 
 const stageProgress = {
   intro: false,
@@ -969,6 +970,10 @@ function startStageStory(stageId) {
   storyOverlay.classList.remove('show-panel', 'is-narration');
   storyOverlay.classList.add('active');
 
+  if (stageAmbientController && typeof stageAmbientController.play === 'function') {
+    stageAmbientController.play();
+  }
+
   if (bgmController && typeof bgmController.fadeOut === 'function') {
     bgmController.fadeOut(850);
   }
@@ -1002,6 +1007,10 @@ function finishStageStory(skipped = false) {
   storyOverlay.setAttribute('aria-hidden', 'true');
 
   storyState = null;
+
+  if (stageAmbientController && typeof stageAmbientController.stop === 'function') {
+    stageAmbientController.stop();
+  }
 
   if (bgmController && typeof bgmController.fadeIn === 'function') {
     bgmController.fadeIn(1100);
@@ -1813,6 +1822,60 @@ document.addEventListener('keydown', (event) => {
 
 
 ;
+
+
+(function setupStageAmbient() {
+  const ambientEl = document.getElementById('stage-ambient');
+  if (!ambientEl) return;
+
+  ambientEl.autoplay = false;
+  ambientEl.loop = true;
+  ambientEl.muted = false;
+
+  const resetTime = () => {
+    try {
+      ambientEl.currentTime = 0;
+    } catch {}
+  };
+
+  const safePlay = () => {
+    try {
+      const playPromise = ambientEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    } catch {}
+  };
+
+  try {
+    ambientEl.pause();
+  } catch {}
+  resetTime();
+
+  stageAmbientController = {
+    play({ restart = true } = {}) {
+      if (!ambientEl) return;
+      if (restart) {
+        resetTime();
+      }
+      safePlay();
+    },
+    stop({ reset = true } = {}) {
+      if (!ambientEl) return;
+      if (!ambientEl.paused) {
+        try {
+          ambientEl.pause();
+        } catch {}
+      }
+      if (reset) {
+        resetTime();
+      }
+    },
+    get element() {
+      return ambientEl;
+    },
+  };
+})();
 
 
 /* ===== BGM autoplay + LIVE amplitude follower (HARD-EDGED MAX) =====
