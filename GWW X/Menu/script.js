@@ -57,18 +57,20 @@ function playBossBGMViaElement(el){
   } catch (err) {}
 }
 
+function silenceAudioInstance(audio){
+  if (!audio) return;
+  try { audio.pause(); } catch (err) {}
+  try { audio.currentTime = 0; } catch (err) {}
+  try { audio.volume = 0; } catch (err) {}
+}
+
 function stopBossBGMViaElement(el, immediate){
   if (!el) return;
   try {
     el.pause();
   } catch (err) {}
   if (immediate) {
-    try {
-      el.currentTime = 0;
-    } catch (err) {}
-    try {
-      el.volume = 0;
-    } catch (err) {}
+    silenceAudioInstance(el);
   }
 }
 
@@ -84,9 +86,23 @@ let bossBGMController = {
     const immediate = !!(opts && opts.immediate);
     const store = getBossAudioStore();
     if (store) {
-      try { store.stopBossBGM({ immediate }); } catch (e) {}
+      try {
+        if (immediate && typeof store.forceSilenceBossBGM === 'function') {
+          store.forceSilenceBossBGM();
+        } else {
+          store.stopBossBGM({ immediate });
+          if (immediate && typeof store.forceSilenceBossBGM === 'function') {
+            store.forceSilenceBossBGM();
+          }
+        }
+      } catch (e) {}
     }
-    stopBossBGMViaElement(getBossBGMEl(), immediate);
+    const el = getBossBGMEl();
+    if (immediate) {
+      silenceAudioInstance(el);
+    } else {
+      stopBossBGMViaElement(el, immediate);
+    }
   }
 };
 
@@ -94,17 +110,30 @@ function stopGlobalBossBGM(){
   try { bossBGMController?.stop?.({ immediate: true }); } catch (e) {}
   try {
     const audioStore = window.__GW_AUDIO__;
-    if (audioStore && typeof audioStore.stopBossBGM === 'function') {
-      audioStore.stopBossBGM({ immediate: true });
+    if (audioStore) {
+      if (typeof audioStore.forceSilenceBossBGM === 'function') {
+        audioStore.forceSilenceBossBGM();
+      } else if (typeof audioStore.stopBossBGM === 'function') {
+        audioStore.stopBossBGM({ immediate: true });
+      }
+      try { silenceAudioInstance(audioStore.bossBGM); } catch (err) {}
     }
+  } catch (e) {}
+  try {
+    silenceAudioInstance(getBossBGMEl());
   } catch (e) {}
   try {
     const frame = document.getElementById('bossFrame');
     if (frame && frame.contentWindow) {
       try {
         const store = frame.contentWindow.__GW_AUDIO__;
-        if (store && typeof store.stopBossBGM === 'function') {
-          store.stopBossBGM({ immediate: true });
+        if (store) {
+          if (typeof store.forceSilenceBossBGM === 'function') {
+            store.forceSilenceBossBGM();
+          } else if (typeof store.stopBossBGM === 'function') {
+            store.stopBossBGM({ immediate: true });
+          }
+          try { silenceAudioInstance(store.bossBGM); } catch (err) {}
         }
       } catch (err) {}
       try {
