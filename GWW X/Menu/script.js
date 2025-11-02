@@ -48,6 +48,30 @@ let bossBGMController = {
   }
 };
 
+function stopGlobalBossBGM(){
+  try { bossBGMController?.stop?.(); } catch (e) {}
+  try {
+    const audioStore = window.__GW_AUDIO__;
+    if (audioStore && typeof audioStore.stopBossBGM === 'function') {
+      audioStore.stopBossBGM({ immediate: true });
+    }
+  } catch (e) {}
+  try {
+    const frame = document.getElementById('bossFrame');
+    if (frame && frame.contentWindow) {
+      try {
+        const store = frame.contentWindow.__GW_AUDIO__;
+        if (store && typeof store.stopBossBGM === 'function') {
+          store.stopBossBGM({ immediate: true });
+        }
+      } catch (err) {}
+      try {
+        frame.contentWindow.postMessage({ type: 'GW_FORCE_BOSS_BGM_STOP' }, '*');
+      } catch (err) {}
+    }
+  } catch (e) {}
+}
+
 
 const stageProgress = {
   intro: false,
@@ -65,6 +89,9 @@ function setActiveScreen(screenId) {
   screens.forEach((node, key) => {
     node.classList.toggle('active', key === screenId);
   });
+  if (screenId === 'menu') {
+    stopGlobalBossBGM();
+  }
   currentScreen = screenId;
 }
 
@@ -2040,7 +2067,14 @@ function openBossOverlay(){
 function closeBossOverlay(){
   const overlay = getBossOverlay();
   if(!overlay) return;
-  try{ if (bossBGMController) bossBGMController.stop(); }catch(e){}
+  stopGlobalBossBGM();
+  const frame = getBossFrame();
+  if(frame){
+    try{
+      frame.removeAttribute('src');
+      frame.srcdoc = '<!doctype html><title>Boss unloaded</title>';
+    }catch(e){}
+  }
   overlay.classList.remove('active');
   overlay.setAttribute('aria-hidden','true');
   try{ transitionTo('stages'); }catch(e){}

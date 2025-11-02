@@ -56,12 +56,28 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
     } catch(e){}
     safeFadeIn(store.bossBGM, 0.9, 600);
   };
-  store.stopBossBGM = function(){
+  store.stopBossBGM = function(opts){
+    if(opts && opts.immediate && store.bossBGM){
+      try{
+        store.bossBGM.pause();
+        store.bossBGM.currentTime = 0;
+        store.bossBGM.volume = 0;
+      }catch(e){}
+      return;
+    }
     safeFadeOut(store.bossBGM, 600);
   };
+  try{
+    window.addEventListener('message', (event) => {
+      const data = event?.data;
+      if(data && data.type === 'GW_FORCE_BOSS_BGM_STOP'){
+        try{ store.stopBossBGM({ immediate:true }); }catch(e){}
+      }
+    });
+  }catch(e){}
 })();
 
-function __returnToStage(result){ try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
+function __returnToStage(result){ try{ const store = window.__GW_AUDIO__; if(store && typeof store.stopBossBGM === 'function'){ store.stopBossBGM({ immediate:true }); } }catch(e){} try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
 // 2D 回合制 RPG Demo - 七海作战队Boss战
 // 变更摘要：
 // - 注入基础栅格/单位样式与 --cell 默认值，修复“又没角色了”（无 CSS 时看不到格子/单位）。
