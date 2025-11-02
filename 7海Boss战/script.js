@@ -4308,7 +4308,11 @@ function checkWin(){
   const enemiesAlive = Object.values(units).some(u=>u.side==='enemy' && u.hp>0);
   const playersAlive = Object.values(units).some(u=>u.side==='player' && u.hp>0);
   if(!enemiesAlive){ showAccomplish(); return true; }
-  if(!playersAlive){ appendLog('全灭，失败（本 demo 未实现失败界面）'); return true; }
+  if(!playersAlive){ 
+    appendLog('全灭，失败');
+    showDefeatScreen();
+    return true; 
+  }
   return false;
 }
 function showAccomplish(){
@@ -4326,7 +4330,45 @@ function showAccomplish(){
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ accomplish.classList.add('hidden'); appendLog('通关!'); };
+  if(btn) btn.onclick=()=>{ 
+    accomplish.classList.add('hidden'); 
+    appendLog('通关!'); 
+    // Return to stage selection after victory
+    setTimeout(() => {
+      window.location.href = '../GODS_WILL_full_folder (3) 2/index.html';
+    }, 500);
+  };
+}
+function showDefeatScreen(){
+  // Show defeat message and return to stage selection
+  const defeatMsg = '战斗失败！即将返回关卡界面...';
+  appendLog(defeatMsg);
+  
+  // Create a simple defeat overlay or use the accomplish modal
+  if(accomplish){
+    accomplish.classList.remove('hidden');
+    const modalContent = accomplish.querySelector('.modal-content');
+    if(modalContent){
+      modalContent.querySelector('h2').textContent = '战斗失败';
+      if(damageSummary) damageSummary.innerHTML = '<p>全军覆没，请重新尝试。</p>';
+    }
+    const btn=document.getElementById('confirmBtn');
+    if(btn){
+      btn.textContent = '返回关卡';
+      btn.onclick=()=>{ 
+        accomplish.classList.add('hidden');
+        // Return to stage selection after defeat
+        setTimeout(() => {
+          window.location.href = '../GODS_WILL_full_folder (3) 2/index.html';
+        }, 300);
+      };
+    }
+  } else {
+    // Fallback: direct redirect after delay
+    setTimeout(() => {
+      window.location.href = '../GODS_WILL_full_folder (3) 2/index.html';
+    }, 2000);
+  }
 }
 function renderAll(){
   buildGrid();
