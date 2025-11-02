@@ -4335,7 +4335,7 @@ function showAccomplish(){
     appendLog('通关!'); 
     // Return to stage selection after victory
     setTimeout(() => {
-      window.location.href = '../GODS_WILL_full_folder (3) 2/index.html';
+      window.location.href = '../Menu/index.html';
     }, 500);
   };
 }
@@ -4359,14 +4359,14 @@ function showDefeatScreen(){
         accomplish.classList.add('hidden');
         // Return to stage selection after defeat
         setTimeout(() => {
-          window.location.href = '../GODS_WILL_full_folder (3) 2/index.html';
+          window.location.href = '../Menu/index.html';
         }, 300);
       };
     }
   } else {
     // Fallback: direct redirect after delay
     setTimeout(() => {
-      window.location.href = '../GODS_WILL_full_folder (3) 2/index.html';
+      window.location.href = '../Menu/index.html';
     }, 2000);
   }
 }
