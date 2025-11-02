@@ -190,6 +190,42 @@ window.__GW_AUDIO__ = window.__GW_AUDIO__ || {};
 })();
 
 function __returnToStage(result){ try{ const store = window.__GW_AUDIO__; if(store && typeof store.stopBossBGM === 'function'){ store.stopBossBGM({ immediate:true }); } }catch(e){} try{ if(parent && parent!==window){ parent.postMessage({type:'GW_BOSS_DONE', result:result||'unknown'}, '*'); return; } }catch(e){} try{ window.location.assign('../Menu/index.html#stages'); }catch(e){ window.location.href='../Menu/index.html#stages'; } }
+
+function __silenceBossBGMImmediate(){
+  try{
+    const store = window.__GW_AUDIO__;
+    if(!store) return;
+    try{
+      if(typeof store.forceSilenceBossBGM === 'function'){
+        store.forceSilenceBossBGM();
+      }else if(typeof store.stopBossBGM === 'function'){
+        store.stopBossBGM({ immediate:true });
+      }
+    }catch(e){}
+    try{
+      const audio = store.bossBGM;
+      if(audio){
+        try{ audio.pause(); }catch(e){}
+        try{ audio.currentTime = 0; }catch(e){}
+        try{ audio.volume = 0; }catch(e){}
+      }
+    }catch(e){}
+  }catch(e){}
+}
+
+function __exitBattleLater(result, delayMs){
+  const ms = Number.isFinite(delayMs) && delayMs > 0 ? delayMs : 0;
+  setTimeout(() => {
+    try{ __returnToStage(result); }
+    catch(e){
+      try{ window.location.assign('../Menu/index.html#stages'); }
+      catch(err){
+        try{ window.location.href = '../Menu/index.html#stages'; }
+        catch(_){}
+      }
+    }
+  }, ms);
+}
 // 2D 回合制 RPG Demo - 七海作战队Boss战
 // 变更摘要：
 // - 注入基础栅格/单位样式与 --cell 默认值，修复“又没角色了”（无 CSS 时看不到格子/单位）。
@@ -4508,7 +4544,11 @@ function checkWin(){
   return false;
 }
 function showAccomplish(){
-  if(!accomplish) return;
+  __silenceBossBGMImmediate();
+  if(!accomplish){
+    __exitBattleLater('accomplish', 800);
+    return;
+  }
   accomplish.classList.remove('hidden');
   if(damageSummary){
     damageSummary.innerHTML='';
@@ -4522,20 +4562,21 @@ function showAccomplish(){
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ 
-    accomplish.classList.add('hidden'); 
-    appendLog('通关!'); 
-    // Return to stage selection after victory
-    setTimeout(() => {
-      window.location.href = '../Menu/index.html';
-    }, 500);
+  if(btn) btn.onclick=()=>{
+    accomplish.classList.add('hidden');
+    appendLog('通关!');
+    __exitBattleLater('accomplish', 500);
   };
+  if(!btn){
+    __exitBattleLater('accomplish', 800);
+  }
 }
 function showDefeatScreen(){
   // Show defeat message and return to stage selection
   const defeatMsg = '战斗失败！即将返回关卡界面...';
   appendLog(defeatMsg);
-  
+  __silenceBossBGMImmediate();
+
   // Create a simple defeat overlay or use the accomplish modal
   if(accomplish){
     accomplish.classList.remove('hidden');
@@ -4547,19 +4588,15 @@ function showDefeatScreen(){
     const btn=document.getElementById('confirmBtn');
     if(btn){
       btn.textContent = '返回关卡';
-      btn.onclick=()=>{ 
+      btn.onclick=()=>{
         accomplish.classList.add('hidden');
         // Return to stage selection after defeat
-        setTimeout(() => {
-          window.location.href = '../Menu/index.html';
-        }, 300);
+        __exitBattleLater('defeat', 300);
       };
     }
   } else {
     // Fallback: direct redirect after delay
-    setTimeout(() => {
-      window.location.href = '../Menu/index.html';
-    }, 2000);
+    __exitBattleLater('defeat', 2000);
   }
 }
 function renderAll(){
