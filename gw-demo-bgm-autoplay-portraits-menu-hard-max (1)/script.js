@@ -17,6 +17,7 @@ let maskBusy = false;
 let currentStageId = 'intro';
 let storyState = null;
 let bgmController = null;
+let stageAmbientController = null;
 
 const stageProgress = {
   intro: false,
@@ -969,8 +970,12 @@ function startStageStory(stageId) {
   storyOverlay.classList.remove('show-panel', 'is-narration');
   storyOverlay.classList.add('active');
 
-  if (bgmController && typeof bgmController.fadeTo === 'function') {
-    bgmController.fadeTo(0, { duration: 0 });
+  if (stageAmbientController && typeof stageAmbientController.play === 'function') {
+    stageAmbientController.play();
+  }
+
+  if (bgmController && typeof bgmController.fadeOut === 'function') {
+    bgmController.fadeOut(850);
   }
 
   if (storySpeaker) {
@@ -1002,6 +1007,10 @@ function finishStageStory(skipped = false) {
   storyOverlay.setAttribute('aria-hidden', 'true');
 
   storyState = null;
+
+  if (stageAmbientController && typeof stageAmbientController.stop === 'function') {
+    stageAmbientController.stop();
+  }
 
   if (bgmController && typeof bgmController.fadeIn === 'function') {
     bgmController.fadeIn(1100);
@@ -1156,8 +1165,8 @@ function initStageBoard() {
   if (enterBtn) {
     enterBtn.addEventListener('click', () => {
       if (currentStageId === 'sevenSeas') {
-        if (bgmController && typeof bgmController.fadeTo === 'function') {
-          bgmController.fadeTo(0, { duration: 0 });
+        if (bgmController && typeof bgmController.fadeOut === 'function') {
+          bgmController.fadeOut(850);
         }
         startStageStory('sevenSeas');
         return;
@@ -1815,6 +1824,60 @@ document.addEventListener('keydown', (event) => {
 ;
 
 
+(function setupStageAmbient() {
+  const ambientEl = document.getElementById('stage-ambient');
+  if (!ambientEl) return;
+
+  ambientEl.autoplay = false;
+  ambientEl.loop = true;
+  ambientEl.muted = false;
+
+  const resetTime = () => {
+    try {
+      ambientEl.currentTime = 0;
+    } catch {}
+  };
+
+  const safePlay = () => {
+    try {
+      const playPromise = ambientEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    } catch {}
+  };
+
+  try {
+    ambientEl.pause();
+  } catch {}
+  resetTime();
+
+  stageAmbientController = {
+    play({ restart = true } = {}) {
+      if (!ambientEl) return;
+      if (restart) {
+        resetTime();
+      }
+      safePlay();
+    },
+    stop({ reset = true } = {}) {
+      if (!ambientEl) return;
+      if (!ambientEl.paused) {
+        try {
+          ambientEl.pause();
+        } catch {}
+      }
+      if (reset) {
+        resetTime();
+      }
+    },
+    get element() {
+      return ambientEl;
+    },
+  };
+})();
+
+
 /* ===== BGM autoplay + LIVE amplitude follower (HARD-EDGED MAX) =====
    - Stronger, crisp motion (no jelly): big uniform scale + lift
    - Gated transients + micro-baseline so idle sections aren't dead
@@ -1838,6 +1901,25 @@ document.addEventListener('keydown', (event) => {
   let defaultVolume = 0.8;
   let fadeFrame = null;
   let fadeResolver = null;
+  let wantsAudible = true;
+
+  function safePlay() {
+    try {
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    } catch {}
+  }
+
+  const primeEvents = ['pointerdown', 'touchstart', 'keydown'];
+  const primeAudio = () => {
+    safePlay();
+    primeEvents.forEach((evt) => document.removeEventListener(evt, primeAudio, true));
+  };
+  primeEvents.forEach((evt) => {
+    document.addEventListener(evt, primeAudio, { once: true, capture: true });
+  });
 
   function cancelFade() {
     if (fadeFrame) {
@@ -1864,8 +1946,15 @@ document.addEventListener('keydown', (event) => {
         try {
           audioEl.muted = false;
         } catch {}
-      } else if (targetIsSilent && !audioEl.muted) {
-        audioEl.muted = true;
+      } else if (targetIsSilent) {
+        if (!audioEl.muted) {
+          audioEl.muted = true;
+        }
+        if (!wantsAudible && !audioEl.paused) {
+          try {
+            audioEl.pause();
+          } catch {}
+        }
       }
       return Promise.resolve();
     }
@@ -1874,6 +1963,10 @@ document.addEventListener('keydown', (event) => {
       try {
         audioEl.muted = false;
       } catch {}
+    }
+
+    if (!targetIsSilent && audioEl.paused) {
+      safePlay();
     }
 
     const startTime = performance.now();
@@ -1903,25 +1996,38 @@ document.addEventListener('keydown', (event) => {
   }
 
   function fadeIn(targetDuration = 1000) {
+    wantsAudible = true;
+    if (audioEl.paused) {
+      safePlay();
+    }
     return fadeTo(defaultVolume, { duration: targetDuration });
   }
 
   function fadeOut(targetDuration = 650) {
+    wantsAudible = false;
     return fadeTo(0, {
       duration: targetDuration,
       easing: (t) => t * t,
+    }).then(() => {
+      if (!wantsAudible && !audioEl.paused) {
+        try {
+          audioEl.pause();
+        } catch {}
+      }
     });
   }
 
   audioEl.addEventListener(
     'playing',
     () => {
-      fadeIn(1400);
+      if (wantsAudible) {
+        fadeIn(1400);
+      }
     },
     { once: true },
   );
-  audioEl.addEventListener('canplay', () => { try { audioEl.play(); } catch {} }, { once: true });
-  try { const p = audioEl.play(); if (p && p.catch) p.catch(() => { audioEl.muted = true; audioEl.play().catch(()=>{}); }); } catch {}
+  audioEl.addEventListener('canplay', safePlay, { once: true });
+  safePlay();
 
   bgmController = {
     audio: audioEl,
@@ -1934,7 +2040,22 @@ document.addEventListener('keydown', (event) => {
     set defaultVolume(value) {
       defaultVolume = Math.max(0, Math.min(1, Number.isFinite(value) ? value : defaultVolume));
     },
+    get wantsAudible() {
+      return wantsAudible;
+    },
   };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (wantsAudible && audioEl.paused) {
+        safePlay();
+      }
+    } else if (!wantsAudible && !audioEl.paused) {
+      try {
+        audioEl.pause();
+      } catch {}
+    }
+  });
 
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
