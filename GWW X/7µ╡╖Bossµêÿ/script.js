@@ -1691,11 +1691,15 @@ function ensureRoundBanner(){
   }
   return roundBannerEl;
 }
-function showRoundBanner(text, duration=1800){
+function showRoundBanner(text, duration=1800, callback=null){
   const el = ensureRoundBanner();
   const inner = el.querySelector('.text');
   if(inner) inner.textContent = text;
   el.classList.add('show');
+  // Execute callback when banner is shown (for BGM start timing)
+  if(typeof callback === 'function'){
+    try{ callback(); }catch(e){}
+  }
   setTimeout(()=> el.classList.remove('show'), duration);
 }
 function ensureIntroDialog(){
