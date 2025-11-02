@@ -431,7 +431,11 @@ const stageStories = {
       speaker: '刑警队长',
       text: '……你们想查 Cult，那就去码头找他们。“七海作战队”，唯一一支不归我们政府调度的队伍。如果你们还有命回来，我们再谈下一步。',
     },
-    { type: 'narration', text: '昏暗的灯光下，三人组沿着杂草丛生的铁轨踏进废弃码头。' },
+    {
+      type: 'narration',
+      text: '昏暗的灯光下，三人组沿着杂草丛生的铁轨踏进废弃码头。',
+      stageAmbient: 'play',
+    },
     { speaker: 'Dario', text: '哈？这地方也太破了吧……你确定这里能找人合作？' },
     { speaker: 'Karma', text: '啧，这周围好浓的血腥味。' },
     { speaker: 'Adora', text: '好闷的感觉……' },
@@ -908,6 +912,19 @@ function formatStoryParagraphs(raw) {
   return '';
 }
 
+function applyStoryCues(entry) {
+  if (!entry) return;
+
+  if (entry.stageAmbient && stageAmbientController) {
+    const cue = String(entry.stageAmbient).toLowerCase();
+    if (cue === 'play' && typeof stageAmbientController.play === 'function') {
+      stageAmbientController.play();
+    } else if (cue === 'stop' && typeof stageAmbientController.stop === 'function') {
+      stageAmbientController.stop({ reset: false });
+    }
+  }
+}
+
 function updateStoryEntry(entry, isLastEntry) {
   if (!storyOverlay) return;
 
@@ -931,6 +948,8 @@ function updateStoryEntry(entry, isLastEntry) {
   if (storyNextButton) {
     storyNextButton.textContent = isLastEntry ? '结束' : '继续';
   }
+
+  applyStoryCues(entry);
 }
 
 function advanceStory() {
@@ -970,8 +989,8 @@ function startStageStory(stageId) {
   storyOverlay.classList.remove('show-panel', 'is-narration');
   storyOverlay.classList.add('active');
 
-  if (stageAmbientController && typeof stageAmbientController.play === 'function') {
-    stageAmbientController.play();
+  if (stageAmbientController && typeof stageAmbientController.stop === 'function') {
+    stageAmbientController.stop();
   }
 
   if (bgmController && typeof bgmController.fadeOut === 'function') {
