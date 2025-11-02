@@ -2024,7 +2024,7 @@ function openBossOverlay(){
   if(!overlay) return;
   try{ if (typeof stageAmbientController?.stop === 'function') stageAmbientController.stop(); }catch(e){}
   try{ if (typeof bgmController?.fadeOut === 'function') bgmController.fadeOut(850); }catch(e){}
-  try{ if (bossBGMController) bossBGMController.play(); }catch(e){}
+  // Boss BGM will be started by the boss battle script after the intro cinematic (dialogue boxes)
   overlay.classList.add('active');
   overlay.setAttribute('aria-hidden','false');
   const frame = getBossFrame();
