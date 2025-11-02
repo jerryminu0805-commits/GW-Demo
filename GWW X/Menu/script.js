@@ -48,6 +48,16 @@ let bossBGMController = {
   }
 };
 
+function stopGlobalBossBGM(){
+  try { bossBGMController?.stop?.(); } catch (e) {}
+  try {
+    const audioStore = window.__GW_AUDIO__;
+    if (audioStore && typeof audioStore.stopBossBGM === 'function') {
+      audioStore.stopBossBGM();
+    }
+  } catch (e) {}
+}
+
 
 const stageProgress = {
   intro: false,
@@ -65,6 +75,9 @@ function setActiveScreen(screenId) {
   screens.forEach((node, key) => {
     node.classList.toggle('active', key === screenId);
   });
+  if (screenId === 'menu') {
+    stopGlobalBossBGM();
+  }
   currentScreen = screenId;
 }
 
@@ -2040,7 +2053,7 @@ function openBossOverlay(){
 function closeBossOverlay(){
   const overlay = getBossOverlay();
   if(!overlay) return;
-  try{ if (bossBGMController) bossBGMController.stop(); }catch(e){}
+  stopGlobalBossBGM();
   overlay.classList.remove('active');
   overlay.setAttribute('aria-hidden','true');
   try{ transitionTo('stages'); }catch(e){}
