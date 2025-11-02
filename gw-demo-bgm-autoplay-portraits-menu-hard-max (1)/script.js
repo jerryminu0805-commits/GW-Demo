@@ -11,6 +11,7 @@ const storySpeaker = storyOverlay ? storyOverlay.querySelector('.story-speaker')
 const storyText = storyOverlay ? storyOverlay.querySelector('.story-text') : null;
 const storyNextButton = storyOverlay ? storyOverlay.querySelector('.story-next') : null;
 const storySkipButton = storyOverlay ? storyOverlay.querySelector('.story-skip') : null;
+const storyBackdrop = storyOverlay ? storyOverlay.querySelector('.story-backdrop') : null;
 
 let currentScreen = 'menu';
 let maskBusy = false;
@@ -471,6 +472,133 @@ const sevenSeasDebuffNote = sevenSeasStage
   ? sevenSeasStage.brief.find((line) => line.includes('作战余波'))
   : '';
 
+const DOCK_BACKGROUND_PATTERN = /(?:^|\/)dock\.png(?:\?.*)?$/i;
+
+function valueMatchesDockBackground(value) {
+  if (!value) return false;
+  if (typeof value === 'string') {
+    return DOCK_BACKGROUND_PATTERN.test(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => valueMatchesDockBackground(item));
+  }
+  if (typeof value === 'object') {
+    return Object.values(value).some((nested) => valueMatchesDockBackground(nested));
+  }
+  return false;
+}
+
+function entryIndicatesDockScene(entry) {
+  if (!entry || typeof entry !== 'object') return false;
+
+  const candidateKeys = [
+    'background',
+    'backgroundImage',
+    'backgroundSrc',
+    'bg',
+    'cg',
+    'scene',
+    'sceneImage',
+    'sceneAsset',
+    'image',
+    'art',
+    'visual',
+    'visualAsset',
+  ];
+
+  for (const key of candidateKeys) {
+    if (valueMatchesDockBackground(entry[key])) {
+      return true;
+    }
+  }
+
+  const arrayLikeKeys = ['images', 'backgrounds', 'visuals', 'scenes', 'assets'];
+  for (const key of arrayLikeKeys) {
+    if (valueMatchesDockBackground(entry[key])) {
+      return true;
+    }
+  }
+
+  if (entry.extra && typeof entry.extra === 'object') {
+    if (valueMatchesDockBackground(entry.extra)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function overlayHasDockVisual() {
+  if (!storyOverlay || !storyOverlay.classList.contains('active')) return false;
+
+  const nodesToCheck = [storyOverlay, storyBackdrop];
+  for (const node of nodesToCheck) {
+    if (!node) continue;
+
+    if (node.dataset && valueMatchesDockBackground(node.dataset)) {
+      return true;
+    }
+
+    if (node.style && valueMatchesDockBackground(node.style.backgroundImage)) {
+      return true;
+    }
+
+    if (node.getAttribute) {
+      const inlineStyle = node.getAttribute('style');
+      if (valueMatchesDockBackground(inlineStyle)) {
+        return true;
+      }
+    }
+
+    if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+      try {
+        const computed = window.getComputedStyle(node);
+        if (valueMatchesDockBackground(computed?.backgroundImage)) {
+          return true;
+        }
+      } catch {}
+    }
+  }
+
+  const candidates = storyOverlay.querySelectorAll(
+    '[src], [data-src], [srcset], [data-srcset], [data-background], [data-scene], [style]'
+  );
+
+  for (const node of candidates) {
+    const values = [];
+    if (node.getAttribute) {
+      values.push(
+        node.getAttribute('src'),
+        node.getAttribute('data-src'),
+        node.getAttribute('srcset'),
+        node.getAttribute('data-srcset'),
+        node.getAttribute('data-background'),
+        node.getAttribute('data-scene'),
+        node.getAttribute('style')
+      );
+    }
+    if (node.dataset) {
+      values.push(node.dataset.background, node.dataset.scene);
+    }
+
+    if (valueMatchesDockBackground(values)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function triggerDockAmbient() {
+  if (!storyOverlay || !storyOverlay.classList.contains('active')) return false;
+  if (!stageAmbientController || typeof stageAmbientController.play !== 'function') return false;
+
+  const ambientEl = stageAmbientController.element;
+  const isPlaying = ambientEl && !ambientEl.paused;
+  stageAmbientController.play({ restart: !isPlaying });
+  return true;
+}
+
 function normaliseRectFromNumbers(numbers) {
   if (!Array.isArray(numbers) || numbers.length < 2) return null;
   if (numbers.length === 2) {
@@ -915,12 +1043,26 @@ function formatStoryParagraphs(raw) {
 function applyStoryCues(entry) {
   if (!entry) return;
 
+  let ambientHandled = false;
+
   if (entry.stageAmbient && stageAmbientController) {
     const cue = String(entry.stageAmbient).toLowerCase();
     if (cue === 'play' && typeof stageAmbientController.play === 'function') {
       stageAmbientController.play();
+      ambientHandled = true;
     } else if (cue === 'stop' && typeof stageAmbientController.stop === 'function') {
       stageAmbientController.stop({ reset: false });
+      ambientHandled = true;
+    }
+  }
+
+  if (!ambientHandled && stageAmbientController) {
+    if (entryIndicatesDockScene(entry)) {
+      if (triggerDockAmbient()) {
+        ambientHandled = true;
+      }
+    } else if (overlayHasDockVisual()) {
+      triggerDockAmbient();
     }
   }
 }
@@ -1874,6 +2016,9 @@ document.addEventListener('keydown', (event) => {
   stageAmbientController = {
     play({ restart = true } = {}) {
       if (!ambientEl) return;
+      if (!restart && !ambientEl.paused) {
+        return;
+      }
       if (restart) {
         resetTime();
       }
@@ -1893,7 +2038,31 @@ document.addEventListener('keydown', (event) => {
     get element() {
       return ambientEl;
     },
+    get isPlaying() {
+      return ambientEl ? !ambientEl.paused : false;
+    },
   };
+
+  if (storyOverlay && typeof MutationObserver === 'function') {
+    const observer = new MutationObserver(() => {
+      if (!stageAmbientController) return;
+      if (overlayHasDockVisual()) {
+        triggerDockAmbient();
+      }
+    });
+
+    const observerConfig = {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-scene', 'data-background'],
+      childList: true,
+      subtree: true,
+    };
+
+    observer.observe(storyOverlay, observerConfig);
+    if (storyBackdrop) {
+      observer.observe(storyBackdrop, observerConfig);
+    }
+  }
 })();
 
 
