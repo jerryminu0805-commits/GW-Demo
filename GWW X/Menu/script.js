@@ -2132,10 +2132,13 @@ function openBossOverlay(){
   const frame = getBossFrame();
   if(frame){
     try{
-      // Use inline HTML to avoid file:// path issues
-      frame.removeAttribute('src'); // clear any stale src
-      frame.srcdoc = (window.__BOSS_HTML || '<!doctype html><title>Boss</title><p>加载失败</p>');
-    }catch(e){}
+      // Load boss HTML from separate file to avoid srcdoc/inline HTML limitations
+      // The boss_inline.js file has a syntax error due to unescaped quotes in the 245KB single-line string
+      // Use symlink "boss-battle" to avoid Unicode directory name path issues
+      frame.src = '../boss-battle/index.html';
+    }catch(e){
+      console.error('Failed to load boss battle:', e);
+    }
   }
 }
 
@@ -2146,8 +2149,8 @@ function closeBossOverlay(){
   const frame = getBossFrame();
   if(frame){
     try{
-      frame.removeAttribute('src');
-      frame.srcdoc = '<!doctype html><title>Boss unloaded</title>';
+      // Clear the iframe by setting src to about:blank
+      frame.src = 'about:blank';
     }catch(e){}
   }
   overlay.classList.remove('active');
