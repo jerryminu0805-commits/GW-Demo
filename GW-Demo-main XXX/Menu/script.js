@@ -22,6 +22,7 @@ let stageAmbientController = null;
 
 const stageProgress = {
   intro: false,
+  abandonedAnimals: false,
   fatigue: false,
   sevenSeas: false,
 };
@@ -194,6 +195,38 @@ const stageCatalog = {
           { name: '捅（1 步）', detail: '前方 1 格突刺造成 5 点伤害 + 5 点 SP 伤害；拔出追加 5 点伤害 + 5 点 SP 伤害。出现概率 70%。' },
           { name: '枪击（1 步）', detail: '指定方位整排造成 10 点伤害与 5 点 SP 伤害。出现概率 65%。' },
           { name: '连续挥刀（2 步）', detail: '前方 1 格三段斩：5/10/10 点伤害，最后一段附加 10 点 SP 伤害。出现概率 50%。' },
+        ],
+      },
+    ],
+  },
+  abandonedAnimals: {
+    id: 'abandonedAnimals',
+    name: '被遗弃的动物',
+    subtitle: 'Velmira Boss 战',
+    size: '未知',
+    narrative: [
+      '被遗弃的动物等待着挑战者的到来。',
+    ],
+    brief: [
+      '点击"进入关卡"直接进入 Velmira Boss 战。',
+    ],
+    map: {
+      rows: 1,
+      cols: 1,
+      voids: [],
+      cover: [],
+      players: [],
+      enemies: [],
+    },
+    enemies: [
+      {
+        name: 'Velmira',
+        icon: '🐺',
+        rank: 'Boss',
+        summary: '神秘的Boss',
+        threat: 'boss',
+        skills: [
+          { name: '???', detail: '未知技能' },
         ],
       },
     ],
@@ -1355,6 +1388,12 @@ function initStageBoard() {
   const enterBtn = document.querySelector('.enter-btn');
   if (enterBtn) {
     enterBtn.addEventListener('click', () => {
+      if (currentStageId === 'abandonedAnimals') {
+        // Redirect to Velmira Boss battle
+        window.location.href = '../Velmira Boss/Demo-main/index.html';
+        return;
+      }
+
       if (currentStageId === 'sevenSeas') {
         if (bgmController && typeof bgmController.fadeOut === 'function') {
           bgmController.fadeOut(850);
