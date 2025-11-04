@@ -1727,9 +1727,9 @@ async function playIntroCinematic(){
   // Play Khathia BGM after "Round One" banner appears
   if (khathiaBGM && !khathiaBGMPlayed) {
     try {
+      khathiaBGMPlayed = true;
       khathiaBGM.volume = 0.7;
       await khathiaBGM.play();
-      khathiaBGMPlayed = true;
       appendLog('🎵 Khathia 主题曲开始播放');
     } catch (err) {
       console.log('BGM play error:', err);
