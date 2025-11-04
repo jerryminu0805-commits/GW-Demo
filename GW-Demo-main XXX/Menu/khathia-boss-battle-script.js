@@ -57,6 +57,9 @@ let introDialogEl = null;
 
 let playerStepsEl, enemyStepsEl, roundCountEl, partyStatus, selectedInfo, skillPool, accomplish, damageSummary;
 
+let khathiaBGM = null;
+let khathiaBGMPlayed = false;
+
 let interactionLocked = false;
 let introPlayed = false;
 let cameraResetTimer = null;
@@ -1720,6 +1723,20 @@ async function playIntroCinematic(){
   cameraReset();
   await sleep(520);
   showRoundBanner('回合一', 1800);
+  
+  // Play Khathia BGM after "Round One" banner appears
+  if (khathiaBGM && !khathiaBGMPlayed) {
+    try {
+      khathiaBGMPlayed = true;
+      khathiaBGM.volume = 0.7;
+      await khathiaBGM.play();
+      appendLog('🎵 Khathia 主题曲开始播放');
+    } catch (err) {
+      console.log('BGM play error:', err);
+      appendLog('⚠️ BGM 播放失败（可能需要用户交互）');
+    }
+  }
+  
   await sleep(1600);
   setInteractionLocked(false);
 }
@@ -3767,11 +3784,28 @@ function checkWin(){
   const enemiesAlive = Object.values(units).some(u=>u.side==='enemy' && u.hp>0);
   const playersAlive = Object.values(units).some(u=>u.side==='player' && u.hp>0);
   if(!enemiesAlive){ showAccomplish(); return true; }
-  if(!playersAlive){ appendLog('全灭，失败（本 demo 未实现失败界面）'); return true; }
+  if(!playersAlive){ 
+    // Stop Khathia BGM on defeat
+    if (khathiaBGM && !khathiaBGM.paused) {
+      khathiaBGM.pause();
+      khathiaBGM.currentTime = 0;
+      appendLog('🎵 Khathia 主题曲停止播放');
+    }
+    appendLog('全灭，失败（本 demo 未实现失败界面）'); 
+    return true; 
+  }
   return false;
 }
 function showAccomplish(){
   if(!accomplish) return;
+  
+  // Stop Khathia BGM when battle ends
+  if (khathiaBGM && !khathiaBGM.paused) {
+    khathiaBGM.pause();
+    khathiaBGM.currentTime = 0;
+    appendLog('🎵 Khathia 主题曲停止播放');
+  }
+  
   accomplish.classList.remove('hidden');
   if(damageSummary){
     damageSummary.innerHTML='';
@@ -3830,6 +3864,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   logEl = document.getElementById('log');
   accomplish = document.getElementById('accomplish');
   damageSummary = document.getElementById('damageSummary');
+  khathiaBGM = document.getElementById('khathiaBGM');
 
   updateCameraBounds();
   createCameraControls();
