@@ -1717,8 +1717,8 @@ async function playIntroCinematic(){
     cameraFocusOnCell(boss.r, boss.c, {scale: zoom, hold:0});
     await sleep(420);
   }
-  await showIntroLine('Khathia：疲惫不是理由，老干部依旧站在这里。');
-  await showIntroLine('Khathia：让我看看你们能撑过几轮。');
+  await showIntroLine('Khathia：......');
+  await showIntroLine('Khathia：你不应该在这里......');
   hideIntroDialog();
   cameraReset();
   await sleep(520);
@@ -3819,7 +3819,7 @@ function showAccomplish(){
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ accomplish.classList.add('hidden'); appendLog('通关!'); };
+  if(btn) btn.onclick=()=>{ window.location.href = 'index.html'; };
 }
 function renderAll(){
   buildGrid();
