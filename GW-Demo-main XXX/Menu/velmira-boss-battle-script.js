@@ -3806,7 +3806,7 @@ function checkWin(){
     appendLog('全灭，失败！');
     // Return to stages screen after defeat
     setTimeout(() => {
-      window.location.href = '../../Menu/index.html';
+      window.location.href = 'index.html';
     }, 2000);
     return true; 
   }
@@ -3840,7 +3840,7 @@ function showAccomplish(){
     appendLog('通关!');
     // Return to stages screen after battle
     setTimeout(() => {
-      window.location.href = '../../Menu/index.html';
+      window.location.href = 'index.html';
     }, 500);
   };
 }
