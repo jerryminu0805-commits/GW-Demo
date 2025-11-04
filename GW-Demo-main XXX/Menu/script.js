@@ -1394,6 +1394,12 @@ function initStageBoard() {
         return;
       }
 
+      if (currentStageId === 'fatigue') {
+        // Navigate to Khathia Boss battle
+        window.location.href = 'khathia-boss-battle.html';
+        return;
+      }
+
       if (currentStageId === 'sevenSeas') {
         if (bgmController && typeof bgmController.fadeOut === 'function') {
           bgmController.fadeOut(850);
