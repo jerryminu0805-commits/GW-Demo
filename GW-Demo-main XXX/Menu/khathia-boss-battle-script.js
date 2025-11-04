@@ -1727,9 +1727,9 @@ async function playIntroCinematic(){
   // Play Khathia BGM after "Round One" banner appears
   if (khathiaBGM && !khathiaBGMPlayed) {
     try {
-      khathiaBGMPlayed = true;
       khathiaBGM.volume = 0.7;
       await khathiaBGM.play();
+      khathiaBGMPlayed = true;
       appendLog('🎵 Khathia 主题曲开始播放');
     } catch (err) {
       console.log('BGM play error:', err);
@@ -1740,6 +1740,16 @@ async function playIntroCinematic(){
   await sleep(1600);
   setInteractionLocked(false);
 }
+
+// Helper function to stop Khathia BGM
+function stopKhathiaBGM() {
+  if (khathiaBGM && !khathiaBGM.paused) {
+    khathiaBGM.pause();
+    khathiaBGM.currentTime = 0;
+    appendLog('🎵 Khathia 主题曲停止播放');
+  }
+}
+
 function uniqueCells(cells){ const s=new Set(); const out=[]; for(const c of cells||[]){ const k=`${c.r},${c.c}`; if(!s.has(k)){ s.add(k); out.push(c);} } return out; }
 function addTempClassToCells(cells, cls, ms){
   const arr=uniqueCells(cells);
@@ -3785,12 +3795,7 @@ function checkWin(){
   const playersAlive = Object.values(units).some(u=>u.side==='player' && u.hp>0);
   if(!enemiesAlive){ showAccomplish(); return true; }
   if(!playersAlive){ 
-    // Stop Khathia BGM on defeat
-    if (khathiaBGM && !khathiaBGM.paused) {
-      khathiaBGM.pause();
-      khathiaBGM.currentTime = 0;
-      appendLog('🎵 Khathia 主题曲停止播放');
-    }
+    stopKhathiaBGM();
     appendLog('全灭，失败（本 demo 未实现失败界面）'); 
     return true; 
   }
@@ -3799,12 +3804,7 @@ function checkWin(){
 function showAccomplish(){
   if(!accomplish) return;
   
-  // Stop Khathia BGM when battle ends
-  if (khathiaBGM && !khathiaBGM.paused) {
-    khathiaBGM.pause();
-    khathiaBGM.currentTime = 0;
-    appendLog('🎵 Khathia 主题曲停止播放');
-  }
+  stopKhathiaBGM();
   
   accomplish.classList.remove('hidden');
   if(damageSummary){
