@@ -56,6 +56,8 @@ let roundBannerEl = null;
 let introDialogEl = null;
 
 let playerStepsEl, enemyStepsEl, roundCountEl, partyStatus, selectedInfo, skillPool, accomplish, damageSummary;
+let velmiraBGM = null;
+let velmiraBGMPlayed = false;
 
 let interactionLocked = false;
 let introPlayed = false;
@@ -3373,6 +3375,14 @@ function finishEnemyTurn(){
   roundsPassed += 1;
   applyEndOfRoundPassives();
 
+  // Play Velmira BGM at round 1
+  if (roundsPassed === 1 && velmiraBGM && !velmiraBGMPlayed) {
+    velmiraBGMPlayed = true;
+    velmiraBGM.volume = 0.7;
+    velmiraBGM.play().catch(err => console.log('BGM play error:', err));
+    appendLog('🎵 Velmira 主题曲开始播放');
+  }
+
   updateStepsUI();
   setTimeout(()=>{
     currentSide='player';
@@ -3786,11 +3796,32 @@ function checkWin(){
   const enemiesAlive = Object.values(units).some(u=>u.side==='enemy' && u.hp>0);
   const playersAlive = Object.values(units).some(u=>u.side==='player' && u.hp>0);
   if(!enemiesAlive){ showAccomplish(); return true; }
-  if(!playersAlive){ appendLog('全灭，失败（本 demo 未实现失败界面）'); return true; }
+  if(!playersAlive){ 
+    // Stop Velmira BGM on defeat
+    if (velmiraBGM && !velmiraBGM.paused) {
+      velmiraBGM.pause();
+      velmiraBGM.currentTime = 0;
+      appendLog('🎵 Velmira 主题曲停止播放');
+    }
+    appendLog('全灭，失败！');
+    // Return to stages screen after defeat
+    setTimeout(() => {
+      window.location.href = '../../Menu/index.html';
+    }, 2000);
+    return true; 
+  }
   return false;
 }
 function showAccomplish(){
   if(!accomplish) return;
+  
+  // Stop Velmira BGM when battle ends
+  if (velmiraBGM && !velmiraBGM.paused) {
+    velmiraBGM.pause();
+    velmiraBGM.currentTime = 0;
+    appendLog('🎵 Velmira 主题曲停止播放');
+  }
+  
   accomplish.classList.remove('hidden');
   if(damageSummary){
     damageSummary.innerHTML='';
@@ -3804,7 +3835,14 @@ function showAccomplish(){
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ accomplish.classList.add('hidden'); appendLog('通关!'); };
+  if(btn) btn.onclick=()=>{ 
+    accomplish.classList.add('hidden'); 
+    appendLog('通关!');
+    // Return to stages screen after battle
+    setTimeout(() => {
+      window.location.href = '../../Menu/index.html';
+    }, 500);
+  };
 }
 function renderAll(){
   buildGrid();
@@ -3849,6 +3887,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   logEl = document.getElementById('log');
   accomplish = document.getElementById('accomplish');
   damageSummary = document.getElementById('damageSummary');
+  velmiraBGM = document.getElementById('velmiraBGM');
 
   updateCameraBounds();
   createCameraControls();
