@@ -1728,10 +1728,15 @@ async function playIntroCinematic(){
   
   // Play Velmira BGM after "Round One" banner appears
   if (velmiraBGM && !velmiraBGMPlayed) {
-    velmiraBGMPlayed = true;
-    velmiraBGM.volume = 0.7;
-    velmiraBGM.play().catch(err => console.log('BGM play error:', err));
-    appendLog('🎵 Velmira 主题曲开始播放');
+    try {
+      velmiraBGMPlayed = true;
+      velmiraBGM.volume = 0.7;
+      await velmiraBGM.play();
+      appendLog('🎵 Velmira 主题曲开始播放');
+    } catch (err) {
+      console.log('BGM play error:', err);
+      appendLog('⚠️ BGM 播放失败（可能需要用户交互）');
+    }
   }
   
   await sleep(1600);
