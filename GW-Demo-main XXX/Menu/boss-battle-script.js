@@ -1673,6 +1673,12 @@ function showIntroLine(text){
   });
 }
 function hideIntroDialog(){ if(introDialogEl){ introDialogEl.style.display = 'none'; } }
+function stopBossBGM(){
+  if(bossBGM){
+    bossBGM.pause();
+    bossBGM.currentTime = 0;
+  }
+}
 async function playIntroCinematic(){
   if(introPlayed) return;
   introPlayed = true;
@@ -1694,7 +1700,13 @@ async function playIntroCinematic(){
   // Start Boss BGM after Round 1 banner appears
   if(bossBGM){
     bossBGM.volume = 0.6;
-    bossBGM.play().catch(e => console.log('Boss BGM autoplay blocked:', e));
+    if(bossBGM.readyState >= 2){
+      bossBGM.play().catch(e => console.log('Boss BGM autoplay blocked:', e));
+    } else {
+      bossBGM.addEventListener('canplay', () => {
+        bossBGM.play().catch(e => console.log('Boss BGM autoplay blocked:', e));
+      }, {once: true});
+    }
   }
   await sleep(1600);
   setInteractionLocked(false);
@@ -4324,10 +4336,7 @@ function checkWin(){
 function showAccomplish(){
   if(!accomplish) return;
   // Stop Boss BGM on victory
-  if(bossBGM){
-    bossBGM.pause();
-    bossBGM.currentTime = 0;
-  }
+  stopBossBGM();
   accomplish.classList.remove('hidden');
   if(damageSummary){
     damageSummary.innerHTML='';
@@ -4352,10 +4361,7 @@ function showAccomplish(){
 }
 function showDefeatScreen(){
   // Stop Boss BGM on defeat
-  if(bossBGM){
-    bossBGM.pause();
-    bossBGM.currentTime = 0;
-  }
+  stopBossBGM();
   // Show defeat message and return to stage selection
   const defeatMsg = '战斗失败！即将返回关卡界面...';
   appendLog(defeatMsg);
