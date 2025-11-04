@@ -3793,10 +3793,16 @@ async function enemyTurn(){
 function checkWin(){
   const enemiesAlive = Object.values(units).some(u=>u.side==='enemy' && u.hp>0);
   const playersAlive = Object.values(units).some(u=>u.side==='player' && u.hp>0);
-  if(!enemiesAlive){ showAccomplish(); return true; }
+  if(!enemiesAlive){ 
+    stopKhathiaBGM();
+    appendLog('胜利！返回关卡选择');
+    setTimeout(()=> { window.location.href = 'index.html'; }, 1500);
+    return true; 
+  }
   if(!playersAlive){ 
     stopKhathiaBGM();
-    appendLog('全灭，失败（本 demo 未实现失败界面）'); 
+    appendLog('全灭，失败！返回关卡选择'); 
+    setTimeout(()=> { window.location.href = 'index.html'; }, 1500);
     return true; 
   }
   return false;
