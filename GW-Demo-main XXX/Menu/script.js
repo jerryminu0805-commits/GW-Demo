@@ -1214,8 +1214,8 @@ function finishStageStory(skipped = false) {
   setTimeout(() => {
     markStageVisited(stageId, { showRepeat: skipped });
     
-    // Redirect to boss battle after sevenSeas story
-    if (stageId === 'sevenSeas' && !skipped) {
+    // Redirect to boss battle after sevenSeas story (even if skipped)
+    if (stageId === 'sevenSeas') {
       setTimeout(() => {
         window.location.href = 'boss-battle.html';
       }, 500);
