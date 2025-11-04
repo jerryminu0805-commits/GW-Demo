@@ -1389,8 +1389,8 @@ function initStageBoard() {
   if (enterBtn) {
     enterBtn.addEventListener('click', () => {
       if (currentStageId === 'abandonedAnimals') {
-        // Redirect to Velmira Boss battle
-        window.location.href = '../Velmira Boss/Demo-main/index.html';
+        // Navigate to Velmira Boss battle
+        window.location.href = 'velmira-boss-battle.html';
         return;
       }
 
