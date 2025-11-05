@@ -2070,10 +2070,7 @@ function darioPull(u, targetOrDesc){
     }
   }
   const dmg = calcOutgoingDamage(u,20,target,'拿来吧你！');
-  damageUnit(target.id, dmg, 0, `${u.name} 的 拿来吧你！ 命中 ${target.name}`, u.id,{skillFx:'dario:拿来吧你！'});
-  applyStunOrStack(target, 1, {reason:'拉扯冲击'});
-  const reduced = applySpDamage(target, 15, {sourceId: u.id});
-  appendLog(`${target.name} SP -${reduced}`);
+  damageUnit(target.id, dmg, 15, `${u.name} 的 拿来吧你！ 命中 ${target.name}`, u.id,{skillFx:'dario:拿来吧你！'});
   u.dmgDone += dmg; unitActed(u);
 }
 function darioSweetAfterBitter(u){
