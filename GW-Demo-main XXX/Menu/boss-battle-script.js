@@ -2166,7 +2166,7 @@ function unitActed(u){
         u.sp = 0;
         syncSpBroken(u);
         // Add 2 layers of stun
-        const nextStun = Math.max(1, (u.status.stunned||0) + 2);
+        const nextStun = (u.status.stunned||0) + 2;
         updateStatusStacks(u,'stunned', nextStun, {label:'眩晕', type:'debuff'});
         if(beforeSp>0){
           appendLog(`${u.name} 的"依赖"触发：SP 清空，叠加 2 层眩晕，消耗 1 层依赖`);
