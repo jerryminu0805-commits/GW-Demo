@@ -2006,9 +2006,7 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
         const currentBleed = u.status.bleed || 0;
         u.status.bleed = currentBleed + 1;
         updateStatusStacks(u, "bleed", u.status.bleed, { label: "流血", type: "debuff" });
-        if(typeof addStatusStacks === "function"){
           addStatusStacks(u, "resentStacks", 1, { label: "怨念", type: "debuff" });
-        }
         appendLog(`${src.name} 的"破伤风之刃"：${u.name} +1 流血 +1 怨念`);
       }
     }
