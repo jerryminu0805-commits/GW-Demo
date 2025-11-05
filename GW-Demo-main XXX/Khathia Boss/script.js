@@ -1874,6 +1874,15 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   }
 
   if(source){
+    // 灵活Buff - 30%几率miss攻击
+    if(!opts.ignoreMiss && u.status && u.status.agileStacks > 0 && Math.random() < 0.30){
+      appendLog(`${u.name} 的"灵活"触发：${source.name} 的攻击Miss！`);
+      updateStatusStacks(u,'agileStacks', Math.max(0, u.status.agileStacks - 1), {label:'灵活', type:'buff'});
+      showStatusFloat(u,'Miss',{type:'buff', offsetY:-48});
+      pulseCell(u.r,u.c);
+      renderAll();
+      return;
+    }
     if(source.side === u.side){ appendLog(`友伤无效：${source.name} -> ${u.name}`); return; }
 
     if(!opts.ignoreJixue && buffStage==='final' && source.status && source.status.jixueStacks>0){
