@@ -2059,18 +2059,56 @@ function renderAccessoriesSection(container) {
 
 function setupAccessoriesDragDrop(container) {
   let draggedAccessoryId = null;
+  let draggedFromCharacterId = null; // Track which character the accessory came from
+  let dropSuccessful = false; // Track if drop was successful
   
   // Drag handlers for unlocked accessories
   container.querySelectorAll('.accessory-card.unlocked').forEach(card => {
     card.addEventListener('dragstart', (e) => {
       draggedAccessoryId = card.dataset.accessoryId;
+      draggedFromCharacterId = null; // This is a new accessory from shop
+      dropSuccessful = false;
       card.classList.add('dragging');
     });
     
     card.addEventListener('dragend', (e) => {
       card.classList.remove('dragging');
       draggedAccessoryId = null;
+      draggedFromCharacterId = null;
+      dropSuccessful = false;
     });
+  });
+  
+  // Make equipped accessories draggable
+  container.querySelectorAll('.equipped-accessory').forEach(equipped => {
+    equipped.draggable = true;
+    
+    equipped.addEventListener('dragstart', (e) => {
+      const slotBox = equipped.closest('.slot-box');
+      draggedFromCharacterId = slotBox.dataset.character;
+      draggedAccessoryId = equipped.dataset.accessory;
+      dropSuccessful = false;
+      equipped.classList.add('dragging');
+    });
+    
+    equipped.addEventListener('dragend', (e) => {
+      equipped.classList.remove('dragging');
+      // If dragged but not dropped on a valid slot, unequip
+      if (draggedFromCharacterId && !dropSuccessful) {
+        unequipAccessory(draggedFromCharacterId);
+        showToast(`已卸下配件`);
+        
+        // Re-render
+        const activeChar = document.querySelector('.character-tab.active').dataset.character;
+        renderCharacterSection('accessories', activeChar);
+      }
+      draggedAccessoryId = null;
+      draggedFromCharacterId = null;
+      dropSuccessful = false;
+    });
+    
+    equipped.style.cursor = 'move';
+    equipped.title = '拖拽到任意位置卸下';
   });
   
   // Drop handlers for equipment slots
@@ -2090,35 +2128,23 @@ function setupAccessoriesDragDrop(container) {
       
       if (draggedAccessoryId) {
         const characterId = slotBox.dataset.character;
+        
+        // If dragging from another character, unequip from old character first
+        if (draggedFromCharacterId && draggedFromCharacterId !== characterId) {
+          unequipAccessory(draggedFromCharacterId);
+        }
+        
         equipAccessory(characterId, draggedAccessoryId);
         showToast(`装备成功：${characterData[characterId].name} 装备了 ${accessoryDefinitions[draggedAccessoryId].name}`);
         
-        // Re-render
-        const activeChar = document.querySelector('.character-tab.active').dataset.character;
-        renderCharacterSection('accessories', activeChar);
-      }
-    });
-  });
-  
-  // Click to unequip
-  container.querySelectorAll('.equipped-accessory').forEach(equipped => {
-    equipped.addEventListener('click', () => {
-      const slotBox = equipped.closest('.slot-box');
-      const characterId = slotBox.dataset.character;
-      const accessoryId = equipped.dataset.accessory;
-      
-      if (confirm(`确定要卸下 ${accessoryDefinitions[accessoryId].name} 吗？`)) {
-        unequipAccessory(characterId);
-        showToast(`已卸下配件`);
+        // Mark drop as successful to prevent unequip in dragend
+        dropSuccessful = true;
         
         // Re-render
         const activeChar = document.querySelector('.character-tab.active').dataset.character;
         renderCharacterSection('accessories', activeChar);
       }
     });
-    
-    equipped.style.cursor = 'pointer';
-    equipped.title = '点击卸下';
   });
 }
 

@@ -3407,7 +3407,7 @@ function processUnitsTurnStart(side){
     if(u.status.bleed && u.status.bleed>0){
       const bleedDmg = Math.max(1, Math.floor(u.maxHp*0.05));
       damageUnit(u.id, bleedDmg, 0, `${u.name} 因流血受损`, null);
-      u.status.bleed = Math.max(0, u.status.bleed-1);
+      u.status.bleed = Math.max(0, u.status.bleed-0.5);
     }
 
     if(u.status.resentStacks && u.status.resentStacks>0){
