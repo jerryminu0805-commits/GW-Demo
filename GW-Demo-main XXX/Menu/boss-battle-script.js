@@ -1898,6 +1898,13 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   if(!trueDamage && u.passives.includes('toughBody') && !opts.ignoreToughBody){
     hpDmg = Math.round(hpDmg * 0.75);
   }
+  
+  if(!trueDamage && u.side === "player"){
+    const equipped = loadEquippedAccessories();
+    if(equipped[u.id] === "vest"){
+      hpDmg = Math.round(hpDmg * 0.8);
+    }
+  }
 
   if(u._spCrashVuln && (hpDmg>0 || spDmg>0)){
     hpDmg = Math.round(hpDmg * 2);
@@ -1953,6 +1960,22 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
       if(src && src.hp>0){
         appendLog(`${u.name} 的反伤姿态：反弹 ${refl} 伤害给 ${src.name}`);
         damageUnit(src.id, refl, 0, `反伤姿态反弹自 ${u.name}`, u.id, {...opts, _reflected:true, ignoreCover:true, ignoreToughBody:true});
+      }
+    }
+  }
+
+  if(sourceId){
+    const src = units[sourceId];
+    if(src && src.side === "player" && (finalHp>0 || finalSp>0)){
+      const equipped = loadEquippedAccessories();
+      if(equipped[src.id] === "tetanus"){
+        const currentBleed = u.status.bleed || 0;
+        u.status.bleed = currentBleed + 1;
+        updateStatusStacks(u, "bleed", u.status.bleed, { label: "流血", type: "debuff" });
+        if(typeof addStatusStacks === "function"){
+          addStatusStacks(u, "resentStacks", 1, { label: "怨念", type: "debuff" });
+        }
+        appendLog(`${src.name} 的"破伤风之刃"：${u.name} +1 流血 +1 怨念`);
       }
     }
   }
@@ -3763,6 +3786,54 @@ function markCell(r,c,kind){
 }
 
 // —— 回合与被动（含“恢复”/Neyla 保底/姿态结算） —— 
+
+// —— Accessory System ——
+function loadEquippedAccessories() {
+  if (typeof localStorage === "undefined") return { adora: null, karma: null, dario: null };
+  const saved = localStorage.getItem("gwdemo_equipped_accessories");
+  return saved ? JSON.parse(saved) : { adora: null, karma: null, dario: null };
+}
+
+function applyAccessoryEffects(u, side) {
+  if (side !== "player" || !u || u.hp <= 0) return;
+  const equipped = loadEquippedAccessories();
+  const accessoryId = equipped[u.id];
+  if (!accessoryId) return;
+  const turnCount = u.turnsStarted || 0;
+  
+  if (accessoryId === "bandage") {
+    const beforeHp = u.hp; const beforeSp = u.sp;
+    u.hp = Math.min(u.maxHp, u.hp + 15);
+    u.sp = Math.min(u.maxSp, u.sp + 15);
+    syncSpBroken(u); showGainFloat(u, u.hp - beforeHp, u.sp - beforeSp);
+    appendLog(`${u.name} 的"绷带"：+15HP +15SP`);
+    const currentStacks = u.status.recoverStacks || 0;
+    updateStatusStacks(u, "recoverStacks", currentStacks + 1, { label: "恢复", type: "buff" });
+  }
+  
+  if (accessoryId === "stimulant" && turnCount % 2 === 0) {
+    const currentStacks = u.status.violenceStacks || 0;
+    updateStatusStacks(u, "violenceStacks", currentStacks + 1, { label: "暴力", type: "buff" });
+    appendLog(`${u.name} 的"兴奋剂"：+1 暴力层数`);
+  }
+  
+  if (accessoryId === "wine") {
+    const currentAgility = u.status.agilityStacks || 0;
+    if (currentAgility < 5) {
+      updateStatusStacks(u, "agilityStacks", currentAgility + 1, { label: "灵活", type: "buff" });
+      appendLog(`${u.name} 的"白酒"：+1 灵活层数`);
+    }
+  }
+  
+  if (accessoryId === "tutorial") {
+    const beforeSp = u.sp;
+    u.sp = Math.min(u.maxSp, u.sp + 10);
+    syncSpBroken(u); showGainFloat(u, 0, u.sp - beforeSp);
+    appendLog(`${u.name} 的"自我激励教程"：+10SP`);
+  }
+}
+
+
 function applyParalysisAtTurnStart(side){
   const team = Object.values(units).filter(u=>u.side===side && u.hp>0);
   let totalPar = team.reduce((s,u)=> s + (u.status.paralyzed||0), 0);
@@ -3813,6 +3884,8 @@ function processUnitsTurnStart(side){
 
     u.actionsThisTurn = 0;
     u.turnsStarted = (u.turnsStarted||0) + 1;
+    u._tutorialSpImmuneUsed = false;
+    applyAccessoryEffects(u, side);
 
     const extraDraw = Math.max(0, u.turnsStarted - 1);
     if(extraDraw>0) drawSkills(u, extraDraw);
