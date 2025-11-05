@@ -1885,6 +1885,7 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
       if(!source._dependUnleash){
         appendLog(`${source.name} 的“依赖”触发：造成真实伤害`);
         source._dependUnleash = true;
+        source._dependTarget = u; // Store the target for stun application
       }
       trueDamage = true;
     }
@@ -2213,20 +2214,24 @@ function unitActed(u){
         const beforeSp = u.sp;
         u.sp = 0;
         syncSpBroken(u);
-        // Add 2 layers of stun
-        const nextStun = (u.status.stunned||0) + 2;
-        updateStatusStacks(u,'stunned', nextStun, {label:'眩晕', type:'debuff'});
+        // Add 2 layers of stun to the target instead of the source
+        const target = u._dependTarget;
+        if(target && target.hp > 0 && target.status){
+          const nextStun = (target.status.stunned||0) + 2;
+          updateStatusStacks(target,'stunned', nextStun, {label:'眩晕', type:'debuff'});
+        }
         if(beforeSp>0){
-          appendLog(`${u.name} 的"依赖"触发：SP 清空，叠加 2 层眩晕，消耗 1 层依赖`);
+          appendLog(`${u.name} 的"依赖"触发：SP 清空，给目标叠加 2 层眩晕，消耗 1 层依赖`);
           showDamageFloat(u,0,beforeSp);
         } else {
-          appendLog(`${u.name} 的"依赖"触发：SP 已为 0，叠加 2 层眩晕，消耗 1 层依赖`);
+          appendLog(`${u.name} 的"依赖"触发：SP 已为 0，给目标叠加 2 层眩晕，消耗 1 层依赖`);
         }
         handleSpCrashIfNeeded(u);
         requireFullRender = true;
       }
     }
     u._dependUnleash = false;
+    u._dependTarget = null; // Clear the target reference
   }
 
   if(requireFullRender){
