@@ -158,6 +158,9 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
       recoverStacks: 0,          // “恢复”Buff 层数（每大回合开始消耗一层，+5HP）
       jixueStacks: 0,            // “鸡血”Buff 层数（下一次攻击伤害x2）
       dependStacks: 0,           // “依赖”Buff 层数（下一次攻击真实伤害，结算后清空自身SP）
+      agileStacks: 0,            // "灵活"Buff 层数（让敌方30%几率miss，miss消耗一层）
+      mockeryStacks: 0,          // "戏谑"Buff 层数（打到人给自己2层灵活+1层暴力）
+      violenceStacks: 0,         // "暴力"Buff 层数（下次攻击双倍伤害但消耗10sp）
     },
     dmgDone: 0,
     skillPool: [],
@@ -3493,6 +3496,9 @@ function summarizeNegatives(u){
   if(u.status.recoverStacks>0) parts.push(`恢复x${u.status.recoverStacks}`);
   if(u.status.jixueStacks>0) parts.push(`鸡血x${u.status.jixueStacks}`);
   if(u.status.dependStacks>0) parts.push(`依赖x${u.status.dependStacks}`);
+  if(u.status.agileStacks>0) parts.push(`灵活x${u.status.agileStacks}`);
+  if(u.status.mockeryStacks>0) parts.push(`戏谑x${u.status.mockeryStacks}`);
+  if(u.status.violenceStacks>0) parts.push(`暴力x${u.status.violenceStacks}`);
   if(u._spBroken) parts.push(`SP崩溃`);
   if(u._spCrashVuln) parts.push('SP崩溃易伤');
   if(hazMarkedTargetId && u.id === hazMarkedTargetId) parts.push('猎杀标记');
