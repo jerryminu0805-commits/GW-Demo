@@ -148,6 +148,7 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
       jixueStacks: 0,            // “鸡血”Buff 层数（下一次攻击伤害x2）
       dependStacks: 0,           // “依赖”Buff 层数（下一次攻击真实伤害，结算后清空自身SP）
       resentStacks: 0,           // “怨念”层数（每回合-5%SP）
+      agileStacks: 0,            // "灵活"Buff 层数（让敌方30%几率miss，miss消耗一层）
     },
     dmgDone: 0,
     skillPool: [],
@@ -1914,6 +1915,16 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   if(source){
     if(source.side === u.side){ appendLog(`友伤无效：${source.name} -> ${u.name}`); return; }
 
+    // 灵活Buff - 30%几率miss攻击
+    if(!opts.ignoreMiss && u.status && u.status.agileStacks > 0 && Math.random() < 0.30){
+      appendLog(`${u.name} 的"灵活"触发：${source.name} 的攻击Miss！`);
+      updateStatusStacks(u,'agileStacks', Math.max(0, u.status.agileStacks - 1), {label:'灵活', type:'buff'});
+      showStatusFloat(u,'Miss',{type:'buff', offsetY:-48});
+      pulseCell(u.r,u.c);
+      renderAll();
+      return;
+    }
+
     if(!opts.ignoreJixue && buffStage==='final' && source.status && source.status.jixueStacks>0){
       if(!source._jixueActivated){
         appendLog(`${source.name} 的“鸡血”触发：伤害 x2`);
@@ -3329,9 +3340,9 @@ function applyAccessoryEffects(u, side) {
   
   // 白酒 (wine): 每回合增加一层灵活buff (如果 < 5)
   if (accessoryId === 'wine') {
-    const currentAgility = u.status.agilityStacks || 0;
+    const currentAgility = u.status.agileStacks || 0;
     if (currentAgility < 5) {
-      updateStatusStacks(u, 'agilityStacks', currentAgility + 1, { label: '灵活', type: 'buff' });
+      updateStatusStacks(u, 'agileStacks', currentAgility + 1, { label: '灵活', type: 'buff' });
       appendLog(`${u.name} 的"白酒"：+1 灵活层数`);
     }
   }
