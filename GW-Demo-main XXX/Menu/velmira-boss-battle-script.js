@@ -3319,9 +3319,9 @@ function applyAccessoryEffects(u, side) {
   }
   
   if (accessoryId === "wine") {
-    const currentAgility = u.status.agilityStacks || 0;
+    const currentAgility = u.status.agileStacks || 0;
     if (currentAgility < 5) {
-      updateStatusStacks(u, "agilityStacks", currentAgility + 1, { label: "灵活", type: "buff" });
+      updateStatusStacks(u, "agileStacks", currentAgility + 1, { label: "灵活", type: "buff" });
       appendLog(`${u.name} 的"白酒"：+1 灵活层数`);
     }
   }

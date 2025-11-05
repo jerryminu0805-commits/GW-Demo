@@ -3329,9 +3329,9 @@ function applyAccessoryEffects(u, side) {
   
   // 白酒 (wine): 每回合增加一层灵活buff (如果 < 5)
   if (accessoryId === 'wine') {
-    const currentAgility = u.status.agilityStacks || 0;
+    const currentAgility = u.status.agileStacks || 0;
     if (currentAgility < 5) {
-      updateStatusStacks(u, 'agilityStacks', currentAgility + 1, { label: '灵活', type: 'buff' });
+      updateStatusStacks(u, 'agileStacks', currentAgility + 1, { label: '灵活', type: 'buff' });
       appendLog(`${u.name} 的"白酒"：+1 灵活层数`);
     }
   }
