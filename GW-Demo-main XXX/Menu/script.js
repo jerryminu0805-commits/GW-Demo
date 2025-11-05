@@ -2060,12 +2060,14 @@ function renderAccessoriesSection(container) {
 function setupAccessoriesDragDrop(container) {
   let draggedAccessoryId = null;
   let draggedFromCharacterId = null; // Track which character the accessory came from
+  let dropSuccessful = false; // Track if drop was successful
   
   // Drag handlers for unlocked accessories
   container.querySelectorAll('.accessory-card.unlocked').forEach(card => {
     card.addEventListener('dragstart', (e) => {
       draggedAccessoryId = card.dataset.accessoryId;
       draggedFromCharacterId = null; // This is a new accessory from shop
+      dropSuccessful = false;
       card.classList.add('dragging');
     });
     
@@ -2073,6 +2075,7 @@ function setupAccessoriesDragDrop(container) {
       card.classList.remove('dragging');
       draggedAccessoryId = null;
       draggedFromCharacterId = null;
+      dropSuccessful = false;
     });
   });
   
@@ -2084,13 +2087,14 @@ function setupAccessoriesDragDrop(container) {
       const slotBox = equipped.closest('.slot-box');
       draggedFromCharacterId = slotBox.dataset.character;
       draggedAccessoryId = equipped.dataset.accessory;
+      dropSuccessful = false;
       equipped.classList.add('dragging');
     });
     
     equipped.addEventListener('dragend', (e) => {
       equipped.classList.remove('dragging');
       // If dragged but not dropped on a valid slot, unequip
-      if (draggedFromCharacterId) {
+      if (draggedFromCharacterId && !dropSuccessful) {
         unequipAccessory(draggedFromCharacterId);
         showToast(`已卸下配件`);
         
@@ -2100,6 +2104,7 @@ function setupAccessoriesDragDrop(container) {
       }
       draggedAccessoryId = null;
       draggedFromCharacterId = null;
+      dropSuccessful = false;
     });
     
     equipped.style.cursor = 'move';
@@ -2119,7 +2124,6 @@ function setupAccessoriesDragDrop(container) {
     
     slotBox.addEventListener('drop', (e) => {
       e.preventDefault();
-      e.stopPropagation(); // Prevent unequip on drop to valid slot
       slotBox.classList.remove('drag-over');
       
       if (draggedAccessoryId) {
@@ -2133,9 +2137,8 @@ function setupAccessoriesDragDrop(container) {
         equipAccessory(characterId, draggedAccessoryId);
         showToast(`装备成功：${characterData[characterId].name} 装备了 ${accessoryDefinitions[draggedAccessoryId].name}`);
         
-        // Clear the drag state before re-rendering
-        draggedAccessoryId = null;
-        draggedFromCharacterId = null;
+        // Mark drop as successful to prevent unequip in dragend
+        dropSuccessful = true;
         
         // Re-render
         const activeChar = document.querySelector('.character-tab.active').dataset.character;
