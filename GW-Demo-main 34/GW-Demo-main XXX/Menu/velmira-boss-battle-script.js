@@ -3008,6 +3008,23 @@ function summarizeNegatives(u){
   if(u._stanceType && u._stanceTurns>0){
     parts.push(u._stanceType==='defense' ? `防御姿态(${u._stanceTurns})` : `反伤姿态(${u._stanceTurns})`);
   }
+  // Display equipped accessory
+  if(u.side === 'player'){
+    const equipped = loadEquippedAccessories();
+    const accessoryId = equipped[u.id];
+    if(accessoryId){
+      const accessoryNames = {
+        bandage: '绷带',
+        stimulant: '兴奋剂',
+        vest: '防弹衣',
+        wine: '白酒',
+        tetanus: '破伤风',
+        tutorial: '教程'
+      };
+      const name = accessoryNames[accessoryId] || accessoryId;
+      parts.push(`[配件:${name}]`);
+    }
+  }
   return parts.join(' ');
 }
 function renderStatus(){

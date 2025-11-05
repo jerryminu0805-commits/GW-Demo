@@ -3543,11 +3543,31 @@ function summarizeNegatives(u){
   if(u.status.recoverStacks>0) parts.push(`恢复x${u.status.recoverStacks}`);
   if(u.status.jixueStacks>0) parts.push(`鸡血x${u.status.jixueStacks}`);
   if(u.status.dependStacks>0) parts.push(`依赖x${u.status.dependStacks}`);
+  if(u.status.agileStacks>0) parts.push(`灵活x${u.status.agileStacks}`);
+  if(u.status.mockeryStacks>0) parts.push(`戏谑x${u.status.mockeryStacks}`);
+  if(u.status.violenceStacks>0) parts.push(`暴力x${u.status.violenceStacks}`);
   if(u._spBroken) parts.push(`SP崩溃`);
   if(u._spCrashVuln) parts.push('SP崩溃易伤');
   if(hazMarkedTargetId && u.id === hazMarkedTargetId) parts.push('猎杀标记');
   if(u._stanceType && u._stanceTurns>0){
     parts.push(u._stanceType==='defense' ? `防御姿态(${u._stanceTurns})` : `反伤姿态(${u._stanceTurns})`);
+  }
+  // Display equipped accessory
+  if(u.side === 'player'){
+    const equipped = loadEquippedAccessories();
+    const accessoryId = equipped[u.id];
+    if(accessoryId){
+      const accessoryNames = {
+        bandage: '绷带',
+        stimulant: '兴奋剂',
+        vest: '防弹衣',
+        wine: '白酒',
+        tetanus: '破伤风',
+        tutorial: '教程'
+      };
+      const name = accessoryNames[accessoryId] || accessoryId;
+      parts.push(`[配件:${name}]`);
+    }
   }
   return parts.join(' ');
 }
