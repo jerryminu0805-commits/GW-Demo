@@ -2107,7 +2107,7 @@ function adoraDepend(u, aim){
   updateStatusStacks(t,'dependStacks',1,{label:'依赖', type:'buff'});
   pulseCell(t.r,t.c);
   showSkillFx('adora:只能靠你了。。',{target:t});
-  appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害并清空自身SP`);
+  appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害、叠加2层眩晕、清空SP、消耗1层依赖`);
   unitActed(u);
 }
 function karmaObeyMove(u, payload){
@@ -2161,15 +2161,18 @@ function unitActed(u){
     if(u.status){
       const prev = u.status.dependStacks || 0;
       if(prev>0){
-        updateStatusStacks(u,'dependStacks', 0, {label:'依赖', type:'buff'});
+        updateStatusStacks(u,'dependStacks', prev - 1, {label:'依赖', type:'buff'});
         const beforeSp = u.sp;
         u.sp = 0;
         syncSpBroken(u);
+        // Add 2 layers of stun
+        const nextStun = (u.status.stunned||0) + 2;
+        updateStatusStacks(u,'stunned', nextStun, {label:'眩晕', type:'debuff'});
         if(beforeSp>0){
-          appendLog(`${u.name} 的“依赖”消散：SP 清空`);
+          appendLog(`${u.name} 的"依赖"触发：SP 清空，叠加 2 层眩晕，消耗 1 层依赖`);
           showDamageFloat(u,0,beforeSp);
         } else {
-          appendLog(`${u.name} 的“依赖”消散：SP 已为 0`);
+          appendLog(`${u.name} 的"依赖"触发：SP 已为 0，叠加 2 层眩晕，消耗 1 层依赖`);
         }
         handleSpCrashIfNeeded(u);
         requireFullRender = true;
@@ -2859,13 +2862,13 @@ function buildSkillFactoriesForUnit(u){
         {aoe:false},
         {cellTargeting:true, castMs:900}
       )},
-      { key:'加油哇！', prob:0.20, cond:()=>u.level>=25, make:()=> skill('加油哇！',4,'orange','以自身为中心5x5内选择友方：赋予 1 层“鸡血”（下一次攻击伤害翻倍，使用后移除）',
+      { key:'加油哇！', prob:0.20, cond:()=>u.level>=25, make:()=> skill('加油哇！',2,'orange','以自身为中心5x5内选择友方：赋予 1 层“鸡血”（下一次攻击伤害翻倍，使用后移除）',
         (uu)=> range_square_n(uu,2).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
         (uu,aim)=> adoraCheer(uu,aim),
         {aoe:false},
         {cellTargeting:true, castMs:900}
       )},
-      { key:'只能靠你了。。', prob:0.15, cond:()=>u.level>=35, make:()=> skill('只能靠你了。。',4,'orange','牺牲25HP；以自身为中心5格范围友方，赋予1层“依赖”（下一次攻击造成真实伤害并清空自身SP）',
+      { key:'只能靠你了。。', prob:0.15, cond:()=>u.level>=35, make:()=> skill('只能靠你了。。',4,'orange','牺牲25HP；以自身为中心5格范围友方，赋予1层“依赖”（下一次攻击造成真实伤害（无视所有防御或者免伤）以及叠两层眩晕，并消耗一层依赖以及将此单位的SP降为0，（每单位最多一层依赖））',
         (uu)=> range_square_n(uu,5).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
         (uu,aim)=> adoraDepend(uu,aim),
         {aoe:false},
