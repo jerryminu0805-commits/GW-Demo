@@ -1718,9 +1718,7 @@ async function playIntroCinematic(){
     cameraFocusOnCell(boss.r, boss.c, {scale: zoom, hold:0});
     await sleep(420);
   }
-  await showIntroLine('Velmira是赫雷西邪教里最癫狂也是最危险的一个干部。');
-  await showIntroLine('还未成年的他给你的压迫感远远超越其他比这孩子高大无数倍的邪教成员们无数倍。');
-  await showIntroLine('你现在绝对打不过他，但是有一种感觉让你觉得你不必打败他。');
+  await showIntroLine('记住，这只是测试，不需要太认真');
   hideIntroDialog();
   cameraReset();
   await sleep(520);
@@ -2164,10 +2162,7 @@ async function darioPull(u, targetOrDesc){
     }
   }
   const dmg = calcOutgoingDamage(u,20,target,'拿来吧你！');
-  damageUnit(target.id, dmg, 0, `${u.name} 的 拿来吧你！ 命中 ${target.name}`, u.id,{skillFx:'dario:拿来吧你！'});
-  applyStunOrStack(target, 1, {reason:'拉扯冲击'});
-  const reduced = applySpDamage(target, 15, {sourceId: u.id});
-  appendLog(`${target.name} SP -${reduced}`);
+  damageUnit(target.id, dmg, 15, `${u.name} 的 拿来吧你！ 命中 ${target.name}`, u.id,{skillFx:'dario:拿来吧你！'});
   u.dmgDone += dmg; unitActed(u);
 }
 function darioSweetAfterBitter(u){
