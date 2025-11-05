@@ -1542,6 +1542,12 @@ function initStageBoard() {
         return;
       }
 
+      if (currentStageId === 'intro') {
+        // Navigate to intro battle
+        window.location.href = '../Velmira Boss/Demo-main/index.html';
+        return;
+      }
+
       markStageVisited(currentStageId);
     });
   }

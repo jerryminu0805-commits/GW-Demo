@@ -3851,6 +3851,27 @@ function showAccomplish(){
   if(btn) btn.onclick=()=>{ 
     accomplish.classList.add('hidden'); 
     appendLog('通关!');
+    
+    // Award coins for completing abandonedAnimals stage
+    if (typeof localStorage !== 'undefined') {
+      const STORAGE_KEY_COINS = 'gwdemo_coins';
+      const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
+      
+      // Load current coins and completions
+      const currentCoins = parseInt(localStorage.getItem(STORAGE_KEY_COINS) || '0', 10);
+      const completions = JSON.parse(localStorage.getItem(STORAGE_KEY_STAGE_COMPLETIONS) || '{"intro":0,"abandonedAnimals":0,"fatigue":0,"sevenSeas":0}');
+      
+      // Increment abandonedAnimals completions
+      completions.abandonedAnimals = (completions.abandonedAnimals || 0) + 1;
+      localStorage.setItem(STORAGE_KEY_STAGE_COMPLETIONS, JSON.stringify(completions));
+      
+      // Award 1 coin
+      const newCoins = currentCoins + 1;
+      localStorage.setItem(STORAGE_KEY_COINS, newCoins.toString());
+      
+      appendLog('获得 1 币！（总计: ' + newCoins + ' 币）');
+    }
+    
     // Return to stages screen after battle
     setTimeout(() => {
       window.location.href = 'index.html';

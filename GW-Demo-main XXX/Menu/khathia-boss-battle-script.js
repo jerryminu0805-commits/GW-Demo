@@ -3803,6 +3803,25 @@ function checkWin(){
   if(!enemiesAlive){ 
     stopKhathiaBGM();
     appendLog('胜利！返回关卡选择');
+    // Award coins for completing fatigue stage
+    if (typeof localStorage !== 'undefined') {
+      const STORAGE_KEY_COINS = 'gwdemo_coins';
+      const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
+      
+      // Load current coins and completions
+      const currentCoins = parseInt(localStorage.getItem(STORAGE_KEY_COINS) || '0', 10);
+      const completions = JSON.parse(localStorage.getItem(STORAGE_KEY_STAGE_COMPLETIONS) || '{"intro":0,"abandonedAnimals":0,"fatigue":0,"sevenSeas":0}');
+      
+      // Increment fatigue completions
+      completions.fatigue = (completions.fatigue || 0) + 1;
+      localStorage.setItem(STORAGE_KEY_STAGE_COMPLETIONS, JSON.stringify(completions));
+      
+      // Award 2 coins for fatigue
+      const newCoins = currentCoins + 2;
+      localStorage.setItem(STORAGE_KEY_COINS, newCoins.toString());
+      
+      appendLog('获得 2 币！（总计: ' + newCoins + ' 币）');
+    }
     setTimeout(()=> { window.location.href = 'index.html'; }, 1500);
     return true; 
   }
