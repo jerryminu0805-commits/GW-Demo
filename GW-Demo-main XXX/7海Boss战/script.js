@@ -3493,6 +3493,8 @@ function summarizeNegatives(u){
   if(u.status.recoverStacks>0) parts.push(`恢复x${u.status.recoverStacks}`);
   if(u.status.jixueStacks>0) parts.push(`鸡血x${u.status.jixueStacks}`);
   if(u.status.dependStacks>0) parts.push(`依赖x${u.status.dependStacks}`);
+  if(u.status.violenceStacks>0) parts.push(`暴力x${u.status.violenceStacks}`);
+  if(u.status.agilityStacks>0) parts.push(`灵活x${u.status.agilityStacks}`);
   if(u._spBroken) parts.push(`SP崩溃`);
   if(u._spCrashVuln) parts.push('SP崩溃易伤');
   if(hazMarkedTargetId && u.id === hazMarkedTargetId) parts.push('猎杀标记');
@@ -3504,10 +3506,20 @@ function summarizeNegatives(u){
 function renderStatus(){
   if(!partyStatus) return;
   partyStatus.innerHTML='';
+  const equipped = loadEquippedAccessories();
+  const accessoryNames = {
+    bandage: '绷带',
+    stimulant: '兴奋剂',
+    vest: '防弹衣',
+    wine: '白酒',
+    tetanus: '破伤风之刃',
+    tutorial: '自我激励教程'
+  };
   for(const id of ['adora','dario','karma']){
     const u=units[id]; if(!u) continue;
     const el=document.createElement('div'); el.className='partyRow';
-    el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${summarizeNegatives(u)}`;
+    const accName = equipped[id] ? `[${accessoryNames[equipped[id]] || equipped[id]}] ` : '';
+    el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${accName}${summarizeNegatives(u)}`;
     partyStatus.appendChild(el);
   }
   const enemyWrap=document.createElement('div'); enemyWrap.style.marginTop='10px'; enemyWrap.innerHTML='<strong>敌方（七海作战队）</strong>';
