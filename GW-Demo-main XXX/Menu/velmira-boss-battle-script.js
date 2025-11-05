@@ -3008,10 +3008,20 @@ function summarizeNegatives(u){
 function renderStatus(){
   if(!partyStatus) return;
   partyStatus.innerHTML='';
+  const equipped = loadEquippedAccessories();
+  const accessoryNames = {
+    bandage: '绷带',
+    stimulant: '兴奋剂',
+    vest: '防弹衣',
+    wine: '白酒',
+    tetanus: '破伤风之刃',
+    tutorial: '自我激励教程'
+  };
   for(const id of ['adora','dario','karma']){
     const u=units[id]; if(!u) continue;
     const el=document.createElement('div'); el.className='partyRow';
-    el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${summarizeNegatives(u)}`;
+    const accName = equipped[id] ? `[${accessoryNames[equipped[id]] || equipped[id]}] ` : '';
+    el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${accName}${summarizeNegatives(u)}`;
     partyStatus.appendChild(el);
   }
   const enemyWrap=document.createElement('div'); enemyWrap.style.marginTop='10px'; enemyWrap.innerHTML='<strong>敌方（被遗弃的动物（上））</strong>';
