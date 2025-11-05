@@ -1247,3 +1247,200 @@ body {
   pointer-events: none;
 }
 
+/* Accessories System Styles */
+.accessories-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.accessories-header h3 {
+  margin: 0;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.coin-display {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.coin-count {
+  color: #ffed4e;
+  font-size: 20px;
+}
+
+.equipment-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.equipment-slot {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+}
+
+.slot-header {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.slot-box {
+  min-height: 80px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.slot-box.drag-over {
+  background: rgba(234, 65, 87, 0.2);
+  border-color: rgba(234, 65, 87, 0.6);
+  transform: scale(1.05);
+}
+
+.empty-slot {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.equipped-accessory {
+  background: linear-gradient(135deg, rgba(234, 65, 87, 0.3), rgba(234, 65, 87, 0.1));
+  border: 1px solid rgba(234, 65, 87, 0.5);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 14px;
+  width: 100%;
+  transition: transform 0.2s ease;
+}
+
+.equipped-accessory:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(234, 65, 87, 0.4), rgba(234, 65, 87, 0.2));
+}
+
+.accessories-shop {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.accessory-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  cursor: grab;
+}
+
+.accessory-card.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.accessory-card.unlocked {
+  border-color: rgba(76, 175, 80, 0.5);
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.accessory-card.locked {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.accessory-card:hover:not(.locked) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.accessory-name {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.08em;
+}
+
+.accessory-cost {
+  font-size: 14px;
+  color: #ffd700;
+  margin-bottom: 10px;
+}
+
+.accessory-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 12px;
+  min-height: 60px;
+}
+
+.unlock-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(234, 65, 87, 0.8), rgba(234, 65, 87, 0.6));
+  border: 1px solid rgba(234, 65, 87, 0.8);
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.unlock-btn:hover {
+  background: linear-gradient(135deg, rgba(234, 65, 87, 1), rgba(234, 65, 87, 0.8));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(234, 65, 87, 0.4);
+}
+
+.unlocked-badge {
+  text-align: center;
+  color: #4caf50;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 8px;
+  background: rgba(76, 175, 80, 0.15);
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .equipment-slots {
+    grid-template-columns: 1fr;
+  }
+  
+  .accessories-shop {
+    grid-template-columns: 1fr;
+  }
+  
+  .accessories-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+

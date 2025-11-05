@@ -27,6 +27,140 @@ const stageProgress = {
   sevenSeas: false,
 };
 
+// Accessories System - LocalStorage Management
+const STORAGE_KEY_COINS = 'gwdemo_coins';
+const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
+const STORAGE_KEY_UNLOCKED_ACCESSORIES = 'gwdemo_unlocked_accessories';
+const STORAGE_KEY_EQUIPPED_ACCESSORIES = 'gwdemo_equipped_accessories';
+
+function loadCoins() {
+  const saved = localStorage.getItem(STORAGE_KEY_COINS);
+  return saved ? parseInt(saved, 10) : 0;
+}
+
+function saveCoins(amount) {
+  localStorage.setItem(STORAGE_KEY_COINS, amount.toString());
+}
+
+function addCoins(amount) {
+  const current = loadCoins();
+  const newAmount = current + amount;
+  saveCoins(newAmount);
+  return newAmount;
+}
+
+function loadStageCompletions() {
+  const saved = localStorage.getItem(STORAGE_KEY_STAGE_COMPLETIONS);
+  return saved ? JSON.parse(saved) : {
+    intro: 0,
+    abandonedAnimals: 0,
+    fatigue: 0,
+    sevenSeas: 0
+  };
+}
+
+function saveStageCompletions(completions) {
+  localStorage.setItem(STORAGE_KEY_STAGE_COMPLETIONS, JSON.stringify(completions));
+}
+
+function recordStageCompletion(stageId) {
+  const completions = loadStageCompletions();
+  completions[stageId] = (completions[stageId] || 0) + 1;
+  saveStageCompletions(completions);
+  
+  // Award coins: 2 for fatigue, 1 for others
+  const coinsAwarded = stageId === 'fatigue' ? 2 : 1;
+  const newTotal = addCoins(coinsAwarded);
+  showToast(`完成关卡！获得 ${coinsAwarded} 币（总计: ${newTotal} 币）`);
+  
+  return completions;
+}
+
+function isAccessoriesUnlocked() {
+  const completions = loadStageCompletions();
+  return completions.fatigue > 0;
+}
+
+function loadUnlockedAccessories() {
+  const saved = localStorage.getItem(STORAGE_KEY_UNLOCKED_ACCESSORIES);
+  return saved ? JSON.parse(saved) : [];
+}
+
+function saveUnlockedAccessories(accessories) {
+  localStorage.setItem(STORAGE_KEY_UNLOCKED_ACCESSORIES, JSON.stringify(accessories));
+}
+
+function unlockAccessory(accessoryId) {
+  const unlocked = loadUnlockedAccessories();
+  if (!unlocked.includes(accessoryId)) {
+    unlocked.push(accessoryId);
+    saveUnlockedAccessories(unlocked);
+  }
+}
+
+function loadEquippedAccessories() {
+  const saved = localStorage.getItem(STORAGE_KEY_EQUIPPED_ACCESSORIES);
+  return saved ? JSON.parse(saved) : {
+    adora: null,
+    karma: null,
+    dario: null
+  };
+}
+
+function saveEquippedAccessories(equipped) {
+  localStorage.setItem(STORAGE_KEY_EQUIPPED_ACCESSORIES, JSON.stringify(equipped));
+}
+
+function equipAccessory(characterId, accessoryId) {
+  const equipped = loadEquippedAccessories();
+  equipped[characterId] = accessoryId;
+  saveEquippedAccessories(equipped);
+}
+
+function unequipAccessory(characterId) {
+  equipAccessory(characterId, null);
+}
+
+// Accessory definitions
+const accessoryDefinitions = {
+  bandage: {
+    id: 'bandage',
+    name: '不止只是绷带',
+    cost: 1,
+    description: '携带者每回合回15HP 15SP以及每回合给携带者增加一层"恢复"Buff'
+  },
+  stimulant: {
+    id: 'stimulant',
+    name: '兴奋剂',
+    cost: 1,
+    description: '每双数回合给携带者增加一层暴力buff'
+  },
+  vest: {
+    id: 'vest',
+    name: '防弹衣',
+    cost: 1,
+    description: '减少受到的20%的HP伤害'
+  },
+  wine: {
+    id: 'wine',
+    name: '白酒',
+    cost: 1,
+    description: '每回合给携带者增加一层灵活buff（如果携带者的灵活buff是5或以上的话就不给）'
+  },
+  tetanus: {
+    id: 'tetanus',
+    name: '破伤风之刃',
+    cost: 1,
+    description: '携带者每次攻击都给对方增加一层流血以及一层怨念（多阶段攻击每阶段都各叠一层）'
+  },
+  tutorial: {
+    id: 'tutorial',
+    name: '"自我激励教程"',
+    cost: 3,
+    description: '每回合能让携带者免疫一次SP伤害（多阶段攻击全阶段免疫）以及每回合开始都增加携带者10SP'
+  }
+};
+
 function resetMaskState() {
   if (!mask) return;
   mask.classList.remove('visible', 'covering', 'revealing');
@@ -1408,6 +1542,12 @@ function initStageBoard() {
         return;
       }
 
+      if (currentStageId === 'intro') {
+        // Navigate to intro battle
+        window.location.href = '../Velmira Boss/Demo-main/index.html';
+        return;
+      }
+
       markStageVisited(currentStageId);
     });
   }
@@ -1757,6 +1897,8 @@ function renderCharacterSection(section, characterId) {
       list.appendChild(li);
     });
     container.appendChild(list);
+  } else if (section === 'accessories') {
+    renderAccessoriesSection(container);
   } else {
     const header = document.createElement('h3');
     header.textContent = data.name;
@@ -1824,7 +1966,171 @@ function renderCharacterSection(section, characterId) {
   }
 }
 
+function renderAccessoriesSection(container) {
+  const coins = loadCoins();
+  const unlocked = loadUnlockedAccessories();
+  const equipped = loadEquippedAccessories();
+  
+  // Header with coin count
+  const header = document.createElement('div');
+  header.className = 'accessories-header';
+  header.innerHTML = `
+    <h3>配件系统</h3>
+    <div class="coin-display">💰 可用币数: <span class="coin-count">${coins}</span></div>
+  `;
+  container.appendChild(header);
+  
+  // Characters equipment slots
+  const slotsContainer = document.createElement('div');
+  slotsContainer.className = 'equipment-slots';
+  
+  ['adora', 'karma', 'dario'].forEach(charId => {
+    const charData = characterData[charId];
+    const slot = document.createElement('div');
+    slot.className = 'equipment-slot';
+    slot.dataset.character = charId;
+    
+    const equippedAccessory = equipped[charId];
+    const accessoryName = equippedAccessory ? accessoryDefinitions[equippedAccessory]?.name : '空';
+    
+    slot.innerHTML = `
+      <div class="slot-header">${charData.name}</div>
+      <div class="slot-box" data-character="${charId}">
+        ${equippedAccessory ? `<div class="equipped-accessory" data-accessory="${equippedAccessory}">${accessoryName}</div>` : '<div class="empty-slot">拖放配件到此处</div>'}
+      </div>
+    `;
+    
+    slotsContainer.appendChild(slot);
+  });
+  
+  container.appendChild(slotsContainer);
+  
+  // Shop section
+  const shopTitle = document.createElement('h4');
+  shopTitle.textContent = '可解锁配件';
+  shopTitle.style.marginTop = '24px';
+  container.appendChild(shopTitle);
+  
+  const shop = document.createElement('div');
+  shop.className = 'accessories-shop';
+  
+  Object.values(accessoryDefinitions).forEach(acc => {
+    const isUnlocked = unlocked.includes(acc.id);
+    const card = document.createElement('div');
+    card.className = `accessory-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+    card.dataset.accessoryId = acc.id;
+    card.draggable = isUnlocked;
+    
+    card.innerHTML = `
+      <div class="accessory-name">${acc.name}</div>
+      <div class="accessory-cost">💰 ${acc.cost} 币</div>
+      <div class="accessory-description">${acc.description}</div>
+      ${!isUnlocked ? `<button class="unlock-btn" data-accessory="${acc.id}">解锁</button>` : '<div class="unlocked-badge">✓ 已解锁</div>'}
+    `;
+    
+    shop.appendChild(card);
+  });
+  
+  container.appendChild(shop);
+  
+  // Add event listeners for unlock buttons
+  container.querySelectorAll('.unlock-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const accessoryId = btn.dataset.accessory;
+      const accessory = accessoryDefinitions[accessoryId];
+      const currentCoins = loadCoins();
+      
+      if (currentCoins >= accessory.cost) {
+        saveCoins(currentCoins - accessory.cost);
+        unlockAccessory(accessoryId);
+        showToast(`解锁成功：${accessory.name}`);
+        // Re-render the accessories section
+        const activeChar = document.querySelector('.character-tab.active').dataset.character;
+        renderCharacterSection('accessories', activeChar);
+      } else {
+        showToast(`币数不足！需要 ${accessory.cost} 币，当前只有 ${currentCoins} 币`);
+      }
+    });
+  });
+  
+  // Add drag and drop handlers
+  setupAccessoriesDragDrop(container);
+}
+
+function setupAccessoriesDragDrop(container) {
+  let draggedAccessoryId = null;
+  
+  // Drag handlers for unlocked accessories
+  container.querySelectorAll('.accessory-card.unlocked').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      draggedAccessoryId = card.dataset.accessoryId;
+      card.classList.add('dragging');
+    });
+    
+    card.addEventListener('dragend', (e) => {
+      card.classList.remove('dragging');
+      draggedAccessoryId = null;
+    });
+  });
+  
+  // Drop handlers for equipment slots
+  container.querySelectorAll('.slot-box').forEach(slotBox => {
+    slotBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      slotBox.classList.add('drag-over');
+    });
+    
+    slotBox.addEventListener('dragleave', (e) => {
+      slotBox.classList.remove('drag-over');
+    });
+    
+    slotBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      slotBox.classList.remove('drag-over');
+      
+      if (draggedAccessoryId) {
+        const characterId = slotBox.dataset.character;
+        equipAccessory(characterId, draggedAccessoryId);
+        showToast(`装备成功：${characterData[characterId].name} 装备了 ${accessoryDefinitions[draggedAccessoryId].name}`);
+        
+        // Re-render
+        const activeChar = document.querySelector('.character-tab.active').dataset.character;
+        renderCharacterSection('accessories', activeChar);
+      }
+    });
+  });
+  
+  // Click to unequip
+  container.querySelectorAll('.equipped-accessory').forEach(equipped => {
+    equipped.addEventListener('click', () => {
+      const slotBox = equipped.closest('.slot-box');
+      const characterId = slotBox.dataset.character;
+      const accessoryId = equipped.dataset.accessory;
+      
+      if (confirm(`确定要卸下 ${accessoryDefinitions[accessoryId].name} 吗？`)) {
+        unequipAccessory(characterId);
+        showToast(`已卸下配件`);
+        
+        // Re-render
+        const activeChar = document.querySelector('.character-tab.active').dataset.character;
+        renderCharacterSection('accessories', activeChar);
+      }
+    });
+    
+    equipped.style.cursor = 'pointer';
+    equipped.title = '点击卸下';
+  });
+}
+
 function initCharacterBoard() {
+  // Check if accessories feature is unlocked and show tab
+  if (isAccessoriesUnlocked()) {
+    const accessoriesTab = document.getElementById('accessories-tab');
+    if (accessoriesTab) {
+      accessoriesTab.style.display = 'inline-block';
+    }
+  }
+  
   document.querySelectorAll('.character-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       renderCharacter(tab.dataset.character);
