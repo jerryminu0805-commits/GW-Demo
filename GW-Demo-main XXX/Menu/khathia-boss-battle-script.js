@@ -2243,7 +2243,7 @@ function unitActed(u){
         syncSpBroken(u);
         // Add 2 layers of stun to the target instead of the source
         const target = u._dependTarget;
-        if(target && target.hp > 0 && target.status){
+        if(target && target.id && target.hp > 0 && target.status){
           const nextStun = (target.status.stunned||0) + 2;
           updateStatusStacks(target,'stunned', nextStun, {label:'眩晕', type:'debuff'});
         }
