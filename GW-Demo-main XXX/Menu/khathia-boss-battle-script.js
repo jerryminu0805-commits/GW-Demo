@@ -1845,6 +1845,20 @@ function applyKhathiaDesignPenalty(){
 function applySpDamage(targetOrId, amount, {sourceId=null, reason=null}={}){
   const u = typeof targetOrId === 'string' ? units[targetOrId] : targetOrId;
   if(!u || u.hp<=0 || amount<=0) return 0;
+  
+  // "自我激励教程" (tutorial): 每回合能让携带者免疫一次SP伤害
+  if(u.side === 'player'){
+    const equipped = loadEquippedAccessories();
+    if(equipped[u.id] === 'tutorial'){
+      if(!u._tutorialSpImmuneUsed){
+        u._tutorialSpImmuneUsed = true;
+        appendLog(`${u.name} 的"自我激励教程"：免疫本次SP伤害`);
+        showStatusFloat(u,'SP免疫',{type:'buff', offsetY:-48});
+        return 0;
+      }
+    }
+  }
+  
   const before = u.sp;
   const floor = (typeof u.spFloor === 'number') ? u.spFloor : 0;
   u.sp = Math.max(floor, u.sp - amount);
@@ -1944,6 +1958,14 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   if(!trueDamage && u.passives.includes('toughBody') && !opts.ignoreToughBody){
     hpDmg = Math.round(hpDmg * 0.75);
   }
+  
+  // 防弹衣 (vest): 减少受到的20%的HP伤害
+  if(!trueDamage && u.side === 'player'){
+    const equipped = loadEquippedAccessories();
+    if(equipped[u.id] === 'vest'){
+      hpDmg = Math.round(hpDmg * 0.8);
+    }
+  }
 
   if(u._spCrashVuln && (hpDmg>0 || spDmg>0)){
     hpDmg = Math.round(hpDmg * 1.5);
@@ -2005,6 +2027,22 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
         showGainFloat(src,0,gain);
         appendLog(`${src.name} 的“老干部”触发：SP +${gain}`);
         checkKhathiaFatigue(src);
+      }
+    }
+    
+    // 破伤风之刃 (tetanus): 每次攻击给对方增加一层流血和怨念
+    if(src && src.side === 'player' && (finalHp>0 || finalSp>0)){
+      const equipped = loadEquippedAccessories();
+      if(equipped[src.id] === 'tetanus'){
+        // Add bleeding
+        const currentBleed = u.status.bleed || 0;
+        u.status.bleed = currentBleed + 1;
+        updateStatusStacks(u, 'bleed', u.status.bleed, { label: '流血', type: 'debuff' });
+        
+        // Add resentment
+        addStatusStacks(u, 'resentStacks', 1, { label: '怨念', type: 'debuff' });
+        
+        appendLog(`${src.name} 的"破伤风之刃"：${u.name} +1 流血 +1 怨念`);
       }
     }
   }
@@ -3250,6 +3288,65 @@ function registerUnitMove(u){
 }
 
 // —— 回合与被动（含“恢复”/Neyla 保底/姿态结算） —— 
+// —— Accessory System ——
+function loadEquippedAccessories() {
+  if (typeof localStorage === 'undefined') return { adora: null, karma: null, dario: null };
+  const saved = localStorage.getItem('gwdemo_equipped_accessories');
+  return saved ? JSON.parse(saved) : { adora: null, karma: null, dario: null };
+}
+
+function applyAccessoryEffects(u, side) {
+  if (side !== 'player' || !u || u.hp <= 0) return;
+  
+  const equipped = loadEquippedAccessories();
+  const accessoryId = equipped[u.id];
+  
+  if (!accessoryId) return;
+  
+  const turnCount = u.turnsStarted || 0;
+  
+  // 不止只是绷带 (bandage): 每回合回15HP 15SP + 增加一层"恢复"Buff
+  if (accessoryId === 'bandage') {
+    const beforeHp = u.hp;
+    const beforeSp = u.sp;
+    u.hp = Math.min(u.maxHp, u.hp + 15);
+    u.sp = Math.min(u.maxSp, u.sp + 15);
+    syncSpBroken(u);
+    showGainFloat(u, u.hp - beforeHp, u.sp - beforeSp);
+    appendLog(`${u.name} 的"绷带"：+15HP +15SP`);
+    
+    // Add 1 layer of recover buff
+    const currentStacks = u.status.recoverStacks || 0;
+    updateStatusStacks(u, 'recoverStacks', currentStacks + 1, { label: '恢复', type: 'buff' });
+  }
+  
+  // 兴奋剂 (stimulant): 每双数回合增加一层暴力buff
+  if (accessoryId === 'stimulant' && turnCount % 2 === 0) {
+    const currentStacks = u.status.violenceStacks || 0;
+    updateStatusStacks(u, 'violenceStacks', currentStacks + 1, { label: '暴力', type: 'buff' });
+    appendLog(`${u.name} 的"兴奋剂"：+1 暴力层数`);
+  }
+  
+  // 白酒 (wine): 每回合增加一层灵活buff (如果 < 5)
+  if (accessoryId === 'wine') {
+    const currentAgility = u.status.agilityStacks || 0;
+    if (currentAgility < 5) {
+      updateStatusStacks(u, 'agilityStacks', currentAgility + 1, { label: '灵活', type: 'buff' });
+      appendLog(`${u.name} 的"白酒"：+1 灵活层数`);
+    }
+  }
+  
+  // "自我激励教程" (tutorial): 每回合开始增加10SP
+  if (accessoryId === 'tutorial') {
+    const beforeSp = u.sp;
+    u.sp = Math.min(u.maxSp, u.sp + 10);
+    syncSpBroken(u);
+    showGainFloat(u, 0, u.sp - beforeSp);
+    appendLog(`${u.name} 的"自我激励教程"：+10SP`);
+    // SP damage immunity is handled elsewhere during damage calculation
+  }
+}
+
 function applyParalysisAtTurnStart(side){
   const team = Object.values(units).filter(u=>u.side===side && u.hp>0);
   let totalPar = team.reduce((s,u)=> s + (u.status.paralyzed||0), 0);
@@ -3279,6 +3376,10 @@ function processUnitsTurnStart(side){
     u.stepsMovedThisTurn = 0;
     u._designPenaltyTriggered = false;
     u._usedSkillThisTurn = false;
+    u._tutorialSpImmuneUsed = false; // Reset tutorial SP immunity each turn
+    
+    // Apply accessory effects at turn start
+    applyAccessoryEffects(u, side);
 
     if(u.id==='khathia' && side==='enemy' && u.turnsStarted % 5 === 0){
       const before = enemySteps;
