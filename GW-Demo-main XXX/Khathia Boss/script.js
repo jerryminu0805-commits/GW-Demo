@@ -2150,7 +2150,7 @@ function adoraDepend(u, aim){
   updateStatusStacks(t,'dependStacks',1,{label:'依赖', type:'buff'});
   pulseCell(t.r,t.c);
   showSkillFx('adora:只能靠你了。。',{target:t});
-  appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害、叠加2层眩晕、清空SP、消耗1层依赖`);
+  appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害、叠加2层眩晕层数、清空SP、消耗1层依赖`);
   unitActed(u);
 }
 function karmaObeyMove(u, payload){
@@ -2214,17 +2214,16 @@ function unitActed(u){
         const beforeSp = u.sp;
         u.sp = 0;
         syncSpBroken(u);
-        // Add 2 layers of stun to the target instead of the source
+        // Add 2 layers of stun stacks to the target instead of the source
         const target = u._dependTarget;
-        if(target && target.id && target.hp > 0 && target.status){
-          const nextStun = (target.status.stunned||0) + 2;
-          updateStatusStacks(target,'stunned', nextStun, {label:'眩晕', type:'debuff'});
+        if(target && target.id && target.hp > 0){
+          applyStunOrStack(target, 2, {reason:'依赖触发'});
         }
         if(beforeSp>0){
-          appendLog(`${u.name} 的"依赖"触发：SP 清空，给目标叠加 2 层眩晕，消耗 1 层依赖`);
+          appendLog(`${u.name} 的"依赖"触发：SP 清空，给目标叠加 2 层眩晕层数，消耗 1 层依赖`);
           showDamageFloat(u,0,beforeSp);
         } else {
-          appendLog(`${u.name} 的"依赖"触发：SP 已为 0，给目标叠加 2 层眩晕，消耗 1 层依赖`);
+          appendLog(`${u.name} 的"依赖"触发：SP 已为 0，给目标叠加 2 层眩晕层数，消耗 1 层依赖`);
         }
         handleSpCrashIfNeeded(u);
         requireFullRender = true;
@@ -2462,7 +2461,7 @@ function buildSkillFactoriesForUnit(u){
         {aoe:false},
         {cellTargeting:true, castMs:900}
       )},
-      { key:'只能靠你了。。', prob:0.15, cond:()=>u.level>=35, make:()=> skill('只能靠你了。。',4,'orange','牺牲25HP；以自身为中心5格范围友方，赋予1层“依赖”（下一次攻击造成真实伤害（无视所有防御或者免伤）以及叠两层眩晕，并消耗一层依赖以及将此单位的SP降为0，（每单位最多一层依赖））',
+      { key:'只能靠你了。。', prob:0.15, cond:()=>u.level>=35, make:()=> skill('只能靠你了。。',4,'orange','牺牲25HP；以自身为中心5格范围友方，赋予1层“依赖”（下一次攻击造成真实伤害（无视所有防御或者免伤）以及叠两层眩晕层数，并消耗一层依赖以及将此单位的SP降为0，（每单位最多一层依赖））',
         (uu)=> range_square_n(uu,5).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
         (uu,aim)=> adoraDepend(uu,aim),
         {aoe:false},
