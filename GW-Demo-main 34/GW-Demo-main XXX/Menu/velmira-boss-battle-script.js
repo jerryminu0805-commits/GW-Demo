@@ -2284,49 +2284,6 @@ function adoraDepend(u, aim){
   appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害、叠加2层眩晕层数、清空SP、消耗1层依赖`);
   unitActed(u);
 }
-function adoraBloom(u){
-  // Find the Bloom skill in the pool and mark it as used
-  const bloomSkill = (u.skillPool || []).find(s => s && s.name === "绽放" && !s._used);
-  if(bloomSkill){ bloomSkill._used = true; }
-  
-  // Collect all enemies with Crimson Bud stacks
-  const affectedEnemies = Object.values(units).filter(enemy => {
-    return enemy && enemy.side !== "player" && enemy.hp > 0 && (enemy.status.crimsonBud || 0) > 0;
-  });
-  
-  if(affectedEnemies.length === 0){
-    appendLog(`${u.name} 使用 绽放：但场上没有敌人带有血色花蕾`);
-    showSkillFx('adora:绽放',{target:u});
-    unitActed(u);
-    return;
-  }
-  
-  appendLog(`${u.name} 使用 绽放：引爆所有血色花蕾！`);
-  showSkillFx('adora:绽放',{target:u});
-  
-  // Deal true damage based on stack count
-  affectedEnemies.forEach(enemy => {
-    const budStacks = enemy.status.crimsonBud || 0;
-    const hpDamage = budStacks * 10;
-    const spDamage = budStacks * 5;
-    
-    showSkillFx('adora:绽放',{target:enemy});
-    damageUnit(
-      enemy.id, 
-      hpDamage, 
-      spDamage, 
-      `${u.name} 的 绽放 引爆 ${enemy.name} 的 ${budStacks} 层血色花蕾`, 
-      u.id,
-      {trueDamage:true, skillFx:'adora:绽放', skillFxCtx:{target:enemy}}
-    );
-    
-    // Clear Crimson Bud stacks
-    updateStatusStacks(enemy, 'crimsonBud', 0, {label:'血色花蕾', type:'debuff'});
-    u.dmgDone += hpDamage;
-  });
-  
-  unitActed(u);
-}
 function karmaObeyMove(u, payload){
   const dest = payload && payload.moveTo; if(!dest){ appendLog('无效的目的地'); return; }
   cameraFocusOnCell(dest.r, dest.c); showTrail(u.r,u.c,dest.r,dest.c);
