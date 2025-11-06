@@ -2035,6 +2035,7 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
         const currentBuds = u.status.bloodyBud || 0;
         if(currentBuds < 7){
           updateStatusStacks(u, "bloodyBud", currentBuds + 1, { label: "血色花蕾", type: "debuff" });
+          appendLog(`${src.name} 的攻击触发"绽放（红色）"被动：${u.name} +1 层血色花蕾 (${currentBuds + 1}/7)`);
         }
       }
     }
