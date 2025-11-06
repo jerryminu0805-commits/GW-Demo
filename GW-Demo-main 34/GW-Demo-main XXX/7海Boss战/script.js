@@ -1285,6 +1285,7 @@ const SKILL_FX_CONFIG = {
   'adora:略懂的医术！':     {type:'aura', primary:'#75e6a7', secondary:'#c6ffde', outline:'rgba(255,255,255,0.85)', glyph:'✚'},
   'adora:加油哇！':         {type:'aura', primary:'#ffcf74', secondary:'#ffe9bb', glyph:'★'},
   'adora:只能靠你了。。':   {type:'impact', primary:'#ff6161', secondary:'#ffd6d6'},
+  'adora:绽放':             {type:'aura', primary:'#ff4d6d', secondary:'#ffb3c1', glyph:'🌸'},
   'adora:枪击':             {type:'beam', primary:'#ffd780', secondary:'#fff1c2', glow:'rgba(255,255,255,0.9)', variant:'adora'},
   'dario:机械爪击':         {type:'claw', primary:'#f6c55b', secondary:'#fff3c7', scratches:4, spacing:14, delayStep:22, shards:3, shardSpread:12, shardArc:10, shardStartAngle:-24, variant:'mecha', attack:{type:'swing', swings:2, spread:12, delayStep:32, variant:'mecha'}},
   'dario:枪击':             {type:'beam', primary:'#9ee0ff', secondary:'#dcf6ff', glow:'rgba(255,255,255,0.85)', variant:'dario'},
@@ -1961,6 +1962,28 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
     }
   }
 
+  // Bloom passive: Apply Crimson Bud stacks when player allies deal damage
+  if(sourceId){
+    const src = units[sourceId];
+    // Check if any player has the Bloom skill in their pool (passive effect active)
+    if(src && src.side === "player" && (finalHp>0 || finalSp>0) && u.side !== "player"){
+      const hasBloomInPool = Object.values(units).some(ally => {
+        return ally && ally.side === "player" && ally.hp > 0 && 
+               ally.id === "adora" && 
+               (ally.skillPool || []).some(s => s && s.name === "绽放" && !s._used);
+      });
+      
+      if(hasBloomInPool){
+        const maxBudStacks = 7;
+        const currentBuds = u.status.crimsonBud || 0;
+        if(currentBuds < maxBudStacks){
+          addStatusStacks(u, "crimsonBud", 1, { label: "血色花蕾", type: "debuff" });
+          appendLog(`${src.name} 的攻击触发"绽放"被动：${u.name} +1 层血色花蕾 (${Math.min(currentBuds + 1, maxBudStacks)}/${maxBudStacks})`);
+        }
+      }
+    }
+  }
+
   handleSpCrashIfNeeded(u);
   checkHazComebackStatus();
 
@@ -2113,6 +2136,49 @@ function adoraDepend(u, aim){
   pulseCell(t.r,t.c);
   showSkillFx('adora:只能靠你了。。',{target:t});
   appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害、叠加2层眩晕层数、清空SP、消耗1层依赖`);
+  unitActed(u);
+}
+function adoraBloom(u){
+  // Find the Bloom skill in the pool and mark it as used
+  const bloomSkill = (u.skillPool || []).find(s => s && s.name === "绽放" && !s._used);
+  if(bloomSkill){ bloomSkill._used = true; }
+  
+  // Collect all enemies with Crimson Bud stacks
+  const affectedEnemies = Object.values(units).filter(enemy => {
+    return enemy && enemy.side !== "player" && enemy.hp > 0 && (enemy.status.crimsonBud || 0) > 0;
+  });
+  
+  if(affectedEnemies.length === 0){
+    appendLog(`${u.name} 使用 绽放：但场上没有敌人带有血色花蕾`);
+    showSkillFx('adora:绽放',{target:u});
+    unitActed(u);
+    return;
+  }
+  
+  appendLog(`${u.name} 使用 绽放：引爆所有血色花蕾！`);
+  showSkillFx('adora:绽放',{target:u});
+  
+  // Deal true damage based on stack count
+  affectedEnemies.forEach(enemy => {
+    const budStacks = enemy.status.crimsonBud || 0;
+    const hpDamage = budStacks * 10;
+    const spDamage = budStacks * 5;
+    
+    showSkillFx('adora:绽放',{target:enemy});
+    damageUnit(
+      enemy.id, 
+      hpDamage, 
+      spDamage, 
+      `${u.name} 的 绽放 引爆 ${enemy.name} 的 ${budStacks} 层血色花蕾`, 
+      u.id,
+      {trueDamage:true, skillFx:'adora:绽放', skillFxCtx:{target:enemy}}
+    );
+    
+    // Clear Crimson Bud stacks
+    updateStatusStacks(enemy, 'crimsonBud', 0, {label:'血色花蕾', type:'debuff'});
+    u.dmgDone += hpDamage;
+  });
+  
   unitActed(u);
 }
 function karmaObeyMove(u, payload){
@@ -2881,6 +2947,14 @@ function buildSkillFactoriesForUnit(u){
         (uu,aim)=> adoraDepend(uu,aim),
         {aoe:false},
         {cellTargeting:true, castMs:900}
+      )}
+    );
+    F.push(
+      { key:'绽放', prob:0.20, cond:()=>u.level>=50 && ((u.skillPool||[]).filter(s=>s && s.name==='绽放').length < 1), make:()=> skill('绽放',3,'red','被动：场上所有队友对敌方造成伤害后叠一层血色花蕾（每敌最多7层）。主动：引爆所有血色花蕾，造成真实伤害（每层10HP+5SP）',
+        (uu)=> [{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> adoraBloom(uu),
+        {},
+        {castMs:900}
       )}
     );
   } else if(u.id==='dario'){
