@@ -2239,6 +2239,7 @@ function adoraBloom(u){
   // Bloom all Bloody Buds on the field
   cameraFocusOnCell(u.r, u.c);
   let totalBloomedTargets = 0;
+  let totalLayersDetonated = 0;
   
   // Find all enemies with Bloody Bud stacks
   for(const id in units){
@@ -2247,6 +2248,7 @@ function adoraBloom(u){
     const budStacks = target.status.bloodyBud || 0;
     if(budStacks > 0){
       totalBloomedTargets++;
+      totalLayersDetonated += budStacks;
       // Calculate true damage: 10 HP + 5 SP per stack
       const hpDmg = budStacks * 10;
       const spDmg = budStacks * 5;
@@ -2265,10 +2267,20 @@ function adoraBloom(u){
     }
   }
   
+  // Heal Adora based on total layers detonated: 5 HP + 5 SP per layer
+  if(totalLayersDetonated > 0){
+    const hpHeal = totalLayersDetonated * 5;
+    const spHeal = totalLayersDetonated * 5;
+    u.hp = Math.min(u.maxHp, u.hp + hpHeal);
+    u.sp = Math.min(u.maxSp, u.sp + spHeal);
+    syncSpBroken(u);
+    showGainFloat(u, hpHeal, spHeal);
+  }
+  
   if(totalBloomedTargets === 0){
     appendLog(`${u.name} 使用了 绽放（红色），但场上没有血色花蕾`);
   } else {
-    appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾`);
+    appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾，恢复了 ${totalLayersDetonated * 5} HP 和 ${totalLayersDetonated * 5} SP`);
   }
   
   unitActed(u);
@@ -2617,7 +2629,7 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）'), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP）',
+      { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）'), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP）并根据引爆层数恢复自身HP和SP（每层恢复 5HP+5SP）',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> adoraBloom(uu),
         {},
