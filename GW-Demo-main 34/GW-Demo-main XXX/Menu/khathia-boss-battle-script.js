@@ -1888,6 +1888,16 @@ function hasDeepBreathPassive(attacker){
   const pool = attacker.skillPool || [];
   return pool.some(s=>s && s.name === '深呼吸');
 }
+function hasBloomInAnyPlayerPool(){
+  // Check if any player has the Bloom skill in their pool
+  for(const id of ['adora','dario','karma']){
+    const u = units[id];
+    if(!u || u.hp<=0) continue;
+    const pool = u.skillPool || [];
+    if(pool.some(s=>s && s.name === '绽放（红色）')) return true;
+  }
+  return false;
+}
 function calcOutgoingDamage(attacker, baseDmg, target, skillName){
   let dmg = baseDmg;
   if(attacker.passives.includes('fearBuff') && attacker.sp<10) dmg = Math.round(dmg*1.5);
@@ -2065,6 +2075,13 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
         
         appendLog(`${src.name} 的"破伤风之刃"：${u.name} +1 流血 +1 怨念`);
       }
+      // Bloom (Red) passive: Stack Bloody Bud when any player deals damage to enemies
+      if(u.side !== src.side && hasBloomInAnyPlayerPool()){
+        const currentBuds = u.status.bloodyBud || 0;
+        if(currentBuds < 7){
+          updateStatusStacks(u, "bloodyBud", currentBuds + 1, { label: "血色花蕾", type: "debuff" });
+        }
+      }
     }
   }
 
@@ -2235,6 +2252,44 @@ function darioSweetAfterBitter(u){
   playerBonusStepsNextTurn += 4;
   appendLog(`${u.name} 使用 先苦后甜：下个玩家回合 +4 步`);
   showSkillFx('dario:先苦后甜',{target:u});
+  unitActed(u);
+}
+function adoraBloom(u){
+  // Bloom all Bloody Buds on the field
+  cameraFocusOnCell(u.r, u.c);
+  let totalBloomedTargets = 0;
+  
+  // Find all enemies with Bloody Bud stacks
+  for(const id in units){
+    const target = units[id];
+    if(!target || target.hp<=0 || target.side===u.side) continue;
+    const budStacks = target.status.bloodyBud || 0;
+    if(budStacks > 0){
+      totalBloomedTargets++;
+      // Calculate true damage: 10 HP + 5 SP per stack
+      const hpDmg = budStacks * 10;
+      const spDmg = budStacks * 5;
+      
+      // Apply true damage
+      damageUnit(target.id, hpDmg, spDmg, `${u.name} 的 绽放（红色） 引爆了 ${target.name} 的 ${budStacks} 层血色花蕾`, u.id, {
+        trueDamage: true,
+        skillFx: 'adora:绽放（红色）',
+        skillFxCtx: {target: target}
+      });
+      
+      // Clear Bloody Bud stacks
+      updateStatusStacks(target, 'bloodyBud', 0, {label: '血色花蕾', type: 'debuff'});
+      
+      u.dmgDone += hpDmg;
+    }
+  }
+  
+  if(totalBloomedTargets === 0){
+    appendLog(`${u.name} 使用了 绽放（红色），但场上没有血色花蕾`);
+  } else {
+    appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾`);
+  }
+  
   unitActed(u);
 }
 function adoraDepend(u, aim){
@@ -2561,6 +2616,14 @@ function buildSkillFactoriesForUnit(u){
         (uu,aim)=> adoraDepend(uu,aim),
         {aoe:false},
         {cellTargeting:true, castMs:900}
+      )}
+    );
+    F.push(
+      { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）'), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP）',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> adoraBloom(uu),
+        {},
+        {castMs:1200}
       )}
     );
   } else if(u.id==='dario'){
@@ -3029,6 +3092,7 @@ function summarizeNegatives(u){
   if(u.status.stunned>0) parts.push(`眩晕x${u.status.stunned}`);
   if(u.status.paralyzed>0) parts.push(`恐惧x${u.status.paralyzed}`);
   if(u.status.bleed>0) parts.push(`流血x${u.status.bleed}`);
+  if(u.status.bloodyBud>0) parts.push(`血色花蕾x${u.status.bloodyBud}`);
   if(u.status.recoverStacks>0) parts.push(`恢复x${u.status.recoverStacks}`);
   if(u.status.jixueStacks>0) parts.push(`鸡血x${u.status.jixueStacks}`);
   if(u.status.dependStacks>0) parts.push(`依赖x${u.status.dependStacks}`);
