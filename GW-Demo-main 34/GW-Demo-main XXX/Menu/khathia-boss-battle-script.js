@@ -149,6 +149,7 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
       dependStacks: 0,           // “依赖”Buff 层数（下一次攻击真实伤害，结算后清空自身SP）
       resentStacks: 0,           // “怨念”层数（每回合-5%SP）
       agileStacks: 0,            // "灵活"Buff 层数（让敌方30%几率miss，miss消耗一层）
+      affirmationStacks: 0,      // "肯定"Buff 层数（免疫一次SP伤害，多阶段攻击全阶段免疫，消耗一层）
     },
     dmgDone: 0,
     skillPool: [],
@@ -174,6 +175,7 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
     _spCrashVuln: false,
     spPendingRestore: null,
     _comeback: false,
+    tutorialTurnCount: 0,      // 用于跟踪"自我激励教程"的回合数
 
     // 姿态系统（Tusk等）
     _stanceType: null,        // 'defense' | 'retaliate' | null
@@ -1985,8 +1987,16 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   }
 
   const prevHp = u.hp;
-  const finalHp = Math.max(0, hpDmg);
-  const finalSp = Math.max(0, spDmg);
+  let finalHp = Math.max(0, hpDmg);
+  let finalSp = Math.max(0, spDmg);
+
+  // 肯定Buff - 免疫SP伤害（多阶段攻击全阶段免疫）
+  if(!opts.ignoreAffirmation && finalSp > 0 && u.status && u.status.affirmationStacks > 0){
+    appendLog(`${u.name} 的"肯定"触发：免疫本次SP伤害`);
+    updateStatusStacks(u,'affirmationStacks', Math.max(0, u.status.affirmationStacks - 1), {label:'肯定', type:'buff'});
+    showStatusFloat(u,'SP免疫',{type:'buff', offsetY:-48});
+    finalSp = 0;
+  }
 
   u.hp = Math.max(0, u.hp - finalHp);
   const floor = (typeof u.spFloor === 'number') ? u.spFloor : 0;
@@ -2289,7 +2299,6 @@ function unitActed(u){
         updateStatusStacks(u,'dependStacks', prev - 1, {label:'依赖', type:'buff'});
         const beforeSp = u.sp;
         u.sp = 0;
-        syncSpBroken(u);
         // Add 2 layers of stun stacks to the target instead of the source
         const target = u._dependTarget;
         if(target && target.id && target.hp > 0){
@@ -2302,6 +2311,7 @@ function unitActed(u){
           appendLog(`${u.name} 的"依赖"触发：SP 已为 0，给目标叠加 2 层眩晕层数，消耗 1 层依赖`);
         }
         handleSpCrashIfNeeded(u);
+        syncSpBroken(u);
         requireFullRender = true;
       }
     }
@@ -3015,6 +3025,7 @@ function summarizeNegatives(u){
   if(u.status.dependStacks>0) parts.push(`依赖x${u.status.dependStacks}`);
   if(u.status.resentStacks>0) parts.push(`怨念x${u.status.resentStacks}`);
   if(u.status.agileStacks>0) parts.push(`灵活x${u.status.agileStacks}`);
+  if(u.status.affirmationStacks>0) parts.push(`肯定x${u.status.affirmationStacks}`);
   if(u.status.mockeryStacks>0) parts.push(`戏谑x${u.status.mockeryStacks}`);
   if(u.status.violenceStacks>0) parts.push(`暴力x${u.status.violenceStacks}`);
   if(u._spBroken) parts.push(`SP崩溃`);
@@ -3374,7 +3385,14 @@ function applyAccessoryEffects(u, side) {
     syncSpBroken(u);
     showGainFloat(u, 0, u.sp - beforeSp);
     appendLog(`${u.name} 的"自我激励教程"：+10SP`);
-    // SP damage immunity is handled elsewhere during damage calculation
+    
+    // 每3回合增加一层肯定Buff
+    u.tutorialTurnCount = (u.tutorialTurnCount || 0) + 1;
+    if (u.tutorialTurnCount >= 3) {
+      u.tutorialTurnCount = 0;
+      addStatusStacks(u,'affirmationStacks',1,{label:'肯定', type:'buff'});
+      appendLog(`${u.name} 的"自我激励教程"：+1 层肯定Buff`);
+    }
   }
 }
 
