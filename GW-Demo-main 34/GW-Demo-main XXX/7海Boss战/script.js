@@ -2950,7 +2950,7 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'绽放', prob:0.20, cond:()=>u.level>=50 && ((u.skillPool||[]).filter(s=>s && s.name==='绽放').length < 1), make:()=> skill('绽放',3,'red','被动：场上所有队友对敌方造成伤害后叠一层血色花蕾（每敌最多7层）。主动：引爆所有血色花蕾，造成真实伤害（每层10HP+5SP）',
+      { key:'绽放', prob:0.60, cond:()=>u.level>=50 && ((u.skillPool||[]).filter(s=>s && s.name==='绽放').length < 1), make:()=> skill('绽放',3,'red','被动：场上所有队友对敌方造成伤害后叠一层血色花蕾（每敌最多7层）。主动：引爆所有血色花蕾，造成真实伤害（每层10HP+5SP）',
         (uu)=> [{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> adoraBloom(uu),
         {},
