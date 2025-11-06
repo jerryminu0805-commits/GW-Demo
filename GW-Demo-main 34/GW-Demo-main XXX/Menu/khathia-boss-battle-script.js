@@ -2167,6 +2167,15 @@ function adoraFieldMedic(u, aim){
   appendLog(`${u.name} 对 ${t.name} 使用 略懂的医术！：恢复 ${healHp} HP 和 ${healSp} SP，并赋予 1 层"恢复"`);
   unitActed(u);
 }
+function karmaDeepBreath(u){
+  const hpBefore = u.hp, spBefore = u.sp;
+  u.sp = u.maxSp; syncSpBroken(u);
+  u.hp = Math.min(u.maxHp, u.hp + 10);
+  appendLog(`${u.name} 使用 深呼吸：SP回满，+10HP（被动+10%仅在手牌中未被使用时生效）`);
+  showGainFloat(u,u.hp-hpBefore,u.sp-spBefore);
+  showSkillFx('karma:深呼吸',{target:u});
+  unitActed(u);
+}
 function darioClaw(u,target){
   if(!target || target.side===u.side){ appendLog('机械爪击 目标无效'); return; }
   const dmg = calcOutgoingDamage(u,15,target,'机械爪击');
