@@ -1818,6 +1818,16 @@ function hasDeepBreathPassive(attacker){
   const pool = attacker.skillPool || [];
   return pool.some(s=>s && s.name === '深呼吸');
 }
+function hasBloomInAnyPlayerPool(){
+  // Check if any player has the Bloom skill in their pool
+  for(const id of ['adora','dario','karma']){
+    const u = units[id];
+    if(!u || u.hp<=0) continue;
+    const pool = u.skillPool || [];
+    if(pool.some(s=>s && s.name === '绽放（红色）')) return true;
+  }
+  return false;
+}
 function calcOutgoingDamage(attacker, baseDmg, target, skillName){
   let dmg = baseDmg;
   if(attacker.passives.includes('fearBuff') && attacker.sp<10) dmg = Math.round(dmg*1.5);
@@ -2020,26 +2030,12 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
           addStatusStacks(u, "resentStacks", 1, { label: "怨念", type: "debuff" });
         appendLog(`${src.name} 的"破伤风之刃"：${u.name} +1 流血 +1 怨念`);
       }
-    }
-  }
-
-  // Bloom passive: Apply Crimson Bud stacks when player allies deal damage
-  if(sourceId){
-    const src = units[sourceId];
-    // Check if any player has the Bloom skill in their pool (passive effect active)
-    if(src && src.side === "player" && (finalHp>0 || finalSp>0) && u.side !== "player"){
-      const hasBloomInPool = Object.values(units).some(ally => {
-        return ally && ally.side === "player" && ally.hp > 0 && 
-               ally.id === "adora" && 
-               (ally.skillPool || []).some(s => s && s.name === "绽放" && !s._used);
-      });
-      
-      if(hasBloomInPool){
-        const maxBudStacks = 7;
-        const currentBuds = u.status.crimsonBud || 0;
-        if(currentBuds < maxBudStacks){
-          addStatusStacks(u, "crimsonBud", 1, { label: "血色花蕾", type: "debuff" });
-          appendLog(`${src.name} 的攻击触发"绽放"被动：${u.name} +1 层血色花蕾 (${Math.min(currentBuds + 1, maxBudStacks)}/${maxBudStacks})`);
+      // Bloom (Red) passive: Stack Bloody Bud when any player deals damage to enemies
+      if(u.side !== src.side && hasBloomInAnyPlayerPool()){
+        const currentBuds = u.status.bloodyBud || 0;
+        if(currentBuds < 7){
+          updateStatusStacks(u, "bloodyBud", currentBuds + 1, { label: "血色花蕾", type: "debuff" });
+          appendLog(`${src.name} 的攻击触发"绽放（红色）"被动：${u.name} +1 层血色花蕾 (${currentBuds + 1}/7)`);
         }
       }
     }
@@ -2239,6 +2235,44 @@ function darioSweetAfterBitter(u){
   showSkillFx('dario:先苦后甜',{target:u});
   unitActed(u);
 }
+function adoraBloom(u){
+  // Bloom all Bloody Buds on the field
+  cameraFocusOnCell(u.r, u.c);
+  let totalBloomedTargets = 0;
+  
+  // Find all enemies with Bloody Bud stacks
+  for(const id in units){
+    const target = units[id];
+    if(!target || target.hp<=0 || target.side===u.side) continue;
+    const budStacks = target.status.bloodyBud || 0;
+    if(budStacks > 0){
+      totalBloomedTargets++;
+      // Calculate true damage: 10 HP + 5 SP per stack
+      const hpDmg = budStacks * 10;
+      const spDmg = budStacks * 5;
+      
+      // Apply true damage
+      damageUnit(target.id, hpDmg, spDmg, `${u.name} 的 绽放（红色） 引爆了 ${target.name} 的 ${budStacks} 层血色花蕾`, u.id, {
+        trueDamage: true,
+        skillFx: 'adora:绽放（红色）',
+        skillFxCtx: {target: target}
+      });
+      
+      // Clear Bloody Bud stacks
+      updateStatusStacks(target, 'bloodyBud', 0, {label: '血色花蕾', type: 'debuff'});
+      
+      u.dmgDone += hpDmg;
+    }
+  }
+  
+  if(totalBloomedTargets === 0){
+    appendLog(`${u.name} 使用了 绽放（红色），但场上没有血色花蕾`);
+  } else {
+    appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾`);
+  }
+  
+  unitActed(u);
+}
 function adoraDepend(u, aim){
   const t = getUnitAt(aim.r, aim.c);
   if(!t || t.side!==u.side){ appendLog('只能靠你了。。 目标无效'); return; }
@@ -2248,49 +2282,6 @@ function adoraDepend(u, aim){
   pulseCell(t.r,t.c);
   showSkillFx('adora:只能靠你了。。',{target:t});
   appendLog(`${u.name} 对 ${t.name} 施加“依赖”：下一次攻击造成真实伤害、叠加2层眩晕层数、清空SP、消耗1层依赖`);
-  unitActed(u);
-}
-function adoraBloom(u){
-  // Find the Bloom skill in the pool and mark it as used
-  const bloomSkill = (u.skillPool || []).find(s => s && s.name === "绽放" && !s._used);
-  if(bloomSkill){ bloomSkill._used = true; }
-  
-  // Collect all enemies with Crimson Bud stacks
-  const affectedEnemies = Object.values(units).filter(enemy => {
-    return enemy && enemy.side !== "player" && enemy.hp > 0 && (enemy.status.crimsonBud || 0) > 0;
-  });
-  
-  if(affectedEnemies.length === 0){
-    appendLog(`${u.name} 使用 绽放：但场上没有敌人带有血色花蕾`);
-    showSkillFx('adora:绽放',{target:u});
-    unitActed(u);
-    return;
-  }
-  
-  appendLog(`${u.name} 使用 绽放：引爆所有血色花蕾！`);
-  showSkillFx('adora:绽放',{target:u});
-  
-  // Deal true damage based on stack count
-  affectedEnemies.forEach(enemy => {
-    const budStacks = enemy.status.crimsonBud || 0;
-    const hpDamage = budStacks * 10;
-    const spDamage = budStacks * 5;
-    
-    showSkillFx('adora:绽放',{target:enemy});
-    damageUnit(
-      enemy.id, 
-      hpDamage, 
-      spDamage, 
-      `${u.name} 的 绽放 引爆 ${enemy.name} 的 ${budStacks} 层血色花蕾`, 
-      u.id,
-      {trueDamage:true, skillFx:'adora:绽放', skillFxCtx:{target:enemy}}
-    );
-    
-    // Clear Crimson Bud stacks
-    updateStatusStacks(enemy, 'crimsonBud', 0, {label:'血色花蕾', type:'debuff'});
-    u.dmgDone += hpDamage;
-  });
-  
   unitActed(u);
 }
 function karmaObeyMove(u, payload){
@@ -2626,11 +2617,11 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'绽放', prob:0.20, cond:()=>u.level>=50 && ((u.skillPool||[]).filter(s=>s && s.name==='绽放').length < 1), make:()=> skill('绽放',3,'red','被动：场上所有队友对敌方造成伤害后叠一层血色花蕾（每敌最多7层）。主动：引爆所有血色花蕾，造成真实伤害（每层10HP+5SP）',
-        (uu)=> [{r:uu.r,c:uu.c,dir:uu.facing}],
+      { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）'), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP）',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> adoraBloom(uu),
         {},
-        {castMs:900}
+        {castMs:1200}
       )}
     );
   } else if(u.id==='dario'){
@@ -3089,6 +3080,7 @@ function summarizeNegatives(u){
   if(u.status.stunned>0) parts.push(`眩晕x${u.status.stunned}`);
   if(u.status.paralyzed>0) parts.push(`恐惧x${u.status.paralyzed}`);
   if(u.status.bleed>0) parts.push(`流血x${u.status.bleed}`);
+  if(u.status.bloodyBud>0) parts.push(`血色花蕾x${u.status.bloodyBud}`);
   if(u.status.recoverStacks>0) parts.push(`恢复x${u.status.recoverStacks}`);
   if(u.status.jixueStacks>0) parts.push(`鸡血x${u.status.jixueStacks}`);
   if(u.status.dependStacks>0) parts.push(`依赖x${u.status.dependStacks}`);
