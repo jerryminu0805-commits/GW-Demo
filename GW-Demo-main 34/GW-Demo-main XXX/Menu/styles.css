@@ -1473,6 +1473,8 @@ body {
   border: 1px solid var(--outline);
   border-radius: 12px;
   padding: 20px;
+  overflow-y: auto;
+  max-height: 700px;
 }
 
 .skill-slot-group {
