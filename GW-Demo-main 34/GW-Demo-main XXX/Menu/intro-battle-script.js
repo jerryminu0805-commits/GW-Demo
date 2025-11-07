@@ -47,6 +47,7 @@ let highlighted = new Set();
 let logEl;
 
 let _skillSelection = null;
+let _distanceDisplay = null;
 let fxLayer = null;
 let cameraEl = null;
 let battleAreaEl = null;
@@ -2012,6 +2013,22 @@ function showTrail(r1,c1,r2,c2,{thickness=6,color=null}={}){
   fxLayer.appendChild(trail);
   onAnimEndRemove(trail, 260);
 }
+function showTrailWithDuration(r1,c1,r2,c2,duration=500,{thickness=6,color=null}={}){
+  ensureFxLayer();
+  const p1=getCellCenter(r1,c1), p2=getCellCenter(r2,c2);
+  const dx=p2.x-p1.x, dy=p2.y-p1.y;
+  const len=Math.hypot(dx,dy);
+  const ang=Math.atan2(dy,dx)*180/Math.PI;
+  const trail=makeEl('fx-trail');
+  if(color){ trail.style.background=color; }
+  trail.style.left=`${p1.x}px`;
+  trail.style.top =`${p1.y}px`;
+  trail.style.width=`${thickness}px`;
+  trail.style.transformOrigin='0 0';
+  trail.style.transform=`translate(0,-${Math.max(1, Math.floor(thickness/2))}px) rotate(${ang}deg) scaleY(${len/thickness})`;
+  fxLayer.appendChild(trail);
+  onAnimEndRemove(trail, duration);
+}
 
 // —— 玩家/敌方技能 —— 
 function playerGunExec(u, desc){
@@ -2105,7 +2122,9 @@ async function adoraAssassination(u, target){
   
   // Stage 1: Teleport and stab in
   if(teleportDest){
-    showTrail(u.r, u.c, teleportDest.r, teleportDest.c);
+    const origR = u.r, origC = u.c;
+    showTrailWithDuration(origR, origC, teleportDest.r, teleportDest.c, 500);
+    await sleep(200);
     u.r = teleportDest.r;
     u.c = teleportDest.c;
     pulseCell(u.r, u.c);
@@ -2113,6 +2132,7 @@ async function adoraAssassination(u, target){
     const newDir = cardinalDirFromDelta(target.r - u.r, target.c - u.c);
     setUnitFacing(u, newDir);
     appendLog(`${u.name} 瞬移到 ${target.name} 后侧`);
+    await sleep(300);
   }
   
   await telegraphThenImpact([{r:target.r,c:target.c}]);
@@ -2120,7 +2140,7 @@ async function adoraAssassination(u, target){
   const dmg1 = calcOutgoingDamage(u, 10, target, '课本知识：刺杀一');
   damageUnit(target.id, dmg1, 5, `${u.name} 匕首插入 ${target.name}`, u.id, {skillFx:'adora:课本知识：刺杀一'});
   u.dmgDone += dmg1;
-  await sleep(400);
+  await sleep(600);
   
   // Stage 2: Pull out and apply bleed
   if(target.hp > 0){
@@ -2934,8 +2954,36 @@ function canUnitMove(u){
   }
   return true;
 }
-function clearSkillAiming(){ _skillSelection=null; clearHighlights(); }
-function clearAllSelection(){ _skillSelection=null; selectedUnitId=null; clearHighlights(); if(skillPool) skillPool.innerHTML=''; if(selectedInfo) selectedInfo.innerHTML=''; }
+function showDistanceDisplay(r, c, distance){
+  clearDistanceDisplay();
+  ensureFxLayer();
+  const p = getCellCenter(r, c);
+  const el = document.createElement('div');
+  el.className = 'fx distance-display';
+  el.textContent = `距离: ${distance}`;
+  el.style.left = `${p.x}px`;
+  el.style.top = `${p.y - 30}px`;
+  el.style.transform = 'translate(-50%, -100%)';
+  el.style.position = 'absolute';
+  el.style.background = 'rgba(0,0,0,0.75)';
+  el.style.color = '#fff';
+  el.style.padding = '4px 8px';
+  el.style.borderRadius = '4px';
+  el.style.fontSize = '12px';
+  el.style.fontWeight = 'bold';
+  el.style.pointerEvents = 'none';
+  el.style.zIndex = '1000';
+  fxLayer.appendChild(el);
+  _distanceDisplay = el;
+}
+function clearDistanceDisplay(){
+  if(_distanceDisplay){
+    _distanceDisplay.remove();
+    _distanceDisplay = null;
+  }
+}
+function clearSkillAiming(){ _skillSelection=null; clearHighlights(); clearDistanceDisplay(); }
+function clearAllSelection(){ _skillSelection=null; selectedUnitId=null; clearHighlights(); clearDistanceDisplay(); if(skillPool) skillPool.innerHTML=''; if(selectedInfo) selectedInfo.innerHTML=''; }
 function startSkillAiming(u,sk){
   if(interactionLocked || !u || u.hp<=0) return;
   clearHighlights();
@@ -2960,11 +3008,19 @@ function resolveAimDirForSkill(u, sk, aimCell){
 function handleSkillPreviewCell(u, sk, aimCell){
   if(interactionLocked || !u || u.hp<=0) return;
   clearHighlights();
+  clearDistanceDisplay();
   const aimDir = resolveAimDirForSkill(u, sk, aimCell);
   const cells = sk.rangeFn(u, aimDir, aimCell) || [];
   for(const c of cells) markCell(c.r,c.c,'skill');
   const inPreview = rangeIncludeCell(cells, aimCell);
-  if(inPreview) markCell(aimCell.r, aimCell.c, 'target');
+  if(inPreview) {
+    markCell(aimCell.r, aimCell.c, 'target');
+    // Show distance for assassination skill
+    if(sk.name === '课本知识：刺杀一') {
+      const dist = mdist(u, aimCell);
+      showDistanceDisplay(aimCell.r, aimCell.c, dist);
+    }
+  }
 }
 function consumeCardFromHand(u, sk){ if(!u || !u.skillPool) return; const idx=u.skillPool.indexOf(sk); if(idx>=0) u.skillPool.splice(idx,1); }
 function discardSkill(u, sk){
