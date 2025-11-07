@@ -1008,6 +1008,53 @@ body {
   opacity: 1;
 }
 
+/* Visual Novel Character Portraits Container */
+.story-characters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.story-character-portrait {
+  position: absolute;
+  bottom: 0;
+  width: 30%;
+  max-width: 400px;
+  height: 70%;
+  max-height: 600px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  transition: opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease;
+  transform-origin: bottom center;
+}
+
+.story-character-portrait.left {
+  left: 5%;
+  background-position: bottom left;
+}
+
+.story-character-portrait.right {
+  right: 5%;
+  background-position: bottom right;
+}
+
+.story-character-portrait.center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.story-character-portrait.dimmed {
+  opacity: 0.4;
+  filter: brightness(0.5) contrast(0.8);
+}
+
+.story-character-portrait.active {
+  opacity: 1;
+  filter: brightness(1) contrast(1);
+}
+
 .story-panel {
   position: relative;
   width: min(960px, 100%);
