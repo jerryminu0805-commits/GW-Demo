@@ -1664,14 +1664,14 @@ function finishStageStory(skipped = false) {
     // Redirect to intro battle after intro story (even if skipped)
     if (stageId === 'intro') {
       setTimeout(() => {
-        window.location.href = 'intro-battle.html';
+        window.location.href = './intro-battle.html';
       }, 500);
     }
     
     // Redirect to boss battle after sevenSeas story (even if skipped)
     if (stageId === 'sevenSeas') {
       setTimeout(() => {
-        window.location.href = 'boss-battle.html';
+        window.location.href = './boss-battle.html';
       }, 500);
     }
   }, 450);
