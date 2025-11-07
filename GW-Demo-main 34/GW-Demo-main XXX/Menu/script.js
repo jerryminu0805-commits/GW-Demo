@@ -1732,8 +1732,11 @@ function initStageBoard() {
       }
 
       if (currentStageId === 'intro') {
-        // Navigate to intro battle
-        window.location.href = '../Velmira Boss/Demo-main/index.html';
+        // Fade out BGM and start intro story
+        if (bgmController && typeof bgmController.fadeOut === 'function') {
+          bgmController.fadeOut(850);
+        }
+        startStageStory('intro');
         return;
       }
 
