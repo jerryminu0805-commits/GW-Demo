@@ -2388,19 +2388,34 @@ function createSkillCard(skill, isSelected) {
 function setupSkillSelectionInteractions(container, characterId) {
   let draggedSkillId = null;
   let draggedFromSlot = null;
+  let dropSuccessful = false;
   
   // Drag handlers for skill cards
   container.querySelectorAll('.skill-card').forEach(card => {
     card.addEventListener('dragstart', (e) => {
       draggedSkillId = card.dataset.skillId;
       draggedFromSlot = card.closest('.skill-slot');
+      dropSuccessful = false;
       card.classList.add('dragging');
     });
     
     card.addEventListener('dragend', (e) => {
       card.classList.remove('dragging');
+      
+      // If dragged from a slot and not dropped successfully, deselect the skill
+      if (draggedFromSlot && !dropSuccessful) {
+        const fromColor = draggedFromSlot.dataset.color;
+        unselectSkill(characterId, draggedSkillId, fromColor);
+        showToast(`技能已取消选择`);
+        
+        // Re-render
+        const activeTab = document.querySelector('.detail-tab.active').dataset.section;
+        renderCharacterSection(activeTab, characterId);
+      }
+      
       draggedSkillId = null;
       draggedFromSlot = null;
+      dropSuccessful = false;
     });
     
     // Right-click to show description
@@ -2453,6 +2468,9 @@ function setupSkillSelectionInteractions(container, characterId) {
       
       // Add skill to new slot
       selectSkill(characterId, draggedSkillId, slotColor);
+      
+      // Mark drop as successful
+      dropSuccessful = true;
       
       showToast(`技能已选择: ${skill.name}`);
       
