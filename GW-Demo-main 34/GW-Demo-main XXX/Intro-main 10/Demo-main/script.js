@@ -1669,6 +1669,17 @@ function showRoundBanner(text, duration=1800){
   if(inner) inner.textContent = text;
   el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), duration);
+  
+  // Play Norms.mp3 when round one banner appears
+  if(text === '回合一' || text.toLowerCase().includes('round') && text.includes('1')){
+    try {
+      const audio = new Audio('../../Menu/Norms.mp3');
+      audio.volume = 0.6;
+      audio.play().catch(err => console.warn('Failed to play Norms.mp3:', err));
+    } catch(e) {
+      console.warn('Error playing round one audio:', e);
+    }
+  }
 }
 function ensureIntroDialog(){
   if(!introDialogEl){
