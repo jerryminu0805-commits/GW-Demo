@@ -638,6 +638,56 @@ pushRect(3, 4, 5, 6);
 };
 
 const stageStories = {
+  intro: [
+    { type: 'narration', text: '进入黑暗……' },
+    { type: 'narration', text: '剧情缓缓展开……', background: 'Home.png', audio: 'Intro 1.mp3', audioAction: 'play' },
+    { speaker: 'Karma', text: '。。。。。', portrait: 'KarmaSpeachless.png' },
+    { speaker: 'Dario', text: '所以你们怎么想？', portrait: 'DarioNorms.png' },
+    { speaker: 'Dario', text: '在灰色偏黑色的产业里走久了还是被抓到把柄了，但是那刑警队队长也奇怪，说什么让我们协助他们把赫尔希教团灭了就算将功补过。。。。', portrait: 'DarioNorms.png' },
+    { speaker: 'Adora', text: '都叫你们别搞这些乱七八糟的啦。。。咱家又不是没钱，那需要去冒险犯法捞钱啊？', portrait: 'AdoraAnnoyed.png' },
+    { speaker: 'Adora', text: '还连累了我们那么多兄弟们。。。。', portrait: 'AdoraAnnoyed.png' },
+    { speaker: 'Karma', text: '哎呀，我们搞这些不就是寻求刺激吗，谁在乎钱啊？', portrait: 'KarmaSmile.png' },
+    { speaker: 'Adora', text: '对对对，现在刺激了，如何呢。', portrait: 'AdoraBadSmile.png' },
+    { speaker: 'Dario', text: '诶诶，先回到正题。', portrait: 'DarioNorms.png' },
+    { speaker: 'Dario', text: '你们怎么想的？', portrait: 'DarioNorms.png' },
+    { speaker: 'Karma', text: '还怎么想，跟那群当官的狗拼了呗！', portrait: 'KarmaYell.png' },
+    { speaker: 'Adora', text: '。。。', portrait: 'AdoraAnnoyed.png' },
+    { speaker: 'Adora', text: '要我说还是配合他们吧。', portrait: 'AdoraTalk.png' },
+    { speaker: 'Adora', text: '我刚刚查了下，这教团可不是什么普通教团，而是货真价实的邪教组织，搞恐怖袭击那种。', portrait: 'AdoraTalk.png' },
+    { speaker: 'Adora', text: '如果这次不配合，以后哪怕政府放过我们，这教团也有极大可能性来找麻烦。。。。', portrait: 'AdoraAnnoyed.png' },
+    { type: 'narration', text: 'Adora把手机给两人看\n手机里显示着赫尔希最近屠戮了整条街的普通民众，并且收集了所有的血液。' },
+    { speaker: 'Karma', text: '。。。', portrait: 'KarmaScared.png' },
+    { speaker: 'Dario', text: '啊。。。', portrait: 'DarioScared.png' },
+    { speaker: 'Adora', text: '看到了吧，这群可是真疯子。', portrait: 'AdoraTalk.png' },
+    { speaker: 'Adora', text: '最好赶快处理了算了。', portrait: 'AdoraTalk.png' },
+    { speaker: 'Adora', text: '还能在政府那刷刷好感度呢。', portrait: 'AdoraAnnoyed.png' },
+    { speaker: 'Dario', text: '嗯嗯，小朵说的在理。。。', portrait: 'DarioThinking.png' },
+    { speaker: 'Dario', text: 'Karma你觉得呢？', portrait: 'DarioNorms.png' },
+    { speaker: 'Karma', text: '我还能说啥，干呗。', portrait: 'KarmaSmile.png' },
+    { speaker: 'Dario', text: '行，我去联系下。', portrait: 'DarioNorms.png' },
+    { type: 'narration', text: '（通话）' },
+    { speaker: 'Dario', text: '好了，他们叫我们先去他们那里做个测试。', portrait: 'DarioNorms.png' },
+    { speaker: 'Karma', text: '咋地，瞧不起我们？', portrait: 'KarmaAnnoyed.png' },
+    { speaker: 'Karma', text: '我靠，之前火拼的时候他们可没有一次占到便宜了！', portrait: 'KarmaYell.png' },
+    { speaker: 'Adora', text: '哥。。就测试下而已。。。', portrait: 'AdoraWorried.png' },
+    { speaker: 'Adora', text: '应该是看看我们具体实力。', portrait: 'AdoraTalk.png' },
+    { speaker: 'Karma', text: '切', portrait: 'KarmaSpeachless.png' },
+    { type: 'narration', text: '。。。。。' },
+    { type: 'narration', text: '（转场）', audio: 'Intro 1.mp3', audioAction: 'stop' },
+    { type: 'narration', text: '（刑警部门建筑）', background: 'PStation.png', audio: 'Intro Dialog.mp3', audioAction: 'play' },
+    { speaker: 'Dario', text: '哎呦，张队，又见面了', portrait: 'DarioSmile.png' },
+    { speaker: 'Dario', text: '难得看到张队脸上不带任何杀意呢，真是活久见了', portrait: 'DarioSmile.png' },
+    { speaker: '张队', text: '。。。。好了，我们就直入主题吧。', portrait: 'Zhang.png' },
+    { speaker: '张队', text: '我们目前只算是暂时合作关系，如果你们敢做任何小动作的话——', portrait: 'Zhang.png' },
+    { type: 'narration', text: '*张队拉枪栓' },
+    { speaker: '张队', text: '后果自负。', portrait: 'ZhangScary.png' },
+    { speaker: 'Dario', text: '当然当然，哪敢啊～', portrait: 'DarioSmile.png' },
+    { speaker: '张队', text: '。。。训练场在隔壁一栋楼，进去和门卫打声招呼后就能开始了。', portrait: 'Zhang.png' },
+    { speaker: '张队', text: '哦对了，子弹使用的假弹，虽然不致命，但是还是很痛的。', portrait: 'Zhang.png' },
+    { speaker: '张队', text: '保护好小朋友。', portrait: 'Zhang.png' },
+    { speaker: 'Adora', text: '。。。。', portrait: 'AdoraAnnoyed.png' },
+    { type: 'narration', text: '（准备进入战斗）', audio: 'Intro Dialog.mp3', audioAction: 'stop' },
+  ],
   sevenSeas: [
     { type: 'narration', text: '夜幕低垂，海风裹挟着血腥味，从远方破旧的码头吹来。' },
     {
@@ -1292,6 +1342,70 @@ function applyStoryCues(entry) {
       }
     }
   } catch (e) {}
+
+  // —— Background Image: Handle custom backgrounds ——
+  if (entry.background && storyBackdrop) {
+    const bgImage = String(entry.background);
+    if (!storyBackdrop.dataset) storyBackdrop.dataset = {};
+    if (storyBackdrop.dataset.scene !== bgImage) {
+      storyBackdrop.style.backgroundImage = `url('${bgImage}')`;
+      storyBackdrop.style.backgroundSize = 'cover';
+      storyBackdrop.style.backgroundPosition = 'center';
+      storyBackdrop.style.backgroundRepeat = 'no-repeat';
+      storyBackdrop.dataset.scene = bgImage;
+    }
+  }
+
+  // —— Character Portrait: Display portraits ——
+  if (entry.portrait && storyOverlay) {
+    const portraitImage = String(entry.portrait);
+    let portraitContainer = storyOverlay.querySelector('.story-portrait');
+    
+    if (!portraitContainer) {
+      portraitContainer = document.createElement('div');
+      portraitContainer.className = 'story-portrait';
+      const storyPanel = storyOverlay.querySelector('.story-panel');
+      if (storyPanel) {
+        storyPanel.insertBefore(portraitContainer, storyPanel.firstChild);
+      }
+    }
+    
+    portraitContainer.style.backgroundImage = `url('${portraitImage}')`;
+    portraitContainer.style.display = 'block';
+  } else if (storyOverlay) {
+    const portraitContainer = storyOverlay.querySelector('.story-portrait');
+    if (portraitContainer) {
+      portraitContainer.style.display = 'none';
+    }
+  }
+
+  // —— Audio Control: Play or stop audio ——
+  if (entry.audio) {
+    const audioFile = String(entry.audio);
+    const action = entry.audioAction ? String(entry.audioAction).toLowerCase() : 'play';
+    
+    if (action === 'stop') {
+      if (window.storyAudioController) {
+        window.storyAudioController.pause();
+        window.storyAudioController.currentTime = 0;
+        window.storyAudioController = null;
+      }
+    } else if (action === 'play') {
+      // Stop previous audio if playing
+      if (window.storyAudioController) {
+        window.storyAudioController.pause();
+        window.storyAudioController.currentTime = 0;
+      }
+      
+      // Create and play new audio
+      window.storyAudioController = new Audio(audioFile);
+      window.storyAudioController.volume = 0.7;
+      window.storyAudioController.loop = false;
+      window.storyAudioController.play().catch(err => {
+        console.warn('Story audio playback failed:', err);
+      });
+    }
+  }
 }
 
 
@@ -1401,6 +1515,21 @@ function finishStageStory(skipped = false) {
     if (storyBackdrop.dataset) delete storyBackdrop.dataset.scene;
   }
 
+  // cleanup story audio
+  if (window.storyAudioController) {
+    window.storyAudioController.pause();
+    window.storyAudioController.currentTime = 0;
+    window.storyAudioController = null;
+  }
+
+  // cleanup portrait
+  if (storyOverlay) {
+    const portraitContainer = storyOverlay.querySelector('.story-portrait');
+    if (portraitContainer) {
+      portraitContainer.style.display = 'none';
+      portraitContainer.style.backgroundImage = '';
+    }
+  }
 
   storyState = null;
 
@@ -1425,6 +1554,13 @@ function finishStageStory(skipped = false) {
 
   setTimeout(() => {
     markStageVisited(stageId, { showRepeat: skipped });
+    
+    // Redirect to intro battle after intro story (even if skipped)
+    if (stageId === 'intro') {
+      setTimeout(() => {
+        window.location.href = '../Intro-main 10/Demo-main/index.html';
+      }, 500);
+    }
     
     // Redirect to boss battle after sevenSeas story (even if skipped)
     if (stageId === 'sevenSeas') {
