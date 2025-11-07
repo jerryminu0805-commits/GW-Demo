@@ -1657,7 +1657,7 @@ function finishStageStory(skipped = false) {
     // Redirect to intro battle after intro story (even if skipped)
     if (stageId === 'intro') {
       setTimeout(() => {
-        window.location.href = '../Intro-main 10/Demo-main/index.html';
+        window.location.href = 'intro-battle.html';
       }, 500);
     }
     
