@@ -1942,7 +1942,22 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   }
   showDamageFloat(u, finalHp, finalSp);
   pulseCell(u.r, u.c);
-  if(died){ showDeathFx(u); }
+  if(died){ 
+    showDeathFx(u);
+    
+    // 7海关卡：如果Haz死了的话，剩下所有七海成员也全死
+    if(u.id === 'haz' && u.team === 'seven'){
+      appendLog('Haz 阵亡！七海作战队全员失去战斗意志...');
+      const sevenSeasMembers = Object.values(units).filter(member => {
+        return member && member.team === 'seven' && member.id !== 'haz' && member.hp > 0;
+      });
+      sevenSeasMembers.forEach(member => {
+        member.hp = 0;
+        showDeathFx(member);
+        appendLog(`${member.name} 因 Haz 阵亡而倒下`);
+      });
+    }
+  }
 
   // 锁链缠绕 反击（Haz）
   if(sourceId){
@@ -2225,9 +2240,13 @@ function adoraBloom(u){
   appendLog(`${u.name} 使用 绽放：引爆所有血色花蕾！`);
   showSkillFx('adora:绽放',{target:u});
   
+  // Calculate total layers for healing
+  let totalLayers = 0;
+  
   // Deal true damage based on stack count
   affectedEnemies.forEach(enemy => {
     const budStacks = enemy.status.crimsonBud || 0;
+    totalLayers += budStacks;
     const hpDamage = budStacks * 10;
     const spDamage = budStacks * 5;
     
@@ -2245,6 +2264,34 @@ function adoraBloom(u){
     updateStatusStacks(enemy, 'crimsonBud', 0, {label:'血色花蕾', type:'debuff'});
     u.dmgDone += hpDamage;
   });
+  
+  // 绽放增强：每绽放一层血色花蕾，恢复Adora 5HP 5SP
+  if(totalLayers > 0){
+    const adoraHpHeal = totalLayers * 5;
+    const adoraSpHeal = totalLayers * 5;
+    u.hp = Math.min(u.maxHp, u.hp + adoraHpHeal);
+    u.sp = Math.min(u.maxSp, u.sp + adoraSpHeal);
+    syncSpBroken(u);
+    showGainFloat(u, adoraHpHeal, adoraSpHeal);
+    appendLog(`${u.name} 绽放治愈：恢复 ${adoraHpHeal} HP 和 ${adoraSpHeal} SP`);
+    
+    // 5格以内所有友方单位每绽放一层血色花蕾：3Hp，3Sp
+    const alliesInRange = Object.values(units).filter(ally => {
+      if(!ally || ally.id === u.id || ally.side !== u.side || ally.hp <= 0) return false;
+      const dist = Math.max(Math.abs(ally.r - u.r), Math.abs(ally.c - u.c));
+      return dist <= 5;
+    });
+    
+    alliesInRange.forEach(ally => {
+      const allyHpHeal = totalLayers * 3;
+      const allySpHeal = totalLayers * 3;
+      ally.hp = Math.min(ally.maxHp, ally.hp + allyHpHeal);
+      ally.sp = Math.min(ally.maxSp, ally.sp + allySpHeal);
+      syncSpBroken(ally);
+      showGainFloat(ally, allyHpHeal, allySpHeal);
+      appendLog(`${ally.name} 受到绽放治愈：恢复 ${allyHpHeal} HP 和 ${allySpHeal} SP`);
+    });
+  }
   
   unitActed(u);
 }
