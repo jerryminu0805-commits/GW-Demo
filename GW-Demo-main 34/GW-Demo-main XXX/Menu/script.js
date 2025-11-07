@@ -1890,7 +1890,7 @@ const skillLibrary = {
     { id: 'adora_cheer', name: '加油哇！', color: 'orange', cost: '4步', description: '以自身为中心5×5选择1名友方，授予1层"鸡血"Buff（下次攻击伤害×2，最多1层）。', probability: '20%', minLevel: 25 },
     { id: 'adora_rely', name: '只能靠你了。。', color: 'orange', cost: '4步', description: '牺牲自身25HP，为四周任意5格内1名友方施加"依赖"Buff（下次攻击造成真实伤害并将其SP降至0，最多1层）。', probability: '15%', minLevel: 35 },
     { id: 'adora_bloom', name: '绽放', color: 'red', cost: '3步', description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层10HP与5SP）并根据引爆层数来吸取HP与SP（每绽放一层血色花蕾：恢复Adora 5HP与5SP）。', probability: '20%', minLevel: 50 },
-    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '20%', minLevel: 50 }
+    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '80%', minLevel: 50 }
   ],
   karma: [
     { id: 'karma_punch', name: '沙包大的拳头', color: 'green', cost: '1步', description: '造成15点伤害。', probability: '80%', minLevel: 20 },
