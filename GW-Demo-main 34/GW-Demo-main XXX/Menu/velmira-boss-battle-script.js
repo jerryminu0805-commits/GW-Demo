@@ -1344,11 +1344,14 @@ const SKILL_FX_CONFIG = {
   'dario:迅捷步伐':         {type:'spiral', primary:'#7fe8ff', secondary:'#d6f8ff'},
   'dario:拿来吧你！':       {type:'claw', primary:'#ffa56a', secondary:'#ffd7b9', scratches:5},
   'dario:先苦后甜':         {type:'aura', primary:'#c9a4ff', secondary:'#eedcff', glyph:'↻'},
+  'dario:撕裂伤口':         {type:'claw', primary:'#ff6b6b', secondary:'#ffb3b3', scratches:5, spacing:16},
+  'dario:状态恢复':         {type:'aura', primary:'#75e6a7', secondary:'#c6ffde', glyph:'✄'},
   'karma:沙包大的拳头':     {type:'slash', primary:'#ff9059', secondary:'rgba(255,192,160,0.7)', spark:'#fff0e4', slashes:1},
   'karma:枪击':             {type:'beam', primary:'#f38fff', secondary:'#ffd9ff', glow:'rgba(255,255,255,0.85)', variant:'karma'},
   'karma:都听你的':         {type:'spiral', primary:'#ffdd77', secondary:'#fff1bd'},
   'karma:嗜血之握':         {type:'claw', primary:'#d95ffb', secondary:'#f0b8ff', scratches:3},
   'karma:深呼吸':           {type:'aura', primary:'#7ecfff', secondary:'#d7f1ff', glyph:'息'},
+  'karma:肾上腺素':         {type:'aura', primary:'#ff8c69', secondary:'#ffd4c4', glyph:'💪'},
   'khathia:血肉之刃':       {type:'slash', primary:'#ff6f6f', secondary:'rgba(255,180,180,0.7)', spark:'#ffd6d6', slashes:2},
   'khathia:怨念之爪':       {type:'claw', primary:'#b168ff', secondary:'#e7d4ff', scratches:3},
   'khathia:蛮横横扫':       {type:'slash', primary:'#ff964f', secondary:'rgba(255,205,165,0.7)', spark:'#ffe7c8', slashes:3, attack:{type:'swing', swings:3, spread:28, delayStep:34, variant:'wide', faceTarget:false}},
@@ -2216,6 +2219,23 @@ function karmaDeepBreath(u){
   showSkillFx('karma:深呼吸',{target:u});
   unitActed(u);
 }
+function karmaAdrenaline(u){
+  updateStatusStacks(u, 'jixueStacks', 1, {label:'鸡血', type:'buff'});
+
+  const hpBefore = u.hp, spBefore = u.sp;
+  u.hp = Math.min(u.maxHp, u.hp + 15);
+  u.sp = Math.min(u.maxSp, u.sp + 5);
+  syncSpBroken(u);
+
+  appendLog(`${u.name} 使用 肾上腺素：获得 鸡血+1，恢复 15HP 与 5SP`);
+  showGainFloat(u, u.hp-hpBefore, u.sp-spBefore);
+  showSkillFx('karma:肾上腺素', {target:u});
+
+  const adrenalineSkill = (u.skillPool || []).find(s => s && s.name === '肾上腺素');
+  if(adrenalineSkill){ adrenalineSkill._used = true; }
+
+  unitActed(u);
+}
 function darioClaw(u,target){
   if(!target || target.side===u.side){ appendLog('机械爪击 目标无效'); return; }
   const dmg = calcOutgoingDamage(u,15,target,'机械爪击');
@@ -2278,6 +2298,61 @@ function darioSweetAfterBitter(u){
   playerBonusStepsNextTurn += 4;
   appendLog(`${u.name} 使用 先苦后甜：下个玩家回合 +4 步`);
   showSkillFx('dario:先苦后甜',{target:u});
+  unitActed(u);
+}
+function darioTearWound(u, target){
+  if(!target || target.side===u.side){ appendLog('撕裂伤口 目标无效'); return; }
+
+  const isFullHp = target.hp >= target.maxHp;
+  let dmg = 15;
+
+  if(!isFullHp){
+    dmg = Math.round(dmg * 1.5);
+    appendLog(`${target.name} 非满血，撕裂伤口 伤害增加 50%`);
+  }
+
+  const finalDmg = calcOutgoingDamage(u, dmg, target, '撕裂伤口');
+  cameraFocusOnCell(target.r, target.c);
+
+  damageUnit(target.id, finalDmg, 0, `${u.name} 用 撕裂伤口 爪击 ${target.name}`, u.id, {skillFx:'dario:撕裂伤口'});
+  u.dmgDone += finalDmg;
+
+  const bleedStacks = isFullHp ? 1 : 2;
+  addStatusStacks(target, 'bleed', bleedStacks, {label:'流血', type:'debuff'});
+  appendLog(`${target.name} 附加 流血+${bleedStacks}`);
+
+  setTimeout(() => {
+    if(target.hp > 0){
+      const dmg2 = calcOutgoingDamage(u, 5, target, '撕裂伤口');
+      damageUnit(target.id, dmg2, 0, `${u.name} 抽出利爪`, u.id, {skillFx:'dario:撕裂伤口'});
+      u.dmgDone += dmg2;
+    }
+  }, 400);
+}
+function darioStatusRecovery(u, aim){
+  const t = getUnitAt(aim.r, aim.c);
+  if(!t || t.side!==u.side){ appendLog('状态恢复 目标无效'); return; }
+
+  const clearedEffects = [];
+  if(t.status.stunned > 0){ clearedEffects.push('眩晕'); t.status.stunned = 0; }
+  if(t.status.paralyzed > 0){ clearedEffects.push('恐惧'); t.status.paralyzed = 0; }
+  if(t.status.bleed > 0){ clearedEffects.push('流血'); t.status.bleed = 0; }
+  if(t.status.hazBleedTurns > 0){ clearedEffects.push('Haz流血'); t.status.hazBleedTurns = 0; }
+
+  const spBefore = t.sp;
+  t.sp = Math.min(t.maxSp, t.sp + 15);
+  syncSpBroken(t);
+
+  pulseCell(t.r, t.c);
+  showSkillFx('dario:状态恢复', {target:t});
+
+  if(clearedEffects.length > 0){
+    appendLog(`${u.name} 对 ${t.name} 使用 状态恢复：清除 ${clearedEffects.join('、')}，恢复 15SP`);
+  } else {
+    appendLog(`${u.name} 对 ${t.name} 使用 状态恢复：恢复 15SP（无负面效果需清除）`);
+  }
+  showGainFloat(t, 0, t.sp - spBefore);
+
   unitActed(u);
 }
 function adoraBloom(u){
@@ -2425,7 +2500,30 @@ function karmaPunch(u,target){
   const dmg = calcOutgoingDamage(u, 15, target, '沙包大的拳头');
   cameraFocusOnCell(target.r, target.c);
   damageUnit(target.id, dmg, 0, `${u.name} 出拳 ${target.name}`, u.id,{skillFx:'karma:沙包大的拳头'});
-  u.dmgDone += dmg; u.consecAttacks = (u.consecAttacks||0)+1; unitActed(u);
+  u.dmgDone += dmg;
+  u.consecAttacks = (u.consecAttacks||0)+1;
+
+  const adrenalineSkill = (u.skillPool || []).find(s => s && s.name === '肾上腺素' && !s._used);
+  if(adrenalineSkill && u.consecAttacks >= 2 && u.consecAttacks % 2 === 0){
+    appendLog(`${u.name} 的"肾上腺素"被动触发：连续攻击2次后自动再次攻击！`);
+    setTimeout(() => {
+      if(target.hp > 0){
+        const dmg1 = calcOutgoingDamage(u, 15, target, '沙包大的拳头');
+        damageUnit(target.id, dmg1, 0, `${u.name} 肾上腺素连击1`, u.id,{skillFx:'karma:沙包大的拳头'});
+        u.dmgDone += dmg1;
+
+        setTimeout(() => {
+          if(target.hp > 0){
+            const dmg2 = calcOutgoingDamage(u, 15, target, '沙包大的拳头');
+            damageUnit(target.id, dmg2, 0, `${u.name} 肾上腺素连击2`, u.id,{skillFx:'karma:沙包大的拳头'});
+            u.dmgDone += dmg2;
+          }
+        }, 400);
+      }
+    }, 400);
+  }
+
+  unitActed(u);
 }
 
 // —— Velmira 技能 ——
@@ -2650,21 +2748,25 @@ const skillKeyMapping = {
     'adora_medical': '略懂的医术！',
     'adora_cheer': '加油哇！',
     'adora_rely': '只能靠你了。。',
-    'adora_bloom': '绽放（红色）'
+    'adora_bloom': '绽放（红色）',
+    'adora_assassination_1': '课本知识：刺杀一'
   },
   karma: {
     'karma_punch': '沙包大的拳头',
     'karma_gun': '枪击',
     'karma_listen': '都听你的',
     'karma_blood_grip': '嗜血之握',
-    'karma_deep_breath': '深呼吸'
+    'karma_deep_breath': '深呼吸',
+    'karma_adrenaline': '肾上腺素'
   },
   dario: {
     'dario_claw': '机械爪击',
     'dario_gun': '枪击',
     'dario_swift': '迅捷步伐',
     'dario_pull': '拿来吧你！',
-    'dario_bitter_sweet': '先苦后甜'
+    'dario_bitter_sweet': '先苦后甜',
+    'dario_tear_wound': '撕裂伤口',
+    'dario_status_recovery': '状态恢复'
   }
 };
 
@@ -2807,6 +2909,27 @@ function buildSkillFactoriesForUnit(u){
         {castMs:700}
       )}
     );
+    F.push(
+      { key:'撕裂伤口', prob:0.80, cond:()=>u.level>=50, make:()=> skill('撕裂伤口',1,'green','前3格爪击15HP叠1流血（非满血伤害+50%再叠1流血），抽出利爪5HP',
+        (uu,aimDir)=> aimDir? range_forward_n(uu,3,aimDir) : (()=>{const a=[]; for(const d in DIRS) range_forward_n(uu,3,d).forEach(x=>a.push(x)); return a;})(),
+        (uu,targetOrDesc)=> {
+          if(targetOrDesc && targetOrDesc.id) darioTearWound(uu,targetOrDesc);
+          else if(targetOrDesc && targetOrDesc.dir){
+            const line = range_forward_n(uu,3,targetOrDesc.dir);
+            let tgt=null; for(const c of line){ const tu=getUnitAt(c.r,c.c); if(tu && tu.side!=='player'){ tgt=tu; break; } }
+            if(tgt) darioTearWound(uu,tgt); else appendLog('撕裂伤口 未命中');
+          }
+        },
+        {},
+        {castMs:1100}
+      )},
+      { key:'状态恢复', prob:0.15, cond:()=>u.level>=50, make:()=> skill('状态恢复',2,'orange','选中全图友方单位，移除所有负面效果，增加15SP',
+        (uu)=> inRadiusCells(uu,999,{allowOccupied:true}).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
+        (uu,aim)=> darioStatusRecovery(uu,aim),
+        {aoe:false},
+        {cellTargeting:true, castMs:900}
+      )}
+    );
   } else if(u.id==='karma'){
     F.push(
       { key:'沙包大的拳头', prob:0.90, cond:()=>true, make:()=> skill('沙包大的拳头',1,'green','邻格 15HP（连击递增）',
@@ -2842,6 +2965,14 @@ function buildSkillFactoriesForUnit(u){
       { key:'深呼吸', prob:0.20, cond:()=>u.level>=25 && !(u.skillPool||[]).some(s=>s.name==='深呼吸'), make:()=> skill('深呼吸',2,'white','被动：只要此卡在技能池，伤害+10%；主动使用：自身SP回满并+10HP（使用后该卡被移除）',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> karmaDeepBreath(uu),
+        {},
+        {castMs:700}
+      )}
+    );
+    F.push(
+      { key:'肾上腺素', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='肾上腺素'), make:()=> skill('肾上腺素',2,'white','主动：给自己上1层鸡血并恢复15HP和5SP。被动：每连续2次"沙包大的拳头"命中后自动再使用两次（技能池最多1张）',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> karmaAdrenaline(uu),
         {},
         {castMs:700}
       )}
