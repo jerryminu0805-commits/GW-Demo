@@ -32,6 +32,7 @@ const STORAGE_KEY_COINS = 'gwdemo_coins';
 const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
 const STORAGE_KEY_UNLOCKED_ACCESSORIES = 'gwdemo_unlocked_accessories';
 const STORAGE_KEY_EQUIPPED_ACCESSORIES = 'gwdemo_equipped_accessories';
+const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
 
 function loadCoins() {
   const saved = localStorage.getItem(STORAGE_KEY_COINS);
@@ -160,6 +161,50 @@ const accessoryDefinitions = {
     description: '每回合能让携带者免疫一次SP伤害（多阶段攻击全阶段免疫）以及每回合开始都增加携带者10SP'
   }
 };
+
+// Skill Selection System - LocalStorage Management
+function isSkillSelectionUnlocked() {
+  const completions = loadStageCompletions();
+  return completions.fatigue > 0;
+}
+
+function loadSelectedSkills() {
+  const saved = localStorage.getItem(STORAGE_KEY_SELECTED_SKILLS);
+  return saved ? JSON.parse(saved) : {
+    adora: { green: null, blue: null, pink: null, white: null, red: null, orange: [] },
+    karma: { green: null, blue: null, pink: null, white: null, red: null, orange: [] },
+    dario: { green: null, blue: null, pink: null, white: null, red: null, orange: [] }
+  };
+}
+
+function saveSelectedSkills(skills) {
+  localStorage.setItem(STORAGE_KEY_SELECTED_SKILLS, JSON.stringify(skills));
+}
+
+function selectSkill(characterId, skillId, color) {
+  const selected = loadSelectedSkills();
+  if (color === 'orange') {
+    if (!selected[characterId].orange.includes(skillId) && selected[characterId].orange.length < 2) {
+      selected[characterId].orange.push(skillId);
+    }
+  } else {
+    selected[characterId][color] = skillId;
+  }
+  saveSelectedSkills(selected);
+}
+
+function unselectSkill(characterId, skillId, color) {
+  const selected = loadSelectedSkills();
+  if (color === 'orange') {
+    const index = selected[characterId].orange.indexOf(skillId);
+    if (index > -1) {
+      selected[characterId].orange.splice(index, 1);
+    }
+  } else {
+    selected[characterId][color] = null;
+  }
+  saveSelectedSkills(selected);
+}
 
 function resetMaskState() {
   if (!mask) return;
@@ -1585,6 +1630,34 @@ function applyPortraitImage(imageElement, character) {
 
 const portraitLibrary = typeof portraitAssets === 'undefined' ? {} : portraitAssets;
 
+// Skill Selection Library - All available skills for each character
+const skillLibrary = {
+  adora: [
+    { id: 'adora_dagger', name: '短匕轻挥！', color: 'green', cost: '1步', description: '前方1格造成10点伤害与5点精神伤害。', probability: '80%', minLevel: 20 },
+    { id: 'adora_gun', name: '枪击', color: 'gray', cost: '1步', description: '需携带手枪道具；指定方位整排造成10点伤害与5点精神伤害。', probability: '65%', minLevel: 20 },
+    { id: 'adora_dont_approach', name: '呀！你不要靠近我呀！！', color: 'blue', cost: '2步', description: '可选四周任意5格瞬移（可少选）；若目标HP低于50%，追击一次"短匕轻挥！"。', probability: '40%', minLevel: 20 },
+    { id: 'adora_stun_device', name: '自制粉色迷你电击装置！', color: 'red', cost: '3步', description: '前方2格造成10点伤害与15点精神伤害，并令目标麻痹（下回合-步数）。', probability: '30%', minLevel: 20 },
+    { id: 'adora_medical', name: '略懂的医术！', color: 'pink', cost: '2步', description: '以自身为中心5×5选择1名友方，恢复20HP与15SP，并赋予1层"恢复"Buff（下一个大回合开始恢复5HP，仅消耗1层）。', probability: '30%', minLevel: 25 },
+    { id: 'adora_cheer', name: '加油哇！', color: 'orange', cost: '4步', description: '以自身为中心5×5选择1名友方，授予1层"鸡血"Buff（下次攻击伤害×2，最多1层）。', probability: '20%', minLevel: 25 },
+    { id: 'adora_rely', name: '只能靠你了。。', color: 'orange', cost: '4步', description: '牺牲自身25HP，为四周任意5格内1名友方施加"依赖"Buff（下次攻击造成真实伤害并将其SP降至0，最多1层）。', probability: '15%', minLevel: 35 },
+    { id: 'adora_bloom', name: '绽放', color: 'red', cost: '3步', description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层10HP与5SP）并根据引爆层数来吸取HP与SP（每绽放一层血色花蕾：恢复Adora 5HP与5SP）。', probability: '20%', minLevel: 50 }
+  ],
+  karma: [
+    { id: 'karma_punch', name: '沙包大的拳头', color: 'green', cost: '1步', description: '造成15点伤害。', probability: '80%', minLevel: 20 },
+    { id: 'karma_gun', name: '枪击', color: 'gray', cost: '1步', description: '需手枪道具；指定方位整排造成10点伤害与5点精神伤害。', probability: '65%', minLevel: 20 },
+    { id: 'karma_listen', name: '都听你的', color: 'blue', cost: '2步', description: '可选四周任意3格并回复5SP（可少选）。', probability: '40%', minLevel: 20 },
+    { id: 'karma_blood_grip', name: '嗜血之握', color: 'red', cost: '3步', description: '连续使用四次"沙包大的拳头"后可释放，对非Boss造成75伤害、小Boss 80、精英100，并立即处决对应目标。', probability: '30%', minLevel: 20 },
+    { id: 'karma_deep_breath', name: '深呼吸', color: 'white', cost: '2步', description: '主动恢复全部SP与10HP；若当前技能卡池未使用该技能，则获得10%伤害加成（同一时间仅可存在1张）。', probability: '20%', minLevel: 25 }
+  ],
+  dario: [
+    { id: 'dario_claw', name: '机械爪击', color: 'green', cost: '1步', description: '前方2格造成15点伤害，并有15%概率令目标眩晕。', probability: '80%', minLevel: 20 },
+    { id: 'dario_gun', name: '枪击', color: 'gray', cost: '1步', description: '需手枪道具；指定方位整排造成10点伤害与5点精神伤害。', probability: '65%', minLevel: 20 },
+    { id: 'dario_swift', name: '迅捷步伐', color: 'blue', cost: '2步', description: '可选四周任意4格并自由移动，同时令最近敌人-5SP（可少选）。', probability: '40%', minLevel: 20 },
+    { id: 'dario_pull', name: '拿来吧你！', color: 'red', cost: '3步', description: '整排首个非Boss单位造成20点伤害并拉至身前，附1回合眩晕与-15SP；对Boss仍附眩晕与SP伤害但无法拉动。', probability: '30%', minLevel: 20 },
+    { id: 'dario_bitter_sweet', name: '先苦后甜', color: 'orange', cost: '4步', description: '下一回合额外+4步（技能池一次仅能存在1张）。', probability: '15%', minLevel: 25 }
+  ]
+};
+
 const characterData = {
   adora: {
     name: 'Adora',
@@ -1912,6 +1985,8 @@ function renderCharacterSection(section, characterId) {
     container.appendChild(list);
   } else if (section === 'accessories') {
     renderAccessoriesSection(container);
+  } else if (section === 'skillSelection') {
+    renderSkillSelectionSection(container, characterId);
   } else {
     const header = document.createElement('h3');
     header.textContent = data.name;
@@ -2161,12 +2236,290 @@ function setupAccessoriesDragDrop(container) {
   });
 }
 
+function renderSkillSelectionSection(container, characterId) {
+  const selectedSkills = loadSelectedSkills();
+  const characterSkills = skillLibrary[characterId] || [];
+  
+  // Header
+  const header = document.createElement('div');
+  header.className = 'skill-selection-header';
+  header.innerHTML = `
+    <h3>技能选择 - ${characterData[characterId].name}</h3>
+    <p class="skill-selection-hint">从右侧技能库中拖拽技能到对应颜色的槽位。右键点击技能查看详情。</p>
+  `;
+  container.appendChild(header);
+  
+  // Main layout container
+  const layout = document.createElement('div');
+  layout.className = 'skill-selection-layout';
+  
+  // Left side - Selected skills slots
+  const slotsContainer = document.createElement('div');
+  slotsContainer.className = 'skill-slots-container';
+  
+  const slotColors = [
+    { color: 'green', label: '绿色', limit: 1 },
+    { color: 'blue', label: '蓝色', limit: 1 },
+    { color: 'pink', label: '粉色', limit: 1 },
+    { color: 'white', label: '白色', limit: 1 },
+    { color: 'red', label: '红色', limit: 1 },
+    { color: 'orange', label: '橙色', limit: 2 }
+  ];
+  
+  slotColors.forEach(({ color, label, limit }) => {
+    const slotGroup = document.createElement('div');
+    slotGroup.className = 'skill-slot-group';
+    
+    const slotHeader = document.createElement('div');
+    slotHeader.className = 'skill-slot-header';
+    slotHeader.innerHTML = `<span class="skill-badge skill-${color}">${label}</span> <span class="slot-limit">(最多 ${limit} 个)</span>`;
+    slotGroup.appendChild(slotHeader);
+    
+    const slots = document.createElement('div');
+    slots.className = 'skill-slots';
+    
+    for (let i = 0; i < limit; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'skill-slot';
+      slot.dataset.character = characterId;
+      slot.dataset.color = color;
+      slot.dataset.slotIndex = i;
+      
+      let selectedSkill = null;
+      if (color === 'orange') {
+        selectedSkill = selectedSkills[characterId].orange[i] ? 
+          characterSkills.find(s => s.id === selectedSkills[characterId].orange[i]) : null;
+      } else {
+        selectedSkill = selectedSkills[characterId][color] ? 
+          characterSkills.find(s => s.id === selectedSkills[characterId][color]) : null;
+      }
+      
+      if (selectedSkill) {
+        const skillCard = createSkillCard(selectedSkill, true);
+        slot.appendChild(skillCard);
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'empty-skill-slot';
+        empty.textContent = '拖放技能到此处';
+        slot.appendChild(empty);
+      }
+      
+      slots.appendChild(slot);
+    }
+    
+    slotGroup.appendChild(slots);
+    slotsContainer.appendChild(slotGroup);
+  });
+  
+  layout.appendChild(slotsContainer);
+  
+  // Right side - Skill library
+  const libraryContainer = document.createElement('div');
+  libraryContainer.className = 'skill-library-container';
+  
+  const libraryHeader = document.createElement('h4');
+  libraryHeader.textContent = '技能库';
+  libraryContainer.appendChild(libraryHeader);
+  
+  // Group skills by color
+  const skillsByColor = {};
+  characterSkills.forEach(skill => {
+    if (!skillsByColor[skill.color]) {
+      skillsByColor[skill.color] = [];
+    }
+    skillsByColor[skill.color].push(skill);
+  });
+  
+  // Render skills grouped by color
+  Object.entries(skillsByColor).forEach(([color, skills]) => {
+    const colorGroup = document.createElement('div');
+    colorGroup.className = 'skill-color-group';
+    
+    const colorLabels = {
+      green: '绿色', blue: '蓝色', pink: '粉色', 
+      white: '白色', red: '红色', orange: '橙色', gray: '灰色'
+    };
+    
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'skill-color-header';
+    groupHeader.innerHTML = `<span class="skill-badge skill-${color}">${colorLabels[color] || color}</span>`;
+    colorGroup.appendChild(groupHeader);
+    
+    const skillsList = document.createElement('div');
+    skillsList.className = 'skills-list';
+    
+    skills.forEach(skill => {
+      const skillCard = createSkillCard(skill, false);
+      skillsList.appendChild(skillCard);
+    });
+    
+    colorGroup.appendChild(skillsList);
+    libraryContainer.appendChild(colorGroup);
+  });
+  
+  layout.appendChild(libraryContainer);
+  container.appendChild(layout);
+  
+  // Setup drag and drop and context menu
+  setupSkillSelectionInteractions(container, characterId);
+}
+
+function createSkillCard(skill, isSelected) {
+  const card = document.createElement('div');
+  card.className = `skill-card skill-card-${skill.color}${isSelected ? ' selected' : ''}`;
+  card.dataset.skillId = skill.id;
+  card.dataset.skillColor = skill.color;
+  card.draggable = true;
+  
+  card.innerHTML = `
+    <div class="skill-card-header">
+      <strong>${skill.name}</strong>
+      <span class="skill-card-cost">${skill.cost}</span>
+    </div>
+    <div class="skill-card-desc">${skill.description}</div>
+    <div class="skill-card-footer">
+      <span class="skill-probability">${skill.probability}</span>
+    </div>
+  `;
+  
+  return card;
+}
+
+function setupSkillSelectionInteractions(container, characterId) {
+  let draggedSkillId = null;
+  let draggedFromSlot = null;
+  
+  // Drag handlers for skill cards
+  container.querySelectorAll('.skill-card').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      draggedSkillId = card.dataset.skillId;
+      draggedFromSlot = card.closest('.skill-slot');
+      card.classList.add('dragging');
+    });
+    
+    card.addEventListener('dragend', (e) => {
+      card.classList.remove('dragging');
+      draggedSkillId = null;
+      draggedFromSlot = null;
+    });
+    
+    // Right-click to show description
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const skill = findSkillById(card.dataset.skillId, characterId);
+      if (skill) {
+        showSkillDescription(skill, e.pageX, e.pageY);
+      }
+    });
+  });
+  
+  // Drop handlers for skill slots
+  container.querySelectorAll('.skill-slot').forEach(slot => {
+    slot.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      slot.classList.add('drag-over');
+    });
+    
+    slot.addEventListener('dragleave', (e) => {
+      slot.classList.remove('drag-over');
+    });
+    
+    slot.addEventListener('drop', (e) => {
+      e.preventDefault();
+      slot.classList.remove('drag-over');
+      
+      const slotColor = slot.dataset.color;
+      const slotCharacter = slot.dataset.character;
+      const slotIndex = parseInt(slot.dataset.slotIndex);
+      
+      const skill = findSkillById(draggedSkillId, characterId);
+      if (!skill) return;
+      
+      // Check if skill color matches slot color
+      if (skill.color !== slotColor) {
+        const colorLabels = {
+          green: '绿色', blue: '蓝色', pink: '粉色', 
+          white: '白色', red: '红色', orange: '橙色', gray: '灰色'
+        };
+        showToast(`技能颜色不匹配！此槽位只能放置${colorLabels[slotColor] || slotColor}技能`);
+        return;
+      }
+      
+      // Remove skill from previous slot if it was dragged from a slot
+      if (draggedFromSlot) {
+        const fromColor = draggedFromSlot.dataset.color;
+        unselectSkill(characterId, draggedSkillId, fromColor);
+      }
+      
+      // Add skill to new slot
+      selectSkill(characterId, draggedSkillId, slotColor);
+      
+      showToast(`技能已选择: ${skill.name}`);
+      
+      // Re-render
+      const activeTab = document.querySelector('.detail-tab.active').dataset.section;
+      renderCharacterSection(activeTab, characterId);
+    });
+  });
+}
+
+function findSkillById(skillId, characterId) {
+  const skills = skillLibrary[characterId] || [];
+  return skills.find(s => s.id === skillId);
+}
+
+function showSkillDescription(skill, x, y) {
+  // Remove any existing description popups
+  const existing = document.querySelector('.skill-description-popup');
+  if (existing) {
+    existing.remove();
+  }
+  
+  const popup = document.createElement('div');
+  popup.className = 'skill-description-popup';
+  popup.style.left = `${x}px`;
+  popup.style.top = `${y}px`;
+  
+  popup.innerHTML = `
+    <div class="popup-header">
+      <strong>${skill.name}</strong>
+      <span class="skill-badge skill-${skill.color}">${skill.color}</span>
+    </div>
+    <div class="popup-body">
+      <p><strong>消耗：</strong>${skill.cost}</p>
+      <p><strong>效果：</strong>${skill.description}</p>
+      <p><strong>出现概率：</strong>${skill.probability}</p>
+      <p><strong>最低等级：</strong>${skill.minLevel}</p>
+    </div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // Close on click anywhere
+  const closePopup = () => {
+    popup.remove();
+    document.removeEventListener('click', closePopup);
+  };
+  
+  setTimeout(() => {
+    document.addEventListener('click', closePopup);
+  }, 100);
+}
+
 function initCharacterBoard() {
   // Check if accessories feature is unlocked and show tab
   if (isAccessoriesUnlocked()) {
     const accessoriesTab = document.getElementById('accessories-tab');
     if (accessoriesTab) {
       accessoriesTab.style.display = 'inline-block';
+    }
+  }
+  
+  // Check if skill selection feature is unlocked and show tab
+  if (isSkillSelectionUnlocked()) {
+    const skillSelectionTab = document.getElementById('skill-selection-tab');
+    if (skillSelectionTab) {
+      skillSelectionTab.style.display = 'inline-block';
     }
   }
   
