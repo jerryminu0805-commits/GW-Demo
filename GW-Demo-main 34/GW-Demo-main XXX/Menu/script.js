@@ -1896,14 +1896,17 @@ const skillLibrary = {
     { id: 'karma_gun', name: '枪击', color: 'gray', cost: '1步', description: '需手枪道具；指定方位整排造成10点伤害与5点精神伤害。', probability: '65%', minLevel: 20 },
     { id: 'karma_listen', name: '都听你的', color: 'blue', cost: '2步', description: '可选四周任意3格并回复5SP（可少选）。', probability: '40%', minLevel: 20 },
     { id: 'karma_blood_grip', name: '嗜血之握', color: 'red', cost: '3步', description: '连续使用四次"沙包大的拳头"后可释放，对非Boss造成75伤害、小Boss 80、精英100，并立即处决对应目标。', probability: '30%', minLevel: 20 },
-    { id: 'karma_deep_breath', name: '深呼吸', color: 'white', cost: '2步', description: '主动恢复全部SP与10HP；若当前技能卡池未使用该技能，则获得10%伤害加成（同一时间仅可存在1张）。', probability: '20%', minLevel: 25 }
+    { id: 'karma_deep_breath', name: '深呼吸', color: 'white', cost: '2步', description: '主动恢复全部SP与10HP；若当前技能卡池未使用该技能，则获得10%伤害加成（同一时间仅可存在1张）。', probability: '20%', minLevel: 25 },
+    { id: 'karma_adrenaline', name: '肾上腺素', color: 'white', cost: '2步', description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"。', probability: '20%', minLevel: 50 }
   ],
   dario: [
-    { id: 'dario_claw', name: '机械爪击', color: 'green', cost: '1步', description: '前方2格造成15点伤害，并有15%概率令目标眩晕。', probability: '80%', minLevel: 20 },
+    { id: 'dario_claw', name: '机械爪击', color: 'green', cost: '1步', description: '前方两格15点伤害。（15%能对普通敌人单位叠一层眩晕）', probability: '80%', minLevel: 20 },
     { id: 'dario_gun', name: '枪击', color: 'gray', cost: '1步', description: '需手枪道具；指定方位整排造成10点伤害与5点精神伤害。', probability: '65%', minLevel: 20 },
     { id: 'dario_swift', name: '迅捷步伐', color: 'blue', cost: '2步', description: '可选四周任意4格并自由移动，同时令最近敌人-5SP（可少选）。', probability: '40%', minLevel: 20 },
     { id: 'dario_pull', name: '拿来吧你！', color: 'red', cost: '3步', description: '整排首个非Boss单位造成20点伤害并拉至身前，附1回合眩晕与-15SP；对Boss仍附眩晕与SP伤害但无法拉动。', probability: '30%', minLevel: 20 },
-    { id: 'dario_bitter_sweet', name: '先苦后甜', color: 'orange', cost: '4步', description: '下一回合额外+4步（技能池一次仅能存在1张）。', probability: '15%', minLevel: 25 }
+    { id: 'dario_bitter_sweet', name: '先苦后甜', color: 'orange', cost: '4步', description: '下一回合额外+4步（技能池一次仅能存在1张）。', probability: '15%', minLevel: 25 },
+    { id: 'dario_tear_wound', name: '撕裂伤口', color: 'green', cost: '1步', description: '前方3格爪去造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。', probability: '80%', minLevel: 50 },
+    { id: 'dario_status_recovery', name: '状态恢复', color: 'orange', cost: '2步', description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。', probability: '未指定', minLevel: 50 }
   ]
 };
 
@@ -2047,7 +2050,7 @@ const characterData = {
     skills: {
       overview: 'Karma（初始等级 20）· 占 1 格 · HP 200 · SP 50（降至 0：失控 1 回合、-1 步并扣除 20 HP，后自动恢复 50%）。',
       passives: [
-        '暴力瘾：连续攻击同一敌人时伤害 ×1.5；连续 3 次以上追击“沙包大的拳头”，连续 4 次后消耗 5 SP。',
+        '暴力瘾：每连续攻击到敌方单位原本伤害增加x1.5，如果连续攻击3次以上，追击一下沙包大的拳头，并且后面每增加连续的攻击就追击一下。但连续攻击4次后掉5SP。',
         '强悍的肉体：所受伤害 ×0.75。',
         '自尊心：按失去 HP 的 0.5% 等比例提升自身伤害。',
       ],
@@ -2102,6 +2105,19 @@ const characterData = {
             },
           ],
         },
+        {
+          tier: '50 级解锁',
+          list: [
+            {
+              name: '肾上腺素',
+              color: 'white',
+              colorLabel: '白色',
+              cost: '2 步',
+              description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"。',
+              note: '技能池里一次性只能有一个肾上腺素技能，出现概率 20%。',
+            },
+          ],
+        },
       ],
     },
   },
@@ -2140,7 +2156,7 @@ const characterData = {
               color: 'green',
               colorLabel: '绿色',
               cost: '1 步',
-              description: '前方 2 格造成 15 点伤害，并有 15% 概率令目标眩晕。',
+              description: '前方两格15点伤害。（15%能对普通敌人单位叠一层眩晕）',
               note: '出现概率 80%。',
             },
             {
@@ -2179,6 +2195,27 @@ const characterData = {
               cost: '4 步',
               description: '下一回合额外 +4 步（技能池一次仅能存在 1 张）。',
               note: '出现概率 15%。',
+            },
+          ],
+        },
+        {
+          tier: '50 级解锁',
+          list: [
+            {
+              name: '撕裂伤口',
+              color: 'green',
+              colorLabel: '绿色',
+              cost: '1 步',
+              description: '前方3格爪去造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。',
+              note: '多阶段攻击，出现概率 80%。',
+            },
+            {
+              name: '状态恢复',
+              color: 'orange',
+              colorLabel: '橘色',
+              cost: '2 步',
+              description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。',
+              note: '出现概率未指定。',
             },
           ],
         },
