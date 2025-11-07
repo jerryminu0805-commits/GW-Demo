@@ -1494,13 +1494,11 @@ function updateCharacterPortraits(entry) {
       charactersContainer.appendChild(portraitEl);
     }
 
-    // Update position class
+    // Update position class with whitelist validation
+    const VALID_POSITIONS = ['left', 'center', 'right'];
     portraitEl.classList.remove('left', 'center', 'right');
-    if (position === 'left' || position === 'right' || position === 'center') {
-      portraitEl.classList.add(position);
-    } else {
-      portraitEl.classList.add('center'); // Default to center
-    }
+    const validatedPosition = VALID_POSITIONS.includes(position) ? position : 'center';
+    portraitEl.classList.add(validatedPosition);
 
     // Update portrait image
     portraitEl.style.backgroundImage = `url('${portrait}')`;
@@ -1519,20 +1517,21 @@ function updateCharacterPortraits(entry) {
     // Animate new portraits
     if (isNewPortrait) {
       portraitEl.style.opacity = '0';
-      portraitEl.style.transform = position === 'left'
+      portraitEl.style.transform = validatedPosition === 'left'
         ? 'translateX(-30px)'
-        : position === 'right'
+        : validatedPosition === 'right'
         ? 'translateX(30px)'
         : 'translateX(-50%) translateY(30px)';
       
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          portraitEl.style.transition = 'opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease';
+          const transitionMs = PORTRAIT_TRANSITION_MS / 1000;
+          portraitEl.style.transition = `opacity ${transitionMs}s ease, filter ${transitionMs}s ease, transform ${transitionMs}s ease`;
           portraitEl.style.opacity = '1';
           // Reset transform to final position for all position types
-          if (position === 'center') {
+          if (validatedPosition === 'center') {
             portraitEl.style.transform = 'translateX(-50%)';
-          } else if (position === 'left' || position === 'right') {
+          } else if (validatedPosition === 'left' || validatedPosition === 'right') {
             portraitEl.style.transform = '';
           }
         });
