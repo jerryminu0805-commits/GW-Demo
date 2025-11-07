@@ -1442,7 +1442,11 @@ function updateStoryEntry(entry, isLastEntry) {
   }
 
   // Update character portraits for visual novel style
-  updateCharacterPortraits(entry);
+  try {
+    updateCharacterPortraits(entry);
+  } catch (error) {
+    console.warn('Error updating character portraits:', error);
+  }
 
   applyStoryCues(entry);
 }
@@ -1454,12 +1458,15 @@ function updateCharacterPortraits(entry) {
   if (!charactersContainer) return;
 
   // If this is a narration or has no characters, hide all portraits
-  if (!entry || !entry.characters || entry.type === 'narration') {
+  const isNarration = entry && entry.type === 'narration';
+  const hasNoCharacters = !entry || !entry.characters || typeof entry.characters !== 'object';
+  
+  if (isNarration || hasNoCharacters) {
     const portraits = charactersContainer.querySelectorAll('.story-character-portrait');
     portraits.forEach(p => {
       p.style.opacity = '0';
       setTimeout(() => {
-        if (p.style.opacity === '0') p.remove();
+        if (parseFloat(p.style.opacity) === 0) p.remove();
       }, 400);
     });
     return;

@@ -1670,8 +1670,9 @@ function showRoundBanner(text, duration=1800){
   el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), duration);
   
-  // Play Norms.mp3 when round one banner appears
-  if(text === '回合一' || text.toLowerCase().includes('round') && text.includes('1')){
+  // Play Norms.mp3 when round one banner appears (exact match for reliability)
+  const isRoundOne = text === '回合一' || text === 'Round 1' || text === 'round 1';
+  if(isRoundOne){
     try {
       const battleBGM = document.getElementById('battleBGM');
       if (battleBGM) {
