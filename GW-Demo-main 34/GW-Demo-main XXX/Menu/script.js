@@ -1905,8 +1905,8 @@ const skillLibrary = {
     { id: 'dario_swift', name: '迅捷步伐', color: 'blue', cost: '2步', description: '可选四周任意4格并自由移动，同时令最近敌人-5SP（可少选）。', probability: '40%', minLevel: 20 },
     { id: 'dario_pull', name: '拿来吧你！', color: 'red', cost: '3步', description: '整排首个非Boss单位造成20点伤害并拉至身前，附1回合眩晕与-15SP；对Boss仍附眩晕与SP伤害但无法拉动。', probability: '30%', minLevel: 20 },
     { id: 'dario_bitter_sweet', name: '先苦后甜', color: 'orange', cost: '4步', description: '下一回合额外+4步（技能池一次仅能存在1张）。', probability: '15%', minLevel: 25 },
-    { id: 'dario_tear_wound', name: '撕裂伤口', color: 'green', cost: '1步', description: '前方3格爪去造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。', probability: '80%', minLevel: 50 },
-    { id: 'dario_status_recovery', name: '状态恢复', color: 'orange', cost: '2步', description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。', probability: '未指定', minLevel: 50 }
+    { id: 'dario_tear_wound', name: '撕裂伤口', color: 'green', cost: '1步', description: '前方3格爪击造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。', probability: '80%', minLevel: 50 },
+    { id: 'dario_status_recovery', name: '状态恢复', color: 'orange', cost: '2步', description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。', probability: '15%', minLevel: 50 }
   ]
 };
 
@@ -2206,7 +2206,7 @@ const characterData = {
               color: 'green',
               colorLabel: '绿色',
               cost: '1 步',
-              description: '前方3格爪去造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。',
+              description: '前方3格爪击造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。',
               note: '多阶段攻击，出现概率 80%。',
             },
             {
@@ -2215,7 +2215,7 @@ const characterData = {
               colorLabel: '橘色',
               cost: '2 步',
               description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。',
-              note: '出现概率未指定。',
+              note: '出现概率 15%。',
             },
           ],
         },
