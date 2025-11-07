@@ -1359,31 +1359,12 @@ function applyStoryCues(entry) {
     }
   }
 
-  // —— Character Portrait: Display portraits ——
-  if (entry.portrait && storyOverlay) {
-    const portraitImage = String(entry.portrait);
-    // Validate image path to prevent CSS injection
-    if (!/^[a-zA-Z0-9._\-\/]+\.(png|jpg|jpeg|gif|webp)$/i.test(portraitImage)) {
-      console.warn('Invalid portrait image path:', portraitImage);
-    } else {
-      let portraitContainer = storyOverlay.querySelector('.story-portrait');
-      
-      if (!portraitContainer) {
-        portraitContainer = document.createElement('div');
-        portraitContainer.className = 'story-portrait';
-        const storyPanel = storyOverlay.querySelector('.story-panel');
-        if (storyPanel) {
-          storyPanel.insertBefore(portraitContainer, storyPanel.firstChild);
-        }
-      }
-      
-      portraitContainer.style.backgroundImage = `url('${portraitImage}')`;
-      portraitContainer.style.display = 'block';
-    }
-  } else if (storyOverlay) {
-    const portraitContainer = storyOverlay.querySelector('.story-portrait');
-    if (portraitContainer) {
-      portraitContainer.style.display = 'none';
+  // —— Character Portrait: Legacy cleanup (portraits now handled by updateCharacterPortraits) ——
+  // Remove any old story-portrait elements that might have been created previously
+  if (storyOverlay) {
+    const oldPortraitContainer = storyOverlay.querySelector('.story-portrait');
+    if (oldPortraitContainer) {
+      oldPortraitContainer.remove();
     }
   }
 
@@ -1457,17 +1438,106 @@ function updateCharacterPortraits(entry) {
   const charactersContainer = storyOverlay.querySelector('.story-characters');
   if (!charactersContainer) return;
 
-  // Always hide all portraits - character images removed from dialog boxes
-  const portraits = charactersContainer.querySelectorAll('.story-character-portrait');
-  portraits.forEach(p => {
-    p.style.opacity = '0';
-    setTimeout(() => {
-      if (parseFloat(p.style.opacity) === 0) p.remove();
-    }, 400);
+  // Animation timing constant to match CSS transition duration
+  const PORTRAIT_TRANSITION_MS = 400;
+
+  // Get character data from the entry
+  const charactersData = entry?.characters || {};
+  const currentSpeaker = entry?.speaker || null;
+
+  // Get all existing portrait elements
+  const existingPortraits = new Map();
+  charactersContainer.querySelectorAll('.story-character-portrait').forEach(p => {
+    const charName = p.dataset.character;
+    if (charName) existingPortraits.set(charName, p);
   });
-  
-  // Don't render any new portraits
-  return;
+
+  // Track which characters should be displayed
+  const charactersToShow = new Set(Object.keys(charactersData));
+
+  // Remove portraits that are no longer in the scene
+  existingPortraits.forEach((portraitEl, charName) => {
+    if (!charactersToShow.has(charName)) {
+      portraitEl.style.opacity = '0';
+      portraitEl.style.transform = portraitEl.classList.contains('left') 
+        ? 'translateX(-20px)' 
+        : portraitEl.classList.contains('right')
+        ? 'translateX(20px)'
+        : 'translateX(-50%) translateY(20px)';
+      setTimeout(() => {
+        if (portraitEl.parentNode === charactersContainer) {
+          portraitEl.remove();
+        }
+      }, PORTRAIT_TRANSITION_MS);
+    }
+  });
+
+  // Add or update portraits for characters in the scene
+  Object.entries(charactersData).forEach(([charName, charData]) => {
+    const { portrait, position } = charData;
+    if (!portrait) return;
+
+    // Validate image path to prevent CSS injection
+    if (!/^[a-zA-Z0-9._\-\/]+\.(png|jpg|jpeg|gif|webp)$/i.test(portrait)) {
+      console.warn('Invalid portrait image path:', portrait);
+      return;
+    }
+
+    let portraitEl = existingPortraits.get(charName);
+    const isNewPortrait = !portraitEl;
+
+    // Create new portrait element if needed
+    if (isNewPortrait) {
+      portraitEl = document.createElement('div');
+      portraitEl.className = 'story-character-portrait';
+      portraitEl.dataset.character = charName;
+      charactersContainer.appendChild(portraitEl);
+    }
+
+    // Update position class with whitelist validation
+    const VALID_POSITIONS = ['left', 'center', 'right'];
+    portraitEl.classList.remove('left', 'center', 'right');
+    const validatedPosition = VALID_POSITIONS.includes(position) ? position : 'center';
+    portraitEl.classList.add(validatedPosition);
+
+    // Update portrait image
+    portraitEl.style.backgroundImage = `url('${portrait}')`;
+
+    // Determine if this character is speaking
+    const isSpeaking = currentSpeaker && (charName === currentSpeaker);
+
+    // Apply active or dimmed state
+    portraitEl.classList.remove('active', 'dimmed');
+    if (isSpeaking) {
+      portraitEl.classList.add('active');
+    } else {
+      portraitEl.classList.add('dimmed');
+    }
+
+    // Animate new portraits
+    if (isNewPortrait) {
+      portraitEl.style.opacity = '0';
+      portraitEl.style.transform = validatedPosition === 'left'
+        ? 'translateX(-30px)'
+        : validatedPosition === 'right'
+        ? 'translateX(30px)'
+        : 'translateX(-50%) translateY(30px)';
+      
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const transitionMs = PORTRAIT_TRANSITION_MS / 1000;
+          portraitEl.style.transition = `opacity ${transitionMs}s ease, filter ${transitionMs}s ease, transform ${transitionMs}s ease`;
+          portraitEl.style.opacity = '1';
+          // Reset transform to final position for all position types
+          if (validatedPosition === 'center') {
+            portraitEl.style.transform = 'translateX(-50%)';
+          } else if (validatedPosition === 'left' || validatedPosition === 'right') {
+            portraitEl.style.transform = '';
+          }
+        });
+      });
+    }
+  });
 }
 
 function advanceStory() {
