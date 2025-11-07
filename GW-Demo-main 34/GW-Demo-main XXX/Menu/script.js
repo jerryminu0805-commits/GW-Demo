@@ -2406,7 +2406,7 @@ function setupSkillSelectionInteractions(container, characterId) {
     // Right-click to show description
     card.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      const skill = findSkillById(draggedSkillId || card.dataset.skillId, characterId);
+      const skill = findSkillById(card.dataset.skillId, characterId);
       if (skill) {
         showSkillDescription(skill, e.pageX, e.pageY);
       }
@@ -2437,22 +2437,18 @@ function setupSkillSelectionInteractions(container, characterId) {
       
       // Check if skill color matches slot color
       if (skill.color !== slotColor) {
-        showToast(`技能颜色不匹配！此槽位只能放置${slotColor}技能`);
+        const colorLabels = {
+          green: '绿色', blue: '蓝色', pink: '粉色', 
+          white: '白色', red: '红色', orange: '橙色', gray: '灰色'
+        };
+        showToast(`技能颜色不匹配！此槽位只能放置${colorLabels[slotColor] || slotColor}技能`);
         return;
       }
       
       // Remove skill from previous slot if it was dragged from a slot
       if (draggedFromSlot) {
         const fromColor = draggedFromSlot.dataset.color;
-        const fromIndex = parseInt(draggedFromSlot.dataset.slotIndex);
-        
-        if (fromColor === 'orange') {
-          const selected = loadSelectedSkills();
-          selected[characterId].orange.splice(fromIndex, 1);
-          saveSelectedSkills(selected);
-        } else {
-          unselectSkill(characterId, draggedSkillId, fromColor);
-        }
+        unselectSkill(characterId, draggedSkillId, fromColor);
       }
       
       // Add skill to new slot
