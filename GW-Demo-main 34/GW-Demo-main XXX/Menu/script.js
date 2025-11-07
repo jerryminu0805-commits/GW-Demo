@@ -1889,7 +1889,8 @@ const skillLibrary = {
     { id: 'adora_medical', name: '略懂的医术！', color: 'pink', cost: '2步', description: '以自身为中心5×5选择1名友方，恢复20HP与15SP，并赋予1层"恢复"Buff（下一个大回合开始恢复5HP，仅消耗1层）。', probability: '30%', minLevel: 25 },
     { id: 'adora_cheer', name: '加油哇！', color: 'orange', cost: '4步', description: '以自身为中心5×5选择1名友方，授予1层"鸡血"Buff（下次攻击伤害×2，最多1层）。', probability: '20%', minLevel: 25 },
     { id: 'adora_rely', name: '只能靠你了。。', color: 'orange', cost: '4步', description: '牺牲自身25HP，为四周任意5格内1名友方施加"依赖"Buff（下次攻击造成真实伤害并将其SP降至0，最多1层）。', probability: '15%', minLevel: 35 },
-    { id: 'adora_bloom', name: '绽放', color: 'red', cost: '3步', description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层10HP与5SP）并根据引爆层数来吸取HP与SP（每绽放一层血色花蕾：恢复Adora 5HP与5SP）。', probability: '20%', minLevel: 50 }
+    { id: 'adora_bloom', name: '绽放', color: 'red', cost: '3步', description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层10HP与5SP）并根据引爆层数来吸取HP与SP（每绽放一层血色花蕾：恢复Adora 5HP与5SP）。', probability: '20%', minLevel: 50 },
+    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '20%', minLevel: 50 }
   ],
   karma: [
     { id: 'karma_punch', name: '沙包大的拳头', color: 'green', cost: '1步', description: '造成15点伤害。', probability: '80%', minLevel: 20 },
@@ -1897,7 +1898,7 @@ const skillLibrary = {
     { id: 'karma_listen', name: '都听你的', color: 'blue', cost: '2步', description: '可选四周任意3格并回复5SP（可少选）。', probability: '40%', minLevel: 20 },
     { id: 'karma_blood_grip', name: '嗜血之握', color: 'red', cost: '3步', description: '连续使用四次"沙包大的拳头"后可释放，对非Boss造成75伤害、小Boss 80、精英100，并立即处决对应目标。', probability: '30%', minLevel: 20 },
     { id: 'karma_deep_breath', name: '深呼吸', color: 'white', cost: '2步', description: '主动恢复全部SP与10HP；若当前技能卡池未使用该技能，则获得10%伤害加成（同一时间仅可存在1张）。', probability: '20%', minLevel: 25 },
-    { id: 'karma_adrenaline', name: '肾上腺素', color: 'white', cost: '2步', description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"。', probability: '20%', minLevel: 50 }
+    { id: 'karma_adrenaline', name: '肾上腺素', color: 'white', cost: '2步', description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"（技能池里一次性只能有一个肾上腺素技能）。', probability: '20%', minLevel: 50 }
   ],
   dario: [
     { id: 'dario_claw', name: '机械爪击', color: 'green', cost: '1步', description: '前方两格15点伤害。（15%能对普通敌人单位叠一层眩晕）', probability: '80%', minLevel: 20 },
@@ -2021,6 +2022,14 @@ const characterData = {
               cost: '3 步',
               description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层 10 HP 与 5 SP）并根据引爆层数来吸取 HP 与 SP（每绽放一层血色花蕾：恢复 Adora 5 HP 与 5 SP）。',
               note: '技能池里一次性只能有一个绽放技能，出现概率 20%。',
+            },
+            {
+              name: '课本知识：刺杀一',
+              color: 'green',
+              colorLabel: '绿色',
+              cost: '1 步',
+              description: '能选择四周任何 2 格并瞬移到对方后侧并用匕首插进对方身体里造成 10 HP 5 SP，随后再拔出来造成 5 HP 5 SP以及给对方叠一层流血。',
+              note: '多阶段攻击，出现概率 20%。',
             },
           ],
         },

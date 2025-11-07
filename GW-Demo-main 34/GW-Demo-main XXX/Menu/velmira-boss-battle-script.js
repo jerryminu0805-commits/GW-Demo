@@ -1337,6 +1337,7 @@ const SKILL_FX_CONFIG = {
   'adora:加油哇！':         {type:'aura', primary:'#ffcf74', secondary:'#ffe9bb', glyph:'★'},
   'adora:只能靠你了。。':   {type:'impact', primary:'#ff6161', secondary:'#ffd6d6'},
   'adora:绽放':             {type:'aura', primary:'#ff4d6d', secondary:'#ffb3c1', glyph:'🌸'},
+  'adora:课本知识：刺杀一': {type:'slash', primary:'#c44569', secondary:'rgba(196,69,105,0.55)', spark:'#ffd4e0', slashes:3},
   'adora:枪击':             {type:'beam', primary:'#ffd780', secondary:'#fff1c2', glow:'rgba(255,255,255,0.9)', variant:'adora'},
   'dario:机械爪击':         {type:'claw', primary:'#f6c55b', secondary:'#fff3c7', scratches:4, spacing:14, delayStep:22, shards:3, shardSpread:12, shardArc:10, shardStartAngle:-24, variant:'mecha', attack:{type:'swing', swings:2, spread:12, delayStep:32, variant:'mecha'}},
   'dario:枪击':             {type:'beam', primary:'#9ee0ff', secondary:'#dcf6ff', glow:'rgba(255,255,255,0.85)', variant:'dario'},
@@ -2162,6 +2163,50 @@ function adoraFieldMedic(u, aim){
   appendLog(`${u.name} 对 ${t.name} 使用 略懂的医术！：恢复 ${healHp} HP 和 ${healSp} SP，并赋予 1 层"恢复"`);
   unitActed(u);
 }
+async function adoraAssassination(u, target){
+  if(!target || target.side===u.side || target.hp<=0){ 
+    appendLog('课本知识：刺杀一 目标无效'); 
+    unitActed(u); 
+    return; 
+  }
+  
+  // Get position behind target
+  const targetDir = cardinalDirFromDelta(target.r - u.r, target.c - u.c);
+  const behindCell = forwardCellAt(target, targetDir, 1);
+  
+  // If can't get behind, just attack from current position
+  const teleportDest = behindCell && !getUnitAt(behindCell.r, behindCell.c) ? behindCell : null;
+  
+  // Stage 1: Teleport and stab in
+  if(teleportDest){
+    showTrail(u.r, u.c, teleportDest.r, teleportDest.c);
+    u.r = teleportDest.r;
+    u.c = teleportDest.c;
+    pulseCell(u.r, u.c);
+    registerUnitMove(u);
+    const newDir = cardinalDirFromDelta(target.r - u.r, target.c - u.c);
+    setUnitFacing(u, newDir);
+    appendLog(`${u.name} 瞬移到 ${target.name} 后侧`);
+  }
+  
+  await telegraphThenImpact([{r:target.r,c:target.c}]);
+  cameraFocusOnCell(target.r, target.c);
+  const dmg1 = calcOutgoingDamage(u, 10, target, '课本知识：刺杀一');
+  damageUnit(target.id, dmg1, 5, `${u.name} 匕首插入 ${target.name}`, u.id, {skillFx:'adora:课本知识：刺杀一'});
+  u.dmgDone += dmg1;
+  await sleep(400);
+  
+  // Stage 2: Pull out and apply bleed
+  if(target.hp > 0){
+    await telegraphThenImpact([{r:target.r,c:target.c}]);
+    const dmg2 = calcOutgoingDamage(u, 5, target, '课本知识：刺杀一');
+    damageUnit(target.id, dmg2, 5, `${u.name} 拔出匕首 ${target.name}`, u.id, {skillFx:'adora:课本知识：刺杀一'});
+    u.dmgDone += dmg2;
+    applyBleed(target, 1);
+  }
+  
+  unitActed(u);
+}
 function karmaDeepBreath(u){
   const hpBefore = u.hp, spBefore = u.sp;
   u.sp = u.maxSp; syncSpBroken(u);
@@ -2702,6 +2747,14 @@ function buildSkillFactoriesForUnit(u){
         (uu,aim)=> adoraDepend(uu,aim),
         {aoe:false},
         {cellTargeting:true, castMs:900}
+      )}
+    );
+    F.push(
+      { key:'课本知识：刺杀一', prob:0.20, cond:()=>u.level>=50, make:()=> skill('课本知识：刺杀一',1,'green','四周2格瞬移到敌人后侧，插入10HP+5SP，拔出5HP+5SP+1层流血',
+        (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)<=2? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_move_radius(uu,2).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side!==uu.side; }),
+        (uu,target)=> adoraAssassination(uu,target),
+        {},
+        {castMs:1200}
       )}
     );
     F.push(
