@@ -641,51 +641,51 @@ const stageStories = {
   intro: [
     { type: 'narration', text: '进入黑暗……' },
     { type: 'narration', text: '剧情缓缓展开……', background: 'Home.png', audio: 'Intro 1.mp3', audioAction: 'play' },
-    { speaker: 'Karma', text: '。。。。。', portrait: 'KarmaSpeachless.png' },
-    { speaker: 'Dario', text: '所以你们怎么想？', portrait: 'DarioNorms.png' },
-    { speaker: 'Dario', text: '在灰色偏黑色的产业里走久了还是被抓到把柄了，但是那刑警队队长也奇怪，说什么让我们协助他们把赫尔希教团灭了就算将功补过。。。。', portrait: 'DarioNorms.png' },
-    { speaker: 'Adora', text: '都叫你们别搞这些乱七八糟的啦。。。咱家又不是没钱，那需要去冒险犯法捞钱啊？', portrait: 'AdoraAnnoyed.png' },
-    { speaker: 'Adora', text: '还连累了我们那么多兄弟们。。。。', portrait: 'AdoraAnnoyed.png' },
-    { speaker: 'Karma', text: '哎呀，我们搞这些不就是寻求刺激吗，谁在乎钱啊？', portrait: 'KarmaSmile.png' },
-    { speaker: 'Adora', text: '对对对，现在刺激了，如何呢。', portrait: 'AdoraBadSmile.png' },
-    { speaker: 'Dario', text: '诶诶，先回到正题。', portrait: 'DarioNorms.png' },
-    { speaker: 'Dario', text: '你们怎么想的？', portrait: 'DarioNorms.png' },
-    { speaker: 'Karma', text: '还怎么想，跟那群当官的狗拼了呗！', portrait: 'KarmaYell.png' },
-    { speaker: 'Adora', text: '。。。', portrait: 'AdoraAnnoyed.png' },
-    { speaker: 'Adora', text: '要我说还是配合他们吧。', portrait: 'AdoraTalk.png' },
-    { speaker: 'Adora', text: '我刚刚查了下，这教团可不是什么普通教团，而是货真价实的邪教组织，搞恐怖袭击那种。', portrait: 'AdoraTalk.png' },
-    { speaker: 'Adora', text: '如果这次不配合，以后哪怕政府放过我们，这教团也有极大可能性来找麻烦。。。。', portrait: 'AdoraAnnoyed.png' },
+    { speaker: 'Karma', text: '。。。。。', portrait: 'KarmaSpeachless.png', position: 'right', characters: { Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Dario', text: '所以你们怎么想？', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Dario', text: '在灰色偏黑色的产业里走久了还是被抓到把柄了，但是那刑警队队长也奇怪，说什么让我们协助他们把赫尔希教团灭了就算将功补过。。。。', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Adora', text: '都叫你们别搞这些乱七八糟的啦。。。咱家又不是没钱，那需要去冒险犯法捞钱啊？', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Adora', text: '还连累了我们那么多兄弟们。。。。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Karma', text: '哎呀，我们搞这些不就是寻求刺激吗，谁在乎钱啊？', portrait: 'KarmaSmile.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSmile.png', position: 'right' } } },
+    { speaker: 'Adora', text: '对对对，现在刺激了，如何呢。', portrait: 'AdoraBadSmile.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraBadSmile.png', position: 'center' }, Karma: { portrait: 'KarmaSmile.png', position: 'right' } } },
+    { speaker: 'Dario', text: '诶诶，先回到正题。', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraBadSmile.png', position: 'center' }, Karma: { portrait: 'KarmaSmile.png', position: 'right' } } },
+    { speaker: 'Dario', text: '你们怎么想的？', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraBadSmile.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Karma', text: '还怎么想，跟那群当官的狗拼了呗！', portrait: 'KarmaYell.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraBadSmile.png', position: 'center' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { speaker: 'Adora', text: '。。。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { speaker: 'Adora', text: '要我说还是配合他们吧。', portrait: 'AdoraTalk.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Adora', text: '我刚刚查了下，这教团可不是什么普通教团，而是货真价实的邪教组织，搞恐怖袭击那种。', portrait: 'AdoraTalk.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Adora', text: '如果这次不配合，以后哪怕政府放过我们，这教团也有极大可能性来找麻烦。。。。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
     { type: 'narration', text: 'Adora把手机给两人看\n手机里显示着赫尔希最近屠戮了整条街的普通民众，并且收集了所有的血液。' },
-    { speaker: 'Karma', text: '。。。', portrait: 'KarmaScared.png' },
-    { speaker: 'Dario', text: '啊。。。', portrait: 'DarioScared.png' },
-    { speaker: 'Adora', text: '看到了吧，这群可是真疯子。', portrait: 'AdoraTalk.png' },
-    { speaker: 'Adora', text: '最好赶快处理了算了。', portrait: 'AdoraTalk.png' },
-    { speaker: 'Adora', text: '还能在政府那刷刷好感度呢。', portrait: 'AdoraAnnoyed.png' },
-    { speaker: 'Dario', text: '嗯嗯，小朵说的在理。。。', portrait: 'DarioThinking.png' },
-    { speaker: 'Dario', text: 'Karma你觉得呢？', portrait: 'DarioNorms.png' },
-    { speaker: 'Karma', text: '我还能说啥，干呗。', portrait: 'KarmaSmile.png' },
-    { speaker: 'Dario', text: '行，我去联系下。', portrait: 'DarioNorms.png' },
+    { speaker: 'Karma', text: '。。。', portrait: 'KarmaScared.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Dario', text: '啊。。。', portrait: 'DarioScared.png', position: 'left', characters: { Dario: { portrait: 'DarioScared.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Adora', text: '看到了吧，这群可是真疯子。', portrait: 'AdoraTalk.png', position: 'center', characters: { Dario: { portrait: 'DarioScared.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Adora', text: '最好赶快处理了算了。', portrait: 'AdoraTalk.png', position: 'center', characters: { Dario: { portrait: 'DarioScared.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Adora', text: '还能在政府那刷刷好感度呢。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioScared.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Dario', text: '嗯嗯，小朵说的在理。。。', portrait: 'DarioThinking.png', position: 'left', characters: { Dario: { portrait: 'DarioThinking.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Dario', text: 'Karma你觉得呢？', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Karma', text: '我还能说啥，干呗。', portrait: 'KarmaSmile.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSmile.png', position: 'right' } } },
+    { speaker: 'Dario', text: '行，我去联系下。', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, Karma: { portrait: 'KarmaSmile.png', position: 'right' } } },
     { type: 'narration', text: '（通话）' },
-    { speaker: 'Dario', text: '好了，他们叫我们先去他们那里做个测试。', portrait: 'DarioNorms.png' },
-    { speaker: 'Karma', text: '咋地，瞧不起我们？', portrait: 'KarmaAnnoyed.png' },
-    { speaker: 'Karma', text: '我靠，之前火拼的时候他们可没有一次占到便宜了！', portrait: 'KarmaYell.png' },
-    { speaker: 'Adora', text: '哥。。就测试下而已。。。', portrait: 'AdoraWorried.png' },
-    { speaker: 'Adora', text: '应该是看看我们具体实力。', portrait: 'AdoraTalk.png' },
-    { speaker: 'Karma', text: '切', portrait: 'KarmaSpeachless.png' },
+    { speaker: 'Dario', text: '好了，他们叫我们先去他们那里做个测试。', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { speaker: 'Karma', text: '咋地，瞧不起我们？', portrait: 'KarmaAnnoyed.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' } } },
+    { speaker: 'Karma', text: '我靠，之前火拼的时候他们可没有一次占到便宜了！', portrait: 'KarmaYell.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { speaker: 'Adora', text: '哥。。就测试下而已。。。', portrait: 'AdoraWorried.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { speaker: 'Adora', text: '应该是看看我们具体实力。', portrait: 'AdoraTalk.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { speaker: 'Karma', text: '切', portrait: 'KarmaSpeachless.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
     { type: 'narration', text: '。。。。。' },
     { type: 'narration', text: '（转场）', audio: 'Intro 1.mp3', audioAction: 'stop' },
     { type: 'narration', text: '（刑警部门建筑）', background: 'PStation.png', audio: 'Intro Dialog.mp3', audioAction: 'play' },
-    { speaker: 'Dario', text: '哎呦，张队，又见面了', portrait: 'DarioSmile.png' },
-    { speaker: 'Dario', text: '难得看到张队脸上不带任何杀意呢，真是活久见了', portrait: 'DarioSmile.png' },
-    { speaker: '张队', text: '。。。。好了，我们就直入主题吧。', portrait: 'Zhang.png' },
-    { speaker: '张队', text: '我们目前只算是暂时合作关系，如果你们敢做任何小动作的话——', portrait: 'Zhang.png' },
+    { speaker: 'Dario', text: '哎呦，张队，又见面了', portrait: 'DarioSmile.png', position: 'left', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
+    { speaker: 'Dario', text: '难得看到张队脸上不带任何杀意呢，真是活久见了', portrait: 'DarioSmile.png', position: 'left', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
+    { speaker: '张队', text: '。。。。好了，我们就直入主题吧。', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
+    { speaker: '张队', text: '我们目前只算是暂时合作关系，如果你们敢做任何小动作的话——', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
     { type: 'narration', text: '*张队拉枪栓' },
-    { speaker: '张队', text: '后果自负。', portrait: 'ZhangScary.png' },
-    { speaker: 'Dario', text: '当然当然，哪敢啊～', portrait: 'DarioSmile.png' },
-    { speaker: '张队', text: '。。。训练场在隔壁一栋楼，进去和门卫打声招呼后就能开始了。', portrait: 'Zhang.png' },
-    { speaker: '张队', text: '哦对了，子弹使用的假弹，虽然不致命，但是还是很痛的。', portrait: 'Zhang.png' },
-    { speaker: '张队', text: '保护好小朋友。', portrait: 'Zhang.png' },
-    { speaker: 'Adora', text: '。。。。', portrait: 'AdoraAnnoyed.png' },
+    { speaker: '张队', text: '后果自负。', portrait: 'ZhangScary.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'ZhangScary.png', position: 'right' } } },
+    { speaker: 'Dario', text: '当然当然，哪敢啊～', portrait: 'DarioSmile.png', position: 'left', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'ZhangScary.png', position: 'right' } } },
+    { speaker: '张队', text: '。。。训练场在隔壁一栋楼，进去和门卫打声招呼后就能开始了。', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
+    { speaker: '张队', text: '哦对了，子弹使用的假弹，虽然不致命，但是还是很痛的。', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
+    { speaker: '张队', text: '保护好小朋友。', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
+    { speaker: 'Adora', text: '。。。。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
     { type: 'narration', text: '（准备进入战斗）', audio: 'Intro Dialog.mp3', audioAction: 'stop' },
   ],
   sevenSeas: [
@@ -1441,7 +1441,92 @@ function updateStoryEntry(entry, isLastEntry) {
     storyNextButton.textContent = isLastEntry ? '结束' : '继续';
   }
 
+  // Update character portraits for visual novel style
+  updateCharacterPortraits(entry);
+
   applyStoryCues(entry);
+}
+
+function updateCharacterPortraits(entry) {
+  if (!storyOverlay) return;
+
+  const charactersContainer = storyOverlay.querySelector('.story-characters');
+  if (!charactersContainer) return;
+
+  // If this is a narration or has no characters, hide all portraits
+  if (!entry || !entry.characters || entry.type === 'narration') {
+    const portraits = charactersContainer.querySelectorAll('.story-character-portrait');
+    portraits.forEach(p => {
+      p.style.opacity = '0';
+      setTimeout(() => {
+        if (p.style.opacity === '0') p.remove();
+      }, 400);
+    });
+    return;
+  }
+
+  const characters = entry.characters;
+  const currentSpeaker = entry.speaker;
+
+  // Get existing portraits
+  const existingPortraits = new Map();
+  charactersContainer.querySelectorAll('.story-character-portrait').forEach(p => {
+    const charName = p.dataset.character;
+    if (charName) {
+      existingPortraits.set(charName, p);
+    }
+  });
+
+  // Update or create portraits for each character
+  Object.entries(characters).forEach(([charName, charData]) => {
+    let portrait = existingPortraits.get(charName);
+    
+    if (!portrait) {
+      // Create new portrait
+      portrait = document.createElement('div');
+      portrait.className = 'story-character-portrait';
+      portrait.dataset.character = charName;
+      charactersContainer.appendChild(portrait);
+      
+      // Fade in
+      requestAnimationFrame(() => {
+        portrait.style.opacity = '1';
+      });
+    }
+
+    // Update portrait image if changed
+    const newImage = `url('${charData.portrait}')`;
+    if (portrait.style.backgroundImage !== newImage) {
+      portrait.style.backgroundImage = newImage;
+    }
+
+    // Update position class
+    portrait.classList.remove('left', 'center', 'right');
+    portrait.classList.add(charData.position || 'center');
+
+    // Update active/dimmed state based on who is speaking
+    if (charName === currentSpeaker) {
+      portrait.classList.add('active');
+      portrait.classList.remove('dimmed');
+    } else {
+      portrait.classList.remove('active');
+      portrait.classList.add('dimmed');
+    }
+
+    // Mark as still in use
+    existingPortraits.delete(charName);
+  });
+
+  // Remove portraits that are no longer needed
+  existingPortraits.forEach(portrait => {
+    portrait.style.opacity = '0';
+    portrait.classList.add('dimmed');
+    setTimeout(() => {
+      if (portrait.parentNode === charactersContainer) {
+        portrait.remove();
+      }
+    }, 400);
+  });
 }
 
 function advanceStory() {
@@ -1536,6 +1621,12 @@ function finishStageStory(skipped = false) {
     if (portraitContainer) {
       portraitContainer.style.display = 'none';
       portraitContainer.style.backgroundImage = '';
+    }
+    
+    // cleanup visual novel character portraits
+    const charactersContainer = storyOverlay.querySelector('.story-characters');
+    if (charactersContainer) {
+      charactersContainer.innerHTML = '';
     }
   }
 
