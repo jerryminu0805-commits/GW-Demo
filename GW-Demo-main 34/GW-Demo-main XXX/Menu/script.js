@@ -1438,6 +1438,9 @@ function updateCharacterPortraits(entry) {
   const charactersContainer = storyOverlay.querySelector('.story-characters');
   if (!charactersContainer) return;
 
+  // Animation timing constant to match CSS transition duration
+  const PORTRAIT_TRANSITION_MS = 400;
+
   // Get character data from the entry
   const charactersData = entry?.characters || {};
   const currentSpeaker = entry?.speaker || null;
@@ -1465,7 +1468,7 @@ function updateCharacterPortraits(entry) {
         if (portraitEl.parentNode === charactersContainer) {
           portraitEl.remove();
         }
-      }, 400);
+      }, PORTRAIT_TRANSITION_MS);
     }
   });
 
@@ -1473,6 +1476,12 @@ function updateCharacterPortraits(entry) {
   Object.entries(charactersData).forEach(([charName, charData]) => {
     const { portrait, position } = charData;
     if (!portrait) return;
+
+    // Validate image path to prevent CSS injection
+    if (!/^[a-zA-Z0-9._\-\/]+\.(png|jpg|jpeg|gif|webp)$/i.test(portrait)) {
+      console.warn('Invalid portrait image path:', portrait);
+      return;
+    }
 
     let portraitEl = existingPortraits.get(charName);
     const isNewPortrait = !portraitEl;
@@ -1520,7 +1529,12 @@ function updateCharacterPortraits(entry) {
         requestAnimationFrame(() => {
           portraitEl.style.transition = 'opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease';
           portraitEl.style.opacity = '1';
-          portraitEl.style.transform = position === 'center' ? 'translateX(-50%)' : '';
+          // Reset transform to final position for all position types
+          if (position === 'center') {
+            portraitEl.style.transform = 'translateX(-50%)';
+          } else if (position === 'left' || position === 'right') {
+            portraitEl.style.transform = '';
+          }
         });
       });
     }
