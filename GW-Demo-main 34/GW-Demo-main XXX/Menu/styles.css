@@ -1106,6 +1106,36 @@ body {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.story-portrait {
+  width: 150px;
+  height: 150px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  margin: 0 auto 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: none;
+  transition: opacity 0.4s ease;
+}
+
+.story-portrait[style*="display: block"] {
+  display: block;
+  animation: portraitFadeIn 0.5s ease;
+}
+
+@keyframes portraitFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes storyLineFade {
   from {
     opacity: 0;
