@@ -549,6 +549,46 @@ function injectFXStyles(){
                           animation: skill-aura-glyph 720ms ease-out forwards; }
   .skill-fx.aura .particles { position:absolute; inset:0; background: radial-gradient(circle, var(--skill-primary, rgba(255,255,255,0.35)) 0%, rgba(255,255,255,0) 70%);
                               border-radius:50%; opacity:0.6; filter: blur(12px); animation: skill-aura-pulse 780ms ease-out forwards; }
+  .skill-fx.bloom-vine { width: 150px; height: 190px; opacity: 0; filter: drop-shadow(0 12px 26px rgba(255, 82, 120, 0.45));
+                         animation: bloom-vine-fade 820ms ease-out forwards; }
+  .skill-fx.bloom-vine .vine { position:absolute; left:50%; bottom:22%; width:18px; height:110px; border-radius:999px;
+                               background: linear-gradient(180deg, rgba(122,0,18,0.95), rgba(255,102,138,0.78));
+                               transform: translate(-50%, 30%) scaleY(0.25); opacity:0; animation: bloom-vine-grow 520ms ease-out forwards; }
+  .skill-fx.bloom-vine .tendrils { position:absolute; left:50%; bottom:28%; width:120px; height:90px; pointer-events:none; transform: translateX(-50%); }
+  .skill-fx.bloom-vine .tendril { position:absolute; bottom:38%; width:62px; height:12px; border-radius:999px;
+                                  background: radial-gradient(circle, rgba(255,150,176,0.9) 0%, rgba(255,150,176,0));
+                                  opacity:0; animation: bloom-vine-tendril 620ms ease-out forwards; }
+  .skill-fx.bloom-vine .tendril.one { left:4px; transform-origin:left 50%; transform: rotate(-34deg); }
+  .skill-fx.bloom-vine .tendril.two { right:4px; transform-origin:right 50%; transform: rotate(32deg); animation-delay: 140ms; }
+  .skill-fx.bloom-vine .flower { position:absolute; left:50%; bottom: calc(22% + 112px); width:74px; height:74px; border-radius:50%;
+                                 background: radial-gradient(circle, rgba(255,214,224,0.95) 0%, rgba(255,98,132,0.82) 46%, rgba(255,0,70,0) 72%);
+                                 transform: translate(-50%, 26%) scale(0.35); opacity:0; animation: bloom-vine-flower 560ms ease-out forwards; }
+  .skill-fx.bloom-heal { width: 150px; height: 150px; opacity:0; filter: drop-shadow(0 8px 18px rgba(255, 120, 150, 0.45));
+                         animation: bloom-heal-fade 780ms ease-out forwards; }
+  .skill-fx.bloom-heal .glow { position:absolute; left:50%; top:50%; width:92%; height:92%; border-radius:50%;
+                               background: radial-gradient(circle, rgba(255,120,150,0.45) 0%, rgba(255,255,255,0) 75%);
+                               transform: translate(-50%, -50%) scale(0.45); opacity:0; animation: bloom-heal-glow 780ms ease-out forwards; }
+  .skill-fx.bloom-heal .petals { position:absolute; inset:0; }
+  .skill-fx.bloom-heal .petal { position:absolute; left:50%; top:50%; width:28px; height:54px; border-radius:16px 16px 30px 30px;
+                                background: linear-gradient(180deg, rgba(255,210,220,0.92) 0%, rgba(255,94,128,0.85) 85%);
+                                transform-origin:50% 90%; opacity:0; --petal-angle:0deg; --petal-delay:0ms;
+                                animation: bloom-heal-petal 720ms ease-out forwards; animation-delay: var(--petal-delay); }
+  .skill-fx.bloom-heal .petal[data-index="0"] { --petal-angle:-90deg; }
+  .skill-fx.bloom-heal .petal[data-index="1"] { --petal-angle:-18deg; --petal-delay:60ms; }
+  .skill-fx.bloom-heal .petal[data-index="2"] { --petal-angle:54deg; --petal-delay:90ms; }
+  .skill-fx.bloom-heal .petal[data-index="3"] { --petal-angle:126deg; --petal-delay:120ms; }
+  .skill-fx.bloom-heal .petal[data-index="4"] { --petal-angle:198deg; --petal-delay:150ms; }
+  .skill-fx.bloom-heal .sparks { position:absolute; inset:0; }
+  .skill-fx.bloom-heal .spark { position:absolute; left:50%; top:50%; width:12px; height:12px; border-radius:50%;
+                                background: radial-gradient(circle, rgba(255,214,220,0.95) 0%, rgba(255,214,220,0) 72%);
+                                opacity:0; --spark-angle:0deg; --spark-delay:0ms;
+                                animation: bloom-heal-spark 680ms ease-out forwards; animation-delay: var(--spark-delay); }
+  .skill-fx.bloom-heal .spark[data-index="0"] { --spark-angle:-22deg; }
+  .skill-fx.bloom-heal .spark[data-index="1"] { --spark-angle:32deg; --spark-delay:40ms; }
+  .skill-fx.bloom-heal .spark[data-index="2"] { --spark-angle:86deg; --spark-delay:80ms; }
+  .skill-fx.bloom-heal .spark[data-index="3"] { --spark-angle:150deg; --spark-delay:100ms; }
+  .skill-fx.bloom-heal .spark[data-index="4"] { --spark-angle:210deg; --spark-delay:120ms; }
+  .skill-fx.bloom-heal .spark[data-index="5"] { --spark-angle:268deg; --spark-delay:150ms; }
   .skill-fx.lightning { width: 180px; height: 180px; }
   .skill-fx.lightning .glow { position:absolute; left:50%; top:50%; width:80%; height:80%; border-radius:50%; opacity:0.8;
                                transform:translate(-50%,-50%) scale(0.4); background: radial-gradient(circle, var(--skill-secondary, rgba(255,255,255,0.85)) 0%, rgba(255,255,255,0) 75%);
@@ -757,6 +797,26 @@ function injectFXStyles(){
   @keyframes skill-spiral-center { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
                                    40% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
                                    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); } }
+  @keyframes bloom-vine-fade { 0% { opacity: 0; } 28% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes bloom-vine-grow { 0% { opacity: 0; transform: translate(-50%, 36%) scaleY(0.15); }
+                               55% { opacity: 1; transform: translate(-50%, 4%) scaleY(1.05); }
+                               100% { opacity: 0; transform: translate(-50%, 0%) scaleY(0.85); } }
+  @keyframes bloom-vine-tendril { 0% { opacity: 0; transform: scaleX(0.4) translateY(12px); }
+                                  40% { opacity: 0.95; transform: scaleX(1) translateY(-6px); }
+                                  100% { opacity: 0; transform: scaleX(1.1) translateY(-12px); } }
+  @keyframes bloom-vine-flower { 0% { opacity: 0; transform: translate(-50%, 30%) scale(0.3); }
+                                 45% { opacity: 1; transform: translate(-50%, -6%) scale(1.05); }
+                                 100% { opacity: 0; transform: translate(-50%, -16%) scale(0.9); } }
+  @keyframes bloom-heal-fade { 0% { opacity: 0; } 32% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes bloom-heal-glow { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.45); }
+                               45% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.02); }
+                               100% { opacity: 0; transform: translate(-50%, -50%) scale(1.32); } }
+  @keyframes bloom-heal-petal { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--petal-angle)) scale(0.35); }
+                                40% { opacity: 1; transform: translate(-50%, -64%) rotate(var(--petal-angle)) scale(1); }
+                                100% { opacity: 0; transform: translate(-50%, -72%) rotate(var(--petal-angle)) scale(0.85); } }
+  @keyframes bloom-heal-spark { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--spark-angle)) translateY(0) scale(0.45); }
+                                35% { opacity: 1; }
+                                100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--spark-angle)) translateY(-46px) scale(0.85); } }
   @keyframes fx-impact { 0%{ transform: translate(-50%,-50%) scale(0.6); opacity: 0; }
                          50%{ transform: translate(-50%,-50%) scale(1.1); opacity: 1; }
                          100%{ transform: translate(-50%,-50%) scale(0.8); opacity: 0; } }
@@ -1318,6 +1378,33 @@ function buildSpiralSkillFx({anchor, angle, config}){
   onAnimEndRemove(node, config.duration || 760);
   return attachSkillFx(node, anchor);
 }
+function buildBloomVineSkillFx({anchor, angle, config}){
+  const node = makeSkillFxNode('bloom-vine');
+  node.innerHTML = `
+    <div class="vine"></div>
+    <div class="tendrils">
+      <span class="tendril one"></span>
+      <span class="tendril two"></span>
+    </div>
+    <div class="flower"></div>
+  `;
+  onAnimEndRemove(node, config.duration || 820);
+  return attachSkillFx(node, anchor);
+}
+function buildBloomHealSkillFx({anchor, angle, config}){
+  const node = makeSkillFxNode('bloom-heal');
+  const petals = [];
+  for(let i=0;i<5;i++){ petals.push(`<span class="petal" data-index="${i}"></span>`); }
+  const sparks = [];
+  for(let i=0;i<6;i++){ sparks.push(`<span class="spark" data-index="${i}"></span>`); }
+  node.innerHTML = `
+    <div class="glow"></div>
+    <div class="petals">${petals.join('')}</div>
+    <div class="sparks">${sparks.join('')}</div>
+  `;
+  onAnimEndRemove(node, config.duration || 780);
+  return attachSkillFx(node, anchor);
+}
 const SKILL_FX_BUILDERS = {
   slash: buildSlashSkillFx,
   claw: buildClawSkillFx,
@@ -1329,6 +1416,8 @@ const SKILL_FX_BUILDERS = {
   impact: buildImpactSkillFx,
   cascade: buildCascadeSkillFx,
   spiral: buildSpiralSkillFx,
+  'bloom-vine': buildBloomVineSkillFx,
+  'bloom-heal': buildBloomHealSkillFx,
 };
 const SKILL_FX_CONFIG = {
   'adora:短匕轻挥':        {type:'slash', primary:'#ff82b6', secondary:'rgba(255,158,206,0.55)', spark:'#ffe5f5', slashes:2},
@@ -1337,6 +1426,8 @@ const SKILL_FX_CONFIG = {
   'adora:略懂的医术！':     {type:'aura', primary:'#75e6a7', secondary:'#c6ffde', outline:'rgba(255,255,255,0.85)', glyph:'✚'},
   'adora:加油哇！':         {type:'aura', primary:'#ffcf74', secondary:'#ffe9bb', glyph:'★'},
   'adora:只能靠你了。。':   {type:'impact', primary:'#ff6161', secondary:'#ffd6d6'},
+  'adora:绽放（红色）·爆裂': {type:'bloom-vine'},
+  'adora:绽放（红色）·治疗': {type:'bloom-heal'},
   'adora:绽放':             {type:'aura', primary:'#ff4d6d', secondary:'#ffb3c1', glyph:'🌸'},
   'adora:课本知识：刺杀一': {type:'cascade', primary:'#8B0000', secondary:'#DC143C', droplets:8},
   'adora:枪击':             {type:'beam', primary:'#ffd780', secondary:'#fff1c2', glow:'rgba(255,255,255,0.9)', variant:'adora'},
@@ -2384,7 +2475,7 @@ function adoraBloom(u){
       // Apply true damage
       damageUnit(target.id, hpDmg, spDmg, `${u.name} 的 绽放（红色） 引爆了 ${target.name} 的 ${budStacks} 层血色花蕾`, u.id, {
         trueDamage: true,
-        skillFx: 'adora:绽放（红色）',
+        skillFx: 'adora:绽放（红色）·爆裂',
         skillFxCtx: {target: target}
       });
       
@@ -2395,20 +2486,52 @@ function adoraBloom(u){
     }
   }
   
-  // Heal Adora based on total layers detonated: 5 HP + 5 SP per layer
+  let adoraHpGained = 0;
+  let adoraSpGained = 0;
+  const healedAllies = [];
+
   if(totalLayersDetonated > 0){
-    const hpHeal = totalLayersDetonated * 5;
-    const spHeal = totalLayersDetonated * 5;
-    u.hp = Math.min(u.maxHp, u.hp + hpHeal);
-    u.sp = Math.min(u.maxSp, u.sp + spHeal);
-    syncSpBroken(u);
-    showGainFloat(u, hpHeal, spHeal);
+    const rangeLimit = 5;
+    for(const id in units){
+      const ally = units[id];
+      if(!ally || ally.hp <= 0 || ally.side !== u.side) continue;
+      if(ally.id !== u.id && mdist(u, ally) > rangeLimit) continue;
+
+      let hpHeal = totalLayersDetonated * 3;
+      let spHeal = totalLayersDetonated * 3;
+      if(ally.id === u.id){
+        hpHeal += totalLayersDetonated * 5;
+        spHeal += totalLayersDetonated * 5;
+      }
+      if(hpHeal <= 0 && spHeal <= 0) continue;
+
+      const prevHp = ally.hp;
+      const prevSp = ally.sp;
+      ally.hp = Math.min(ally.maxHp, ally.hp + hpHeal);
+      ally.sp = Math.min(ally.maxSp, ally.sp + spHeal);
+      syncSpBroken(ally);
+      const gainedHp = ally.hp - prevHp;
+      const gainedSp = ally.sp - prevSp;
+      if(gainedHp > 0 || gainedSp > 0){
+        showGainFloat(ally, gainedHp, gainedSp);
+        showSkillFx('adora:绽放（红色）·治疗', {target: ally});
+        if(ally.id === u.id){
+          adoraHpGained += gainedHp;
+          adoraSpGained += gainedSp;
+        } else {
+          healedAllies.push({name: ally.name, hp: gainedHp, sp: gainedSp});
+        }
+      }
+    }
   }
-  
+
   if(totalBloomedTargets === 0){
     appendLog(`${u.name} 使用了 绽放（红色），但场上没有血色花蕾`);
   } else {
-    appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾，恢复了 ${totalLayersDetonated * 5} HP 和 ${totalLayersDetonated * 5} SP`);
+    const alliesDetail = healedAllies.length
+      ? `；范围治疗 ${healedAllies.map(h => `${h.name}(+${h.hp}HP/+${h.sp}SP)`).join('、')}`
+      : '';
+    appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾（共 ${totalLayersDetonated} 层），自身恢复 ${adoraHpGained} HP 和 ${adoraSpGained} SP${alliesDetail}`);
   }
   
   unitActed(u);
@@ -2868,7 +2991,7 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）'), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP）并根据引爆层数恢复自身HP和SP（每层恢复 5HP+5SP）',
+      { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）'), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP），并让 Adora 自身恢复（每层 +5HP/+5SP）同时治疗 5 格内友方（含自身，每层 +3HP/+3SP）',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> adoraBloom(uu),
         {},
