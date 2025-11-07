@@ -1408,7 +1408,7 @@ function applyStoryCues(entry) {
       // Create and play new audio
       window.storyAudioController = new Audio(audioFile);
       window.storyAudioController.volume = 0.7;
-      window.storyAudioController.loop = false;
+      window.storyAudioController.loop = true;
       window.storyAudioController.play().catch(err => {
         console.warn('Story audio playback failed:', err);
       });
@@ -1457,83 +1457,17 @@ function updateCharacterPortraits(entry) {
   const charactersContainer = storyOverlay.querySelector('.story-characters');
   if (!charactersContainer) return;
 
-  // If this is a narration or has no characters, hide all portraits
-  const isNarration = entry && entry.type === 'narration';
-  const hasNoCharacters = !entry || !entry.characters || typeof entry.characters !== 'object';
-  
-  if (isNarration || hasNoCharacters) {
-    const portraits = charactersContainer.querySelectorAll('.story-character-portrait');
-    portraits.forEach(p => {
-      p.style.opacity = '0';
-      setTimeout(() => {
-        if (parseFloat(p.style.opacity) === 0) p.remove();
-      }, 400);
-    });
-    return;
-  }
-
-  const characters = entry.characters;
-  const currentSpeaker = entry.speaker;
-
-  // Get existing portraits
-  const existingPortraits = new Map();
-  charactersContainer.querySelectorAll('.story-character-portrait').forEach(p => {
-    const charName = p.dataset.character;
-    if (charName) {
-      existingPortraits.set(charName, p);
-    }
-  });
-
-  // Update or create portraits for each character
-  Object.entries(characters).forEach(([charName, charData]) => {
-    let portrait = existingPortraits.get(charName);
-    
-    if (!portrait) {
-      // Create new portrait
-      portrait = document.createElement('div');
-      portrait.className = 'story-character-portrait';
-      portrait.dataset.character = charName;
-      charactersContainer.appendChild(portrait);
-      
-      // Fade in
-      requestAnimationFrame(() => {
-        portrait.style.opacity = '1';
-      });
-    }
-
-    // Update portrait image if changed
-    const newImage = `url('${charData.portrait}')`;
-    if (portrait.style.backgroundImage !== newImage) {
-      portrait.style.backgroundImage = newImage;
-    }
-
-    // Update position class
-    portrait.classList.remove('left', 'center', 'right');
-    portrait.classList.add(charData.position || 'center');
-
-    // Update active/dimmed state based on who is speaking
-    if (charName === currentSpeaker) {
-      portrait.classList.add('active');
-      portrait.classList.remove('dimmed');
-    } else {
-      portrait.classList.remove('active');
-      portrait.classList.add('dimmed');
-    }
-
-    // Mark as still in use
-    existingPortraits.delete(charName);
-  });
-
-  // Remove portraits that are no longer needed
-  existingPortraits.forEach(portrait => {
-    portrait.style.opacity = '0';
-    portrait.classList.add('dimmed');
+  // Always hide all portraits - character images removed from dialog boxes
+  const portraits = charactersContainer.querySelectorAll('.story-character-portrait');
+  portraits.forEach(p => {
+    p.style.opacity = '0';
     setTimeout(() => {
-      if (portrait.parentNode === charactersContainer) {
-        portrait.remove();
-      }
+      if (parseFloat(p.style.opacity) === 0) p.remove();
     }, 400);
   });
+  
+  // Don't render any new portraits
+  return;
 }
 
 function advanceStory() {
