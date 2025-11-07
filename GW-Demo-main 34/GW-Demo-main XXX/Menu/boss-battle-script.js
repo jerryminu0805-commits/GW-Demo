@@ -2181,7 +2181,6 @@ async function adoraAssassination(u, target){
     u.r = teleportDest.r;
     u.c = teleportDest.c;
     pulseCell(u.r, u.c);
-    registerUnitMove(u);
     const newDir = cardinalDirFromDelta(target.r - u.r, target.c - u.c);
     setUnitFacing(u, newDir);
     appendLog(`${u.name} 瞬移到 ${target.name} 后侧`);
@@ -2200,7 +2199,8 @@ async function adoraAssassination(u, target){
     const dmg2 = calcOutgoingDamage(u, 5, target, '课本知识：刺杀一');
     damageUnit(target.id, dmg2, 5, `${u.name} 拔出匕首 ${target.name}`, u.id, {skillFx:'adora:课本知识：刺杀一'});
     u.dmgDone += dmg2;
-    applyBleed(target, 1);
+    const bleedStacks = addStatusStacks(target, 'bleed', 1, {label:'流血', type:'debuff'});
+    appendLog(`${target.name} 流血层数 -> ${bleedStacks}`);
   }
   
   unitActed(u);
