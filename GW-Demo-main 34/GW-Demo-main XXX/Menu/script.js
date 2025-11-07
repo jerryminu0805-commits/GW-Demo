@@ -1346,8 +1346,11 @@ function applyStoryCues(entry) {
   // —— Background Image: Handle custom backgrounds ——
   if (entry.background && storyBackdrop) {
     const bgImage = String(entry.background);
-    if (!storyBackdrop.dataset) storyBackdrop.dataset = {};
-    if (storyBackdrop.dataset.scene !== bgImage) {
+    // Validate image path to prevent CSS injection
+    if (!/^[a-zA-Z0-9._\-\/]+\.(png|jpg|jpeg|gif|webp)$/i.test(bgImage)) {
+      console.warn('Invalid background image path:', bgImage);
+    } else if (!storyBackdrop.dataset || storyBackdrop.dataset.scene !== bgImage) {
+      if (!storyBackdrop.dataset) storyBackdrop.dataset = {};
       storyBackdrop.style.backgroundImage = `url('${bgImage}')`;
       storyBackdrop.style.backgroundSize = 'cover';
       storyBackdrop.style.backgroundPosition = 'center';
@@ -1359,19 +1362,24 @@ function applyStoryCues(entry) {
   // —— Character Portrait: Display portraits ——
   if (entry.portrait && storyOverlay) {
     const portraitImage = String(entry.portrait);
-    let portraitContainer = storyOverlay.querySelector('.story-portrait');
-    
-    if (!portraitContainer) {
-      portraitContainer = document.createElement('div');
-      portraitContainer.className = 'story-portrait';
-      const storyPanel = storyOverlay.querySelector('.story-panel');
-      if (storyPanel) {
-        storyPanel.insertBefore(portraitContainer, storyPanel.firstChild);
+    // Validate image path to prevent CSS injection
+    if (!/^[a-zA-Z0-9._\-\/]+\.(png|jpg|jpeg|gif|webp)$/i.test(portraitImage)) {
+      console.warn('Invalid portrait image path:', portraitImage);
+    } else {
+      let portraitContainer = storyOverlay.querySelector('.story-portrait');
+      
+      if (!portraitContainer) {
+        portraitContainer = document.createElement('div');
+        portraitContainer.className = 'story-portrait';
+        const storyPanel = storyOverlay.querySelector('.story-panel');
+        if (storyPanel) {
+          storyPanel.insertBefore(portraitContainer, storyPanel.firstChild);
+        }
       }
+      
+      portraitContainer.style.backgroundImage = `url('${portraitImage}')`;
+      portraitContainer.style.display = 'block';
     }
-    
-    portraitContainer.style.backgroundImage = `url('${portraitImage}')`;
-    portraitContainer.style.display = 'block';
   } else if (storyOverlay) {
     const portraitContainer = storyOverlay.querySelector('.story-portrait');
     if (portraitContainer) {
