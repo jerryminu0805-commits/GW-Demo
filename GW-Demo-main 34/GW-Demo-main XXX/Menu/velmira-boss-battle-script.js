@@ -2074,22 +2074,6 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
 }
 
 // —— 公用 FX —— 
-function showTrail(r1,c1,r2,c2,{thickness=6,color=null}={}){
-  ensureFxLayer();
-  const p1=getCellCenter(r1,c1), p2=getCellCenter(r2,c2);
-  const dx=p2.x-p1.x, dy=p2.y-p1.y;
-  const len=Math.hypot(dx,dy);
-  const ang=Math.atan2(dy,dx)*180/Math.PI;
-  const trail=makeEl('fx-trail');
-  if(color){ trail.style.background=color; }
-  trail.style.left=`${p1.x}px`;
-  trail.style.top =`${p1.y}px`;
-  trail.style.width=`${thickness}px`;
-  trail.style.transformOrigin='0 0';
-  trail.style.transform=`translate(0,-${Math.max(1, Math.floor(thickness/2))}px) rotate(${ang}deg) scaleY(${len/thickness})`;
-  fxLayer.appendChild(trail);
-  onAnimEndRemove(trail, 260);
-}
 function showTrailWithDuration(r1,c1,r2,c2,duration=500,{thickness=6,color=null}={}){
   ensureFxLayer();
   const p1=getCellCenter(r1,c1), p2=getCellCenter(r2,c2);
@@ -2105,6 +2089,9 @@ function showTrailWithDuration(r1,c1,r2,c2,duration=500,{thickness=6,color=null}
   trail.style.transform=`translate(0,-${Math.max(1, Math.floor(thickness/2))}px) rotate(${ang}deg) scaleY(${len/thickness})`;
   fxLayer.appendChild(trail);
   onAnimEndRemove(trail, duration);
+}
+function showTrail(r1,c1,r2,c2,{thickness=6,color=null}={}){
+  showTrailWithDuration(r1,c1,r2,c2,260,{thickness,color});
 }
 
 // —— 玩家/敌方技能 —— 
