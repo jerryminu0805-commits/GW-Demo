@@ -1,10 +1,11 @@
-// 2D 回合制 RPG Demo - 被遗弃的动物（上）
+// 2D 回合制 RPG Demo - 初见赫雷西战斗
 // 变更摘要：
-// - 重制敌方阵容：移除七海小队，改为 Khathia 的单体 Boss 战与 10x20 新地图。
-// - Khathia：实现“老干部”“变态躯体”“疲劳的躯体”“糟糕的初始设计”等被动与六种招式。
-// - 新状态“怨念”：在回合开始蚕食目标 5% SP，并可被痛苦咆哮清算。
-// - SP 系统：支持单位自定义 SP 下限以及禁用通用崩溃，新增疲劳崩溃逻辑。
-// - AI 调整：Khathia 达到移动上限却仍无法攻击时触发全场 -10 SP 惩罚；保留 BFS+兜底消步机制。
+// - 敌方阵容：雏形赫雷西成员（Cultist Novice）x3 + 法形赫雷西成员（Cultist Mage）x2
+// - 新被动：忠诚信仰（loyalFaith）、神恩（gift）、强化躯体（enhancedBody）、神明指示（godInstruction）
+// - 新状态"怨念"：在回合开始蚕食目标 5% SP
+// - SP 系统：支持单位自定义 SP 下限以及禁用通用崩溃
+// - 地图尺寸：12x15，包含三排掩体（row 5）
+// - AI 调整：保留 BFS+兜底消步机制，确保敌方用尽所有步数
 
 let ROWS = 12;
 let COLS = 15;
@@ -1700,19 +1701,19 @@ function showRoundBanner(text, duration=1800){
   el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), duration);
   
-  // Play Norms.mp3 when round one banner appears (exact match for reliability)
+  // Play Cult1.mp3 BGM when round one banner appears
   const isRoundOne = text === '回合一' || text === 'Round 1' || text === 'round 1';
   if(isRoundOne){
     try {
       const battleBGM = document.getElementById('battleBGM');
       if (battleBGM) {
         battleBGM.volume = 0.6;
-        battleBGM.play().catch(err => console.warn('Failed to play Norms.mp3:', err));
+        battleBGM.play().catch(err => console.warn('Failed to play battle BGM:', err));
       } else {
-        const audio = new Audio('Norms.mp3');
+        const audio = new Audio('Cult1.mp3');
         audio.volume = 0.6;
         audio.loop = true;
-        audio.play().catch(err => console.warn('Failed to play Norms.mp3:', err));
+        audio.play().catch(err => console.warn('Failed to play battle BGM:', err));
       }
     } catch(e) {
       console.warn('Error playing round one audio:', e);
@@ -1763,13 +1764,13 @@ async function playIntroCinematic(){
   setInteractionLocked(true);
   cameraReset({immediate:true});
   await sleep(260);
-  const officer1 = units['officer1'];
-  if(officer1 && officer1.hp>0){
+  const cultist = units['cultistNovice1'];
+  if(cultist && cultist.hp>0){
     const zoom = clampValue(cameraState.baseScale * 1.3, cameraState.minScale, cameraState.maxScale);
-    cameraFocusOnCell(officer1.r, officer1.c, {scale: zoom, hold:0});
+    cameraFocusOnCell(cultist.r, cultist.c, {scale: zoom, hold:0});
     await sleep(420);
   }
-  await showIntroLine('记住，这只是测试，不需要太认真');
+  await showIntroLine('你们遭遇了赫雷西成员... 小心他们的神恩！');
   hideIntroDialog();
   cameraReset();
   await sleep(520);
@@ -3809,10 +3810,10 @@ function checkWin(){
     appendLog('全灭，失败！');
     
     // Stop battle music
-    const battleMusic = document.getElementById('battleMusic');
-    if (battleMusic) {
-      battleMusic.pause();
-      battleMusic.currentTime = 0;
+    const battleBGM = document.getElementById('battleBGM');
+    if (battleBGM) {
+      battleBGM.pause();
+      battleBGM.currentTime = 0;
     }
     
     // Return to stages screen after defeat
@@ -3843,10 +3844,10 @@ function showAccomplish(){
     appendLog('通关!');
     
     // Stop battle music
-    const battleMusic = document.getElementById('battleMusic');
-    if (battleMusic) {
-      battleMusic.pause();
-      battleMusic.currentTime = 0;
+    const battleBGM = document.getElementById('battleBGM');
+    if (battleBGM) {
+      battleBGM.pause();
+      battleBGM.currentTime = 0;
     }
     
     // Award coins for completing firstHeresy stage
@@ -3926,7 +3927,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   startCameraLoop();
 
   // 掩体（不可进入）
-  // Intro 战斗：无掩体
+  // 初见赫雷西战斗：三排掩体在 row 5（columns 2-4, 7-9, 12-14）
   injectFXStyles();
 
   // 起手手牌
@@ -3947,9 +3948,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   window.addEventListener('load', ()=> refreshLargeOverlays());
 
-  appendLog('Intro 战斗：地图 7x14，无掩体。');
-  appendLog('刑警队员具有"正义光环"被动：每对方回合恢复15HP。');
-  appendLog('刑警队员的SP降至0时会失去控制权1回合并减少1步，之后自动恢复至80。');
+  appendLog('初见赫雷西战斗：地图 12x15，包含三排掩体（row 5）。');
+  appendLog('赫雷西成员具有多种被动：忠诚信仰、神恩、强化躯体、神明指示。');
+  appendLog('赫雷西成员的SP降至0时会自动恢复至初始值（70或90）。');
 
   const endTurnBtn=document.getElementById('endTurnBtn');
   if(endTurnBtn) endTurnBtn.addEventListener('click', ()=>{ if(interactionLocked) return; endTurn(); });
