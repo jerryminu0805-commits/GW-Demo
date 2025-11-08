@@ -150,6 +150,8 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
       agileStacks: 0,            // "灵活"Buff 层数（让敌方30%几率miss，miss消耗一层）
       mockeryStacks: 0,          // "戏谑"Buff 层数（打到人给自己2层灵活+1层暴力）
       violenceStacks: 0,         // "暴力"Buff 层数（下次攻击双倍伤害但消耗10sp）
+      cultTarget: false,         // "邪教目标"标记（赫雷西成员特殊针对）
+      vulnerabilityStacks: 0,    // "脆弱"Debuff 层数（回合内受到伤害+15%，回合结束减少一层）
     },
     dmgDone: 0,
     skillPool: [],
@@ -1892,6 +1894,10 @@ function calcOutgoingDamage(attacker, baseDmg, target, skillName){
     attacker._violenceActivated = true;
     appendLog(`${attacker.name} 的"暴力"触发：伤害 x2`);
   }
+  // Enhanced Body (强化身体) - 每次攻击增加20%的伤害
+  if(attacker.passives.includes('enhancedBody')){
+    dmg = Math.round(dmg * 1.2);
+  }
   return dmg;
 }
 function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
@@ -1951,10 +1957,30 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
     hpDmg = Math.round(hpDmg * 0.75);
   }
 
+  // Gift (神恩) - 50%可能性减少50%受到的攻击
+  if(!trueDamage && u.passives.includes('gift') && Math.random() < 0.5){
+    hpDmg = Math.round(hpDmg * 0.5);
+    spDmg = Math.round(spDmg * 0.5);
+    appendLog(`${u.name} 的神恩触发：伤害减半`);
+    showStatusFloat(u,'神恩',{type:'buff', offsetY:-48});
+  }
+
+  // Enhanced Body (强化身体) - 受到的攻击减少20%
+  if(!trueDamage && u.passives.includes('enhancedBody')){
+    hpDmg = Math.round(hpDmg * 0.8);
+    spDmg = Math.round(spDmg * 0.8);
+  }
+
   if(u._spCrashVuln && (hpDmg>0 || spDmg>0)){
     hpDmg = Math.round(hpDmg * 2);
     spDmg = Math.round(spDmg * 2);
     appendLog(`${u.name} 因 SP 崩溃眩晕承受双倍伤害！`);
+  }
+
+  // 脆弱Debuff - 受到所有伤害增加15%
+  if(!trueDamage && u.status && u.status.vulnerabilityStacks > 0){
+    hpDmg = Math.round(hpDmg * 1.15);
+    spDmg = Math.round(spDmg * 1.15);
   }
 
   const prevHp = u.hp;
@@ -2428,6 +2454,277 @@ async function officer_ComboSlash(u, target){
   unitActed(u);
 }
 
+// —— 赫雷西成员技能实现 ——
+// Helper: Find closest enemy unit to u
+function findClosestEnemy(u){
+  const enemies = Object.values(units).filter(t=> t.side !== u.side && t.hp > 0);
+  if(enemies.length === 0) return null;
+  let closest = enemies[0];
+  let minDist = mdist(u, enemies[0]);
+  for(const t of enemies){
+    const d = mdist(u, t);
+    if(d < minDist){ minDist = d; closest = t; }
+  }
+  return closest;
+}
+
+// Helper: Check if any enemy with cultTarget in 3x3 radius
+function hasCultTargetNearby(u, radius=1){
+  const enemies = Object.values(units).filter(t=> t.side !== u.side && t.hp > 0);
+  for(const t of enemies){
+    if(t.status.cultTarget && mdist(u, t) <= radius * 2){
+      return true;
+    }
+  }
+  return false;
+}
+
+// 干扰者死 (Disruptor's Death) - Cultist Novice skill
+async function cultist_DisruptorDeath(u, target){
+  if(!target || target.hp<=0){ appendLog('干扰者死：没有目标'); unitActed(u); return; }
+  
+  await telegraphThenImpact([{r:target.r,c:target.c}]);
+  cameraFocusOnCell(target.r, target.c);
+  
+  const dmg = calcOutgoingDamage(u,15,target,'干扰者死');
+  damageUnit(target.id, dmg, 15, `${u.name} 干扰者死 命中 ${target.name}`, u.id);
+  addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+  u.dmgDone += dmg;
+  
+  // Check for cultTarget and追击
+  if(target.status.cultTarget && target.hp > 0){
+    appendLog(`${target.name} 有邪教目标标记，${u.name} 追击一次干扰者死！`);
+    await stageMark([{r:target.r,c:target.c}]);
+    await telegraphThenImpact([{r:target.r,c:target.c}]);
+    const dmg2 = calcOutgoingDamage(u,15,target,'干扰者死');
+    damageUnit(target.id, dmg2, 15, `${u.name} 干扰者死(追击) 命中 ${target.name}`, u.id);
+    addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+    u.dmgDone += dmg2;
+  }
+  
+  unitActed(u);
+}
+
+// 追上 (Chase) - Cultist skill (both Novice and Mage)
+async function cultist_Chase(u, payload){
+  const dest = payload && payload.moveTo; if(!dest){ appendLog('追上：无效的目的地'); unitActed(u); return; }
+  cameraFocusOnCell(dest.r, dest.c); showTrail(u.r,u.c,dest.r,dest.c);
+  if(dest.r !== u.r || dest.c !== u.c){
+    const dir = cardinalDirFromDelta(dest.r - u.r, dest.c - u.c);
+    setUnitFacing(u, dir);
+  }
+  u.r=dest.r; u.c=dest.c; pulseCell(u.r,u.c);
+  registerUnitMove(u);
+  
+  // Consume 5 SP
+  u.sp = Math.max(0, u.sp - 5);
+  appendLog(`${u.name} 追上 消耗 5 SP`);
+  
+  // Check if cultTarget nearby in 3x3
+  if(hasCultTargetNearby(u, 1)){
+    u.hp = Math.min(u.maxHp, u.hp + 10);
+    u.sp = Math.min(u.maxSp, u.sp + 5);
+    syncSpBroken(u);
+    showGainFloat(u,10,5);
+    appendLog(`${u.name} 检测到邪教目标，恢复 10HP 和 5SP`);
+  }
+  
+  unitActed(u);
+}
+
+// 献祭 (Sacrifice) - Cultist Novice version
+async function cultistNovice_Sacrifice(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Self damage 20HP
+  const beforeHp = u.hp;
+  u.hp = Math.max(0, u.hp - 20);
+  showDamageFloat(u, 20, 0);
+  appendLog(`${u.name} 献祭自己 20HP`);
+  
+  // Add violence stack to self
+  addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
+  
+  // Mark closest enemy with cultTarget
+  const closest = findClosestEnemy(u);
+  if(closest){
+    closest.status.cultTarget = true;
+    showStatusFloat(closest,'邪教目标',{type:'debuff', offsetY:-48});
+    appendLog(`${u.name} 将 ${closest.name} 标记为邪教目标`);
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 献祭 (Sacrifice) - Cultist Mage version (can target any ally)
+async function cultistMage_Sacrifice(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Self damage 20HP
+  const beforeHp = u.hp;
+  u.hp = Math.max(0, u.hp - 20);
+  showDamageFloat(u, 20, 0);
+  appendLog(`${u.name} 献祭自己 20HP`);
+  
+  // Add violence stack to nearest ally (simplified - add to random ally)
+  const allies = Object.values(units).filter(t=> t.side === u.side && t.hp > 0 && t.id !== u.id);
+  if(allies.length > 0){
+    const ally = allies[Math.floor(Math.random() * allies.length)];
+    addStatusStacks(ally,'violenceStacks',1,{label:'暴力', type:'buff'});
+    appendLog(`${u.name} 赋予 ${ally.name} 一层暴力`);
+  } else {
+    // No allies, give to self
+    addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
+  }
+  
+  // Mark closest enemy with cultTarget
+  const closest = findClosestEnemy(u);
+  if(closest){
+    closest.status.cultTarget = true;
+    showStatusFloat(closest,'邪教目标',{type:'debuff', offsetY:-48});
+    appendLog(`${u.name} 将 ${closest.name} 标记为邪教目标`);
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 讨回公道！ (Get Justice!) - Cultist Novice skill
+async function cultist_GetJustice(u, target){
+  if(!target || target.hp<=0){ appendLog('讨回公道：没有目标'); unitActed(u); return; }
+  
+  // Self damage 35HP
+  u.hp = Math.max(0, u.hp - 35);
+  showDamageFloat(u, 35, 0);
+  appendLog(`${u.name} 讨回公道 牺牲自己 35HP`);
+  
+  await telegraphThenImpact([{r:target.r,c:target.c}]);
+  cameraFocusOnCell(target.r, target.c);
+  
+  // 4 scratches
+  for(let i = 0; i < 4; i++){
+    if(target.hp <= 0) break;
+    await stageMark([{r:target.r,c:target.c}]);
+    const dmg = calcOutgoingDamage(u,10,target,'讨回公道');
+    damageUnit(target.id, dmg, 5, `${u.name} 讨回公道·抓挠${i+1} 命中 ${target.name}`, u.id);
+    addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+    u.dmgDone += dmg;
+  }
+  
+  // Check for cultTarget and追击
+  if(target.status.cultTarget && target.hp > 0){
+    appendLog(`${target.name} 有邪教目标标记，${u.name} 追击一次讨回公道！`);
+    await stageMark([{r:target.r,c:target.c}]);
+    // Self damage again
+    u.hp = Math.max(0, u.hp - 35);
+    showDamageFloat(u, 35, 0);
+    for(let i = 0; i < 4; i++){
+      if(target.hp <= 0) break;
+      await stageMark([{r:target.r,c:target.c}]);
+      const dmg = calcOutgoingDamage(u,10,target,'讨回公道');
+      damageUnit(target.id, dmg, 5, `${u.name} 讨回公道(追击)·抓挠${i+1} 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+      u.dmgDone += dmg;
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 魔音影响 (Magic Sound Influence) - Cultist Mage skill
+async function cultistMage_MagicSound(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // 5x5 AoE centered on self
+  const cells = range_square_n(u, 2); // 2 means 5x5 (±2 from center)
+  const hitEnemies = [];
+  let hasCultTarget = false;
+  
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 100);
+      damageUnit(target.id, 5, 25, `${u.name} 魔音影响 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'resentStacks',1,{label:'怨念', type:'debuff'});
+      hitEnemies.push(target);
+      u.dmgDone += 5;
+      if(target.status.cultTarget){
+        hasCultTarget = true;
+      }
+    }
+  }
+  
+  // If hit any cultTarget, heal all allies in 5x5
+  if(hasCultTarget){
+    appendLog(`${u.name} 攻击了邪教目标，治疗友方`);
+    for(const cell of cells){
+      const ally = getUnitAt(cell.r, cell.c);
+      if(ally && ally.side === u.side && ally.hp > 0){
+        ally.hp = Math.min(ally.maxHp, ally.hp + 15);
+        ally.sp = Math.min(ally.maxSp, ally.sp + 15);
+        syncSpBroken(ally);
+        showGainFloat(ally,15,15);
+        appendLog(`${ally.name} 恢复 15HP 和 15SP`);
+      }
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 毫无尊严 (No Dignity) - Cultist Mage skill
+async function cultistMage_NoDignity(u){
+  // Self damage 35HP
+  u.hp = Math.max(0, u.hp - 35);
+  showDamageFloat(u, 35, 0);
+  appendLog(`${u.name} 毫无尊严 牺牲自己 35HP`);
+  
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // 5x5 AoE centered on self
+  const cells = range_square_n(u, 2); // 2 means 5x5 (±2 from center)
+  const hitEnemies = [];
+  let hasCultTarget = false;
+  
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 100);
+      const removed = applySpDamage(target, 25, {reason:`${u.name} 毫无尊严 侵蚀 ${target.name}：SP -{delta}`});
+      addStatusStacks(target,'vulnerabilityStacks',1,{label:'脆弱', type:'debuff'});
+      hitEnemies.push(target);
+      if(target.status.cultTarget){
+        hasCultTarget = true;
+      }
+    }
+  }
+  
+  // If hit any cultTarget, heal all allies in 5x5
+  if(hasCultTarget){
+    appendLog(`${u.name} 攻击了邪教目标，治疗友方`);
+    for(const cell of cells){
+      const ally = getUnitAt(cell.r, cell.c);
+      if(ally && ally.side === u.side && ally.hp > 0){
+        ally.hp = Math.min(ally.maxHp, ally.hp + 15);
+        ally.sp = Math.min(ally.maxSp, ally.sp + 15);
+        syncSpBroken(ally);
+        showGainFloat(ally,15,15);
+        appendLog(`${ally.name} 恢复 15HP 和 15SP`);
+      }
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
 // —— Khathia 防御姿态兼容（保留旧函数以支持玩家技能） ——
 // —— 技能池/抽牌（含调整：Katz/Nelya/Kyn 技能）；移动卡统一蓝色 —— 
 function skill(name,cost,color,desc,rangeFn,execFn,estimate={},meta={}){ return {name,cost,color,desc,rangeFn,execFn,estimate,meta}; }
@@ -2586,6 +2883,62 @@ function buildSkillFactoriesForUnit(u){
         (uu,target)=> officer_ComboSlash(uu,target),
         {},
         {castMs:1200}
+      )}
+    );
+  } else if(u.name==='雏形赫雷西成员'){
+    // Cultist Novice skills
+    F.push(
+      { key:'干扰者死', prob:0.80, cond:()=>true, make:()=> skill('干扰者死',1,'red','前方1格 15HP+15SP+1流血（邪教目标追击）',
+        (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
+        (uu,target)=> cultist_DisruptorDeath(uu,target),
+        {},
+        {castMs:1200}
+      )},
+      { key:'追上', prob:0.40, cond:()=>true, make:()=> skill('追上',2,'blue','移动≤3格，消耗5SP（邪教目标附近恢复10HP+5SP）',
+        (uu)=> range_move_radius(uu,3),
+        (uu,payload)=> cultist_Chase(uu,payload),
+        {},
+        {moveSkill:true, moveRadius:3, castMs:600}
+      )},
+      { key:'献祭', prob:0.25, cond:()=>true, make:()=> skill('献祭',2,'orange','牺牲20HP，增加一层暴力，标记最近敌人为邪教目标',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> cultistNovice_Sacrifice(uu),
+        {},
+        {castMs:900}
+      )},
+      { key:'讨回公道！', prob:0.10, cond:()=>true, make:()=> skill('讨回公道！',3,'red','牺牲35HP，前方2格4次抓挠10HP+5SP+1流血（邪教目标追击）',
+        (uu,aimDir)=> aimDir? range_forward_n(uu,2,aimDir) : (()=>{const a=[]; for(const d in DIRS) range_forward_n(uu,2,d).forEach(x=>a.push(x)); return a;})(),
+        (uu,target)=> cultist_GetJustice(uu,target),
+        {},
+        {castMs:1800}
+      )}
+    );
+  } else if(u.name==='法形赫雷西成员'){
+    // Cultist Mage skills
+    F.push(
+      { key:'魔音影响', prob:0.80, cond:()=>true, make:()=> skill('魔音影响',1,'red','5x5 AoE 5HP+25SP+1怨念（邪教目标治疗友方15HP+15SP）',
+        (uu)=> range_square_n(uu,2),
+        (uu)=> cultistMage_MagicSound(uu),
+        {aoe:true},
+        {castMs:1200}
+      )},
+      { key:'追上', prob:0.40, cond:()=>true, make:()=> skill('追上',2,'blue','移动≤3格，消耗5SP（邪教目标附近恢复10HP+5SP）',
+        (uu)=> range_move_radius(uu,3),
+        (uu,payload)=> cultist_Chase(uu,payload),
+        {},
+        {moveSkill:true, moveRadius:3, castMs:600}
+      )},
+      { key:'献祭', prob:0.25, cond:()=>true, make:()=> skill('献祭',2,'orange','牺牲20HP，友方增加一层暴力，标记最近敌人为邪教目标',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> cultistMage_Sacrifice(uu),
+        {},
+        {castMs:900}
+      )},
+      { key:'毫无尊严', prob:0.10, cond:()=>true, make:()=> skill('毫无尊严',3,'red','牺牲35HP，5x5 AoE 25SP+1脆弱（邪教目标治疗友方15HP+15SP）',
+        (uu)=> range_square_n(uu,2),
+        (uu)=> cultistMage_NoDignity(uu),
+        {aoe:true},
+        {castMs:1800}
       )}
     );
   }
@@ -3335,6 +3688,17 @@ function processUnitsTurnStart(side){
         u.status.resentStacks = Math.max(0, u.status.resentStacks - 1);
       }
     }
+
+    // 忠臣的信仰 (Loyal Faith) - 每回合增加10SP
+    if(u.passives.includes('loyalFaith')){
+      const beforeSP = u.sp;
+      u.sp = Math.min(u.maxSp, u.sp + 10);
+      syncSpBroken(u);
+      if(u.sp > beforeSP){
+        showGainFloat(u,0,10);
+        appendLog(`${u.name} 的忠臣的信仰：+10 SP`);
+      }
+    }
   }
 }
 function processUnitsTurnEnd(side){
@@ -3357,6 +3721,12 @@ function processUnitsTurnEnd(side){
       const next = Math.max(0, u.status.stunned-1);
       updateStatusStacks(u,'stunned', next, {label:'眩晕', type:'debuff'});
       appendLog(`${u.name} 的眩晕减少 1（剩余 ${u.status.stunned}）`);
+    }
+    // 脆弱Debuff - 回合结束减少一层
+    if(u.status.vulnerabilityStacks>0){
+      const next = Math.max(0, u.status.vulnerabilityStacks-1);
+      updateStatusStacks(u,'vulnerabilityStacks', next, {label:'脆弱', type:'debuff'});
+      appendLog(`${u.name} 的脆弱减少 1（剩余 ${u.status.vulnerabilityStacks}）`);
     }
   }
 }
