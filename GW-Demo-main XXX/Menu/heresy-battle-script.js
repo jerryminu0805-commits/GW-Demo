@@ -1701,19 +1701,19 @@ function showRoundBanner(text, duration=1800){
   el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), duration);
   
-  // Play Norms.mp3 when round one banner appears (exact match for reliability)
+  // Play Cult1.mp3 BGM when round one banner appears
   const isRoundOne = text === '回合一' || text === 'Round 1' || text === 'round 1';
   if(isRoundOne){
     try {
       const battleBGM = document.getElementById('battleBGM');
       if (battleBGM) {
         battleBGM.volume = 0.6;
-        battleBGM.play().catch(err => console.warn('Failed to play Norms.mp3:', err));
+        battleBGM.play().catch(err => console.warn('Failed to play battle BGM:', err));
       } else {
-        const audio = new Audio('Norms.mp3');
+        const audio = new Audio('Cult1.mp3');
         audio.volume = 0.6;
         audio.loop = true;
-        audio.play().catch(err => console.warn('Failed to play Norms.mp3:', err));
+        audio.play().catch(err => console.warn('Failed to play battle BGM:', err));
       }
     } catch(e) {
       console.warn('Error playing round one audio:', e);
