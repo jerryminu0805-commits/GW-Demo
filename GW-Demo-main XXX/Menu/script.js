@@ -2008,6 +2008,13 @@ function finishStageStory(skipped = false) {
         window.location.href = './boss-battle.html';
       }, 500);
     }
+    
+    // Redirect to heresy battle after firstHeresy story (even if skipped)
+    if (stageId === 'firstHeresy') {
+      setTimeout(() => {
+        window.location.href = './heresy-battle.html';
+      }, 500);
+    }
   }, 450);
 }
 
