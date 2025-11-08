@@ -351,6 +351,17 @@ body {
   box-shadow: 0 0 16px rgba(217, 70, 239, 0.6), 0 0 32px rgba(217, 70, 239, 0.4), 0 14px 30px rgba(217, 70, 239, 0.3);
 }
 
+.stage-item.stage-first-encounter {
+  color: #ff8888;
+  border-color: rgba(255, 136, 136, 0.35);
+  box-shadow: 0 0 8px rgba(255, 100, 100, 0.25);
+}
+
+.stage-item.stage-first-encounter:hover {
+  color: #ffaaaa;
+  box-shadow: 0 0 14px rgba(255, 100, 100, 0.45), 0 0 28px rgba(255, 100, 100, 0.3), 0 12px 26px rgba(255, 100, 100, 0.25);
+}
+
 .stage-item.stage-exhausted {
   color: #f4c097;
   border-color: rgba(255, 196, 135, 0.45);
