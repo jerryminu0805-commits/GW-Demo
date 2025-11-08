@@ -3927,12 +3927,25 @@ function buildSkillCandidates(en){
       }
 
       const dirs = Object.keys(DIRS);
-      const isAdjSkill = ['血肉之刃','怨念之爪','沙包大的拳头','短匕轻挥','捅','连续挥刀'].includes(sk.name);
+      const isAdjSkill = ['血肉之刃','怨念之爪','沙包大的拳头','短匕轻挥','捅','连续挥刀','干扰者死'].includes(sk.name);
+      const isForwardTargetSkill = ['讨回公道！'].includes(sk.name);
       if(isAdjSkill){
         const adj = range_adjacent(en);
         for(const c of adj){
           const tu=getUnitAt(c.r,c.c);
           if(tu && tu.side==='player'){ candidates.push({sk, dir:c.dir, targetUnit:tu, score: 16}); }
+        }
+      } else if(isForwardTargetSkill){
+        // Skills that target units in forward range (not adjacent)
+        for(const d of dirs){
+          const cells = sk.rangeFn(en,d,null) || [];
+          for(const c of cells){
+            const tu=getUnitAt(c.r,c.c);
+            if(tu && tu.side==='player'){
+              candidates.push({sk, dir:d, targetUnit:tu, score: 14});
+              break; // Only need to find one target per direction
+            }
+          }
         }
       } else if(sk.meta && sk.meta.cellTargeting){
         const cells = sk.rangeFn(en, en.facing, null) || [];
