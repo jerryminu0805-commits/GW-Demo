@@ -4482,7 +4482,7 @@ function processUnitsTurnStart(side){
     u._tutorialSpImmuneUsed = false;
     applyAccessoryEffects(u, side);
 
-    const extraDraw = Math.max(0, u.turnsStarted - 1);
+    const extraDraw = Math.max(0, u.turnsStarted);
     if(extraDraw>0) drawSkills(u, extraDraw);
 
     // Neyla 压迫后每回合保证“终末之影”在手牌，且最多一张
