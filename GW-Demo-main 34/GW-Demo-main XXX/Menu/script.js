@@ -23,6 +23,7 @@ let stageAmbientController = null;
 const stageProgress = {
   intro: false,
   abandonedAnimals: false,
+  firstEncounter: false,
   fatigue: false,
   sevenSeas: false,
 };
@@ -55,6 +56,7 @@ function loadStageCompletions() {
   return saved ? JSON.parse(saved) : {
     intro: 0,
     abandonedAnimals: 0,
+    firstEncounter: 0,
     fatigue: 0,
     sevenSeas: 0
   };
@@ -410,6 +412,80 @@ const stageCatalog = {
       },
     ],
   },
+  firstEncounter: {
+    id: 'firstEncounter',
+    name: '初见赫雷西',
+    subtitle: '赫雷西教团初次遭遇',
+    size: '15 × 12',
+    narrative: [
+      '三人根据张局的情报，来到了赫雷西最近最有可能出现的地方——一条偏远且雾蒙蒙的小巷。',
+      '在雾中，隐约可见几道奇异的身影正在逼近。',
+    ],
+    brief: [
+      '地图 15×12，雾蒙蒙的小巷战斗。',
+      '掩体：(2,7)～(4,9) 长条掩体；(5,7)～(5,9) 长条掩体；(12,7)～(14,9) 长条掩体。',
+      '我方：Dario (11,7)、Adora (11,8)、Karma (11,9)，均为 25 级。',
+      '敌方：法形赫雷西成员 (3,2)、法形赫雷西成员 (13,2)、雏形赫雷西成员 (8,2)、雏形赫雷西成员 (7,3)、雏形赫雷西成员 (9,3)。',
+    ],
+    map: {
+      rows: 15,
+      cols: 12,
+      voids: [],
+      cover: [
+        { row: 7, col: 2 }, { row: 8, col: 3 }, { row: 9, col: 4 },
+        { row: 7, col: 5 }, { row: 8, col: 5 }, { row: 9, col: 5 },
+        { row: 7, col: 12 }, { row: 8, col: 13 }, { row: 9, col: 14 },
+      ],
+      players: [
+        { row: 7, col: 11, label: 'Da', type: 'player', tone: 'dario' },
+        { row: 8, col: 11, label: 'Ad', type: 'player', tone: 'adora' },
+        { row: 9, col: 11, label: 'Ka', type: 'player', tone: 'karma' },
+      ],
+      enemies: [
+        { row: 2, col: 3, label: '法', type: 'elite' },
+        { row: 2, col: 13, label: '法', type: 'elite' },
+        { row: 2, col: 8, label: '雏', type: 'enemy' },
+        { row: 3, col: 7, label: '雏', type: 'enemy' },
+        { row: 3, col: 9, label: '雏', type: 'enemy' },
+      ],
+    },
+    enemies: [
+      {
+        name: '雏形赫雷西成员',
+        icon: '🔴',
+        rank: '普通敌方单位 / 等级 25',
+        summary: 'HP 150 · SP 70（归零后失控 1 回合并 -1 步，眩晕时受伤 ×2，结束后恢复至 70）',
+        threat: 'enemy',
+        skills: [
+          { name: '被动：忠臣的信仰', detail: '每回合增加 10 SP。' },
+          { name: '被动：Gift', detail: '受到的攻击有 50% 可能性减少 50%。' },
+          { name: '被动：强化身体', detail: '每次攻击增加 20% 的伤害，每次受到的攻击减少 20%。' },
+          { name: '被动：接受神的指示', detail: '对有"邪教目标"的角色采取特殊措施。' },
+          { name: '干扰者死（1 步）', detail: '向前面 1 格砍去造成 15 HP + 15 SP 以及一层流血（如果目标有"邪教目标"，追击一次"干扰者死"）。出现概率 80%。' },
+          { name: '追上（2 步）', detail: '能选择四周任何 3 格并移动到选择的格子并消耗自己 5 SP（如果以自己为中心 3×3 距离内有任何敌方单位拥有"邪教目标"，恢复自己 10 HP 以及 5 SP）。出现概率 40%。' },
+          { name: '献祭（2 步）', detail: '牺牲自己 20 HP 增加一层暴力，以及给离此单位最接近的敌方单位上一层"邪教目标"。出现概率 25%。' },
+          { name: '讨回公道！（3 步）', detail: '牺牲自己 35 HP 并向前 2 格疯狂抓挠造成 10 HP + 5 SP + 一层流血，重复 4 次（如果目标有"邪教目标"，追击一次"讨回公道！"）。出现概率 10%。' },
+        ],
+      },
+      {
+        name: '法形赫雷西成员',
+        icon: '🟣',
+        rank: '普通敌方单位 / 等级 25',
+        summary: 'HP 100 · SP 90（归零后失控 1 回合并 -1 步，眩晕时受伤 ×2，结束后恢复至 90）',
+        threat: 'elite',
+        skills: [
+          { name: '被动：忠臣的信仰', detail: '每回合增加 10 SP。' },
+          { name: '被动：Gift', detail: '受到的攻击有 50% 可能性减少 50%。' },
+          { name: '被动：强化身体', detail: '每次攻击增加 20% 的伤害，每次受到的攻击减少 20%。' },
+          { name: '被动：接受神的指示', detail: '对有"邪教目标"的角色采取特殊措施。' },
+          { name: '魔音影响（1 步）', detail: '以自己为中心 5×5 以内的所有敌方单位减少 5 HP + 25 SP + 叠一层怨念（如果攻击目标内有"邪教目标"，以自己为中心 5×5 以内的所有自方单位恢复 15 HP 以及 15 SP）。出现概率 80%。' },
+          { name: '追上（2 步）', detail: '能选择四周任何 3 格并移动到选择的格子并消耗自己 5 SP（如果以自己为中心 3×3 距离内有任何敌方单位拥有"邪教目标"，恢复自己 10 HP 以及 5 SP）。出现概率 40%。' },
+          { name: '献祭（2 步）', detail: '牺牲自己 20 HP 给地图上任何友方单位增加一层暴力，以及给离此单位最接近的敌方单位上一层"邪教目标"。出现概率 25%。' },
+          { name: '毫无尊严（3 步）', detail: '牺牲自己 35 HP 并以自己为中心 5×5 所有敌方单位减少 25 SP 以及叠一层一级脆弱 Debuff（该回合受到所有伤害增加 15%，回合结束后减少一层一级脆弱 Debuff）（如果目标有"邪教目标"，以自己为中心 5×5 以内的所有自方单位恢复 15 HP 以及 15 SP）。出现概率 10%。' },
+        ],
+      },
+    ],
+  },
   fatigue: {
     id: 'fatigue',
     name: '疲惫的极限',
@@ -687,6 +763,45 @@ const stageStories = {
     { speaker: '张队', text: '保护好小朋友。', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
     { speaker: 'Adora', text: '。。。。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
     { type: 'narration', text: '（准备进入战斗）', audio: 'Intro Dialog.mp3', audioAction: 'stop' },
+  ],
+  firstEncounter: [
+    { type: 'narration', text: '（三人根据张局的情报，来到了赫雷西最近最有可能来的地方）' },
+    { type: 'narration', text: '（一条偏远同时还雾蒙蒙的小巷口）', background: 'IMG_4531.PNG' },
+    { speaker: 'Adora', text: '如果没有错的话。。。', portrait: 'AdoraTalk.png', position: 'center', characters: { Adora: { portrait: 'AdoraTalk.png', position: 'center' } } },
+    { speaker: 'Adora', text: '应该就是这个巷子里了。', portrait: 'AdoraTalk.png', position: 'center', characters: { Adora: { portrait: 'AdoraTalk.png', position: 'center' } } },
+    { speaker: 'Dario', text: '老张给的位置可信赖度还是很高的。', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' } } },
+    { speaker: 'Karma', text: '切', portrait: 'KarmaAnnoyed.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' } } },
+    { speaker: 'Adora', text: '等等！', portrait: 'AdoraWorried.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' } } },
+    { speaker: 'Adora', text: '。。。。', portrait: 'AdoraWorried.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' } } },
+    { speaker: 'Adora', text: '别吵我好像听到脚步声了，好像还不少。。。（小声）', portrait: 'AdoraWorried.png', position: 'center', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
+    { type: 'narration', text: '（雾蒙蒙的巷子里隐隐约约能看到几道影子往这边走）' },
+    { speaker: 'Karma', text: '我靠？', portrait: 'KarmaScared.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Karma', text: '这些人的形状———', portrait: 'KarmaScared.png', position: 'right', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Karma', text: '还算是人类吗', portrait: 'KarmaScared.png', position: 'right', characters: { Dario: { portrait: 'DarioScared.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { type: 'narration', text: '（这些人影慢慢显现在面前，全是穿着类似且微微染红的制服）' },
+    { type: 'narration', text: '（开始循环播放Cult dialog.mp3）', audio: 'Cult dialog.mp3', audioAction: 'play' },
+    { speaker: '赫雷西成员A', text: '果然。。神明赐予我的直觉果然没错。。' },
+    { speaker: '赫雷西成员A', text: '这里。。果然有干扰者。。' },
+    { speaker: 'Dario', text: '为什么。。要。。这么。。说话。。呢。。？', portrait: 'DarioThinking.png', position: 'left', characters: { Dario: { portrait: 'DarioThinking.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: '赫雷西成员A', text: '。。。' },
+    { speaker: '赫雷西成员B', text: '各位，我们没有任何恶意，只是跟随神的指引迁来此地进行传教。' },
+    { speaker: 'Adora', text: '。。。（数人数中）', portrait: 'AdoraWorried.png', position: 'center', characters: { Dario: { portrait: 'DarioThinking.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Adora', text: '好。。。的，我们也只是路过，同样也没有任何恶意', portrait: 'AdoraTalk.png', position: 'center', characters: { Dario: { portrait: 'DarioThinking.png', position: 'left' }, Adora: { portrait: 'AdoraTalk.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: '赫雷西成员A', text: '非也。。神明赐予我的直觉告诉我。。你们。。' },
+    { speaker: '赫雷西成员A', text: '是传教的阻碍。。是赫雷西的障碍。。' },
+    { speaker: '赫雷西成员A', text: '必须。。清除。。' },
+    { speaker: 'Adora', text: '（汗）', portrait: 'AdoraWorried.png', position: 'center', characters: { Dario: { portrait: 'DarioThinking.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Dario', text: '喂喂～各位放松，就像我们朋友说的一样，只是路过', portrait: 'DarioSmile.png', position: 'left', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: 'Dario', text: '没必要害人又害己啊，是吧', portrait: 'DarioSmile.png', position: 'left', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaScared.png', position: 'right' } } },
+    { speaker: '赫雷西成员B', text: '（笑）' },
+    { speaker: '赫雷西成员B', text: '放心，我们只是想发扬我们的信仰' },
+    { speaker: '赫雷西成员B', text: '但。。。' },
+    { speaker: '赫雷西成员B', text: '需要暂时借用点你们的时间' },
+    { speaker: '赫雷西成员A', text: '无路。。可跑。。' },
+    { speaker: 'Karma', text: '他妈哪来那么多废话唧唧歪歪的', portrait: 'KarmaYell.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { speaker: 'Karma', text: '要打就打！我CNMM', portrait: 'KarmaYell.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraWorried.png', position: 'center' }, Karma: { portrait: 'KarmaYell.png', position: 'right' } } },
+    { type: 'narration', text: '（停止循环播放Cult dialog.mp3）', audio: 'Cult dialog.mp3', audioAction: 'stop' },
+    { type: 'narration', text: '（进入战斗）（开始循环播放Cult1.mp3）', audio: 'Cult1.mp3', audioAction: 'play' },
   ],
   sevenSeas: [
     { type: 'narration', text: '夜幕低垂，海风裹挟着血腥味，从远方破旧的码头吹来。' },
@@ -1672,6 +1787,13 @@ function finishStageStory(skipped = false) {
       }, 500);
     }
     
+    // Redirect to firstEncounter battle after firstEncounter story (even if skipped)
+    if (stageId === 'firstEncounter') {
+      setTimeout(() => {
+        window.location.href = './first-encounter-battle.html';
+      }, 500);
+    }
+    
     // Redirect to boss battle after sevenSeas story (even if skipped)
     if (stageId === 'sevenSeas') {
       setTimeout(() => {
@@ -1816,6 +1938,15 @@ function initStageBoard() {
       if (currentStageId === 'abandonedAnimals') {
         // Navigate to Velmira Boss battle
         window.location.href = 'velmira-boss-battle.html';
+        return;
+      }
+
+      if (currentStageId === 'firstEncounter') {
+        // Fade out BGM and start firstEncounter story
+        if (bgmController && typeof bgmController.fadeOut === 'function') {
+          bgmController.fadeOut(850);
+        }
+        startStageStory('firstEncounter');
         return;
       }
 
