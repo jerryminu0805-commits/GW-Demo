@@ -20,8 +20,119 @@ let storyState = null;
 let bgmController = null;
 let stageAmbientController = null;
 
+let currentStoryAudio = null;
+let currentStoryAudioSrc = null;
+
+function stopStoryAudio({ reset = true } = {}) {
+  const audio = currentStoryAudio || (typeof window !== 'undefined' ? window.storyAudioController : null);
+  if (audio) {
+    try {
+      audio.pause();
+      if (reset) {
+        audio.currentTime = 0;
+      }
+    } catch (error) {
+      console.warn('Failed to stop story audio:', error);
+    }
+  }
+
+  currentStoryAudio = null;
+  currentStoryAudioSrc = null;
+
+  if (typeof window !== 'undefined') {
+    window.storyAudioController = null;
+    if (window.storyAudioMetadata) {
+      delete window.storyAudioMetadata;
+    }
+  }
+}
+
+function ensureMenuBGMStopped({ resetTime = false } = {}) {
+  if (!bgmController) return;
+
+  try {
+    if (typeof bgmController.fadeOut === 'function') {
+      bgmController.fadeOut(0);
+    }
+  } catch (error) {
+    console.warn('Failed to fade out menu BGM:', error);
+  }
+
+  const audioEl = bgmController.audio;
+  if (!audioEl) return;
+
+  try {
+    if (!audioEl.paused) {
+      audioEl.pause();
+    }
+    if (resetTime) {
+      audioEl.currentTime = 0;
+    }
+  } catch (error) {
+    console.warn('Failed to pause menu BGM:', error);
+  }
+}
+
+function clampAudioVolume(value, fallback = 0.7) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return fallback;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function playStoryAudio(src, { volume = 0.7, loop = true, resetMenuBGM = false } = {}) {
+  const audioFile = typeof src === 'string' ? src.trim() : '';
+  if (!audioFile) return null;
+
+  ensureMenuBGMStopped({ resetTime: resetMenuBGM });
+
+  if (currentStoryAudio && currentStoryAudioSrc === audioFile) {
+    try {
+      currentStoryAudio.loop = loop;
+      currentStoryAudio.volume = clampAudioVolume(volume, currentStoryAudio.volume ?? 0.7);
+      if (currentStoryAudio.paused) {
+        currentStoryAudio.play().catch((err) => {
+          console.warn('Story audio replay failed:', err);
+        });
+      }
+      return currentStoryAudio;
+    } catch (error) {
+      console.warn('Failed to resume existing story audio:', error);
+    }
+  }
+
+  stopStoryAudio({ reset: false });
+
+  try {
+    const audio = new Audio(audioFile);
+    audio.loop = loop;
+    audio.volume = clampAudioVolume(volume);
+    audio.play().catch((err) => {
+      console.warn('Story audio playback failed:', err);
+    });
+
+    currentStoryAudio = audio;
+    currentStoryAudioSrc = audioFile;
+
+    if (typeof window !== 'undefined') {
+      window.storyAudioController = audio;
+      window.storyAudioMetadata = {
+        src: audioFile,
+        loop,
+        volume: audio.volume,
+      };
+    }
+
+    return audio;
+  } catch (error) {
+    console.warn('Failed to start story audio:', error);
+    return null;
+  }
+}
+
 const stageProgress = {
   intro: false,
+  firstHeresy: false,
   abandonedAnimals: false,
   fatigue: false,
   sevenSeas: false,
@@ -54,6 +165,7 @@ function loadStageCompletions() {
   const saved = localStorage.getItem(STORAGE_KEY_STAGE_COMPLETIONS);
   return saved ? JSON.parse(saved) : {
     intro: 0,
+    firstHeresy: 0,
     abandonedAnimals: 0,
     fatigue: 0,
     sevenSeas: 0
@@ -378,6 +490,86 @@ const stageCatalog = {
       },
     ],
   },
+  firstHeresy: {
+    id: 'firstHeresy',
+    name: '初见赫雷西',
+    subtitle: '雾巷遭遇战',
+    size: '12 × 15',
+    narrative: [
+      '根据张队提供的情报，三人组在雾蒙蒙的巷道中首次与赫雷西成员正面对峙。',
+      '敌人以狂热信徒的姿态逐步逼近，空气中隐隐透出诡异的血腥味。',
+    ],
+    brief: [
+      '地图 12×15 的狭长巷道，能见度低。',
+      '掩体：巷道左侧 (2,5)(3,5)(4,5) 横列三格；中央 (7,5)-(9,5) 横列；右侧 (12,5)(13,5)(14,5) 横列三格。',
+      '我方：Dario (7,11)、Adora (8,11)、Karma (9,11)。',
+      '敌方：雏形赫雷西成员 3 名、法形赫雷西成员 2 名，从巷道深处压迫而来。',
+    ],
+    map: {
+      rows: 12,
+      cols: 15,
+      voids: [],
+      cover: [
+        { row: 5, col: 2 },
+        { row: 5, col: 3 },
+        { row: 5, col: 4 },
+        { row: 5, col: 7 },
+        { row: 5, col: 8 },
+        { row: 5, col: 9 },
+        { row: 5, col: 12 },
+        { row: 5, col: 13 },
+        { row: 5, col: 14 },
+      ],
+      players: [
+        { row: 11, col: 7, label: 'Da', type: 'player', tone: 'dario' },
+        { row: 11, col: 8, label: 'Ad', type: 'player', tone: 'adora' },
+        { row: 11, col: 9, label: 'Ka', type: 'player', tone: 'karma' },
+      ],
+      enemies: [
+        { row: 2, col: 3, label: '法', type: 'enemy' },
+        { row: 2, col: 13, label: '法', type: 'enemy' },
+        { row: 2, col: 8, label: '雏', type: 'enemy' },
+        { row: 3, col: 7, label: '雏', type: 'enemy' },
+        { row: 3, col: 9, label: '雏', type: 'enemy' },
+      ],
+    },
+    enemies: [
+      {
+        name: '雏形赫雷西成员',
+        icon: '🩸',
+        rank: '普通 / 等级 25',
+        summary: 'HP 150 · SP 70（降至 0：失控 1 回合、-1 步，结束时恢复至 70，眩晕期间所受伤害 ×2）',
+        threat: 'enemy',
+        skills: [
+          { name: '被动：忠臣的信仰', detail: '每回合开始回复 10 SP。' },
+          { name: '被动：Gift', detail: '受到攻击时有 50% 几率将伤害减半。' },
+          { name: '被动：强化身体', detail: '每次发动攻击伤害 +20%，每次受到伤害时伤害 -20%。' },
+          { name: '被动：接受神的指示', detail: '对拥有“邪教目标”状态的角色将采取额外手段。' },
+          { name: '干扰者死（1 步）', detail: '前方 1 格挥砍，造成 15 HP 与 15 SP，并附加 1 层流血；目标若带有“邪教目标”，再追加一次“干扰者死”。出现概率 80%。' },
+          { name: '追上（2 步）', detail: '选择周围 3 格之一瞬移并消耗自身 5 SP；若 3×3 范围内敌方存在“邪教目标”，额外回复自身 10 HP 与 5 SP。出现概率 40%。' },
+          { name: '献祭（2 步）', detail: '牺牲自身 20 HP，获得 1 层暴力，并为距离最近的敌方角色施加 1 层“邪教目标”。出现概率 25%。' },
+          { name: '讨回公道！（3 步）', detail: '牺牲自身 35 HP，向前 2 格连抓 4 次，每次造成 10 HP 与 5 SP 并叠 1 层流血；若目标拥有“邪教目标”，再追击一次该技能。出现概率 10%。' },
+        ],
+      },
+      {
+        name: '法形赫雷西成员',
+        icon: '🕯️',
+        rank: '普通 / 等级 25',
+        summary: 'HP 100 · SP 90（降至 0：失控 1 回合、-1 步，结束时恢复至 90，眩晕期间所受伤害 ×2）',
+        threat: 'enemy',
+        skills: [
+          { name: '被动：忠臣的信仰', detail: '每回合开始回复 10 SP。' },
+          { name: '被动：Gift', detail: '受到攻击时有 50% 几率将伤害减半。' },
+          { name: '被动：强化身体', detail: '每次发动攻击伤害 +20%，每次受到伤害时伤害 -20%。' },
+          { name: '被动：接受神的指示', detail: '对拥有“邪教目标”状态的角色将采取额外手段。' },
+          { name: '魔音影响（1 步）', detail: '以自身为中心 5×5 范围内所有敌方单位减少 5 HP 与 25 SP，并叠加 1 层怨念；若范围内存在“邪教目标”，同范围所有友军回复 15 HP 与 15 SP。出现概率 80%。' },
+          { name: '追上（2 步）', detail: '选择周围 3 格之一瞬移并消耗自身 5 SP；若 3×3 范围内敌方存在“邪教目标”，额外回复自身 10 HP 与 5 SP。出现概率 40%。' },
+          { name: '献祭（2 步）', detail: '牺牲自身 20 HP，使任意友军获得 1 层暴力，并为距离最近的敌方角色施加 1 层“邪教目标”。出现概率 25%。' },
+          { name: '毫无尊严（3 步）', detail: '牺牲自身 35 HP，以自身为中心 5×5 范围所有敌方单位减少 25 SP 并施加 1 层一级脆弱（当回合受到伤害 +15%，回合结束 -1 层）；若命中“邪教目标”，同范围所有友军回复 15 HP 与 15 SP。出现概率 10%。' },
+        ],
+      },
+    ],
+  },
   abandonedAnimals: {
     id: 'abandonedAnimals',
     name: '被遗弃的动物',
@@ -687,6 +879,157 @@ const stageStories = {
     { speaker: '张队', text: '保护好小朋友。', portrait: 'Zhang.png', position: 'right', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
     { speaker: 'Adora', text: '。。。。', portrait: 'AdoraAnnoyed.png', position: 'center', characters: { Dario: { portrait: 'DarioSmile.png', position: 'left' }, Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' }, '张队': { portrait: 'Zhang.png', position: 'right' } } },
     { type: 'narration', text: '（准备进入战斗）', audio: 'Intro Dialog.mp3', audioAction: 'stop' },
+  ],
+  firstHeresy: [
+    {
+      type: 'narration',
+      text: '三人顺着张队提供的坐标，抵达一条偏僻又雾气缭绕的小巷入口。',
+      background: '小巷.png',
+      audio: 'Cult dialog.mp3',
+      audioAction: 'play',
+      characters: {
+        Adora: { portrait: 'AdoraWorried.png', position: 'center' },
+        Dario: { portrait: 'DarioThinking.png', position: 'left' },
+        Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' },
+      },
+    },
+    {
+      speaker: 'Adora',
+      text: '如果没有错的话……应该就是这个巷子里了。',
+      portrait: 'AdoraWorried.png',
+      position: 'center',
+      characters: {
+        Adora: { portrait: 'AdoraWorried.png', position: 'center' },
+        Dario: { portrait: 'DarioThinking.png', position: 'left' },
+        Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' },
+      },
+    },
+    {
+      speaker: 'Dario',
+      text: '老张给的位置可信赖度还是很高的。',
+      portrait: 'DarioThinking.png',
+      position: 'left',
+      characters: {
+        Adora: { portrait: 'AdoraWorried.png', position: 'center' },
+        Dario: { portrait: 'DarioThinking.png', position: 'left' },
+        Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' },
+      },
+    },
+    {
+      speaker: 'Karma',
+      text: '切。',
+      portrait: 'KarmaAnnoyed.png',
+      position: 'right',
+      characters: {
+        Adora: { portrait: 'AdoraWorried.png', position: 'center' },
+        Dario: { portrait: 'DarioThinking.png', position: 'left' },
+        Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' },
+      },
+    },
+    {
+      speaker: 'Adora',
+      text: '等等……别吵，我好像听到脚步声了，而且不止一个。',
+      portrait: 'AdoraAnnoyed.png',
+      position: 'center',
+      characters: {
+        Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' },
+        Dario: { portrait: 'DarioThinking.png', position: 'left' },
+        Karma: { portrait: 'KarmaAnnoyed.png', position: 'right' },
+      },
+    },
+    {
+      type: 'narration',
+      text: '雾气深处浮现出几道人影，穿着相似且沾染淡红的制服，正朝三人行来。',
+    },
+    {
+      speaker: 'Karma',
+      text: '我靠？这些人的形状——还算是人类吗。',
+      portrait: 'KarmaScared.png',
+      position: 'right',
+      characters: {
+        Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' },
+        Dario: { portrait: 'DarioThinking.png', position: 'left' },
+        Karma: { portrait: 'KarmaScared.png', position: 'right' },
+      },
+    },
+    {
+      speaker: '赫雷西成员A',
+      text: '果然……神明赐予我的直觉果然没错……这里有干扰者。',
+    },
+    {
+      speaker: 'Dario',
+      text: '为、为什么要、要这么说话呢？',
+      portrait: 'DarioScared.png',
+      position: 'left',
+      characters: {
+        Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' },
+        Dario: { portrait: 'DarioScared.png', position: 'left' },
+        Karma: { portrait: 'KarmaScared.png', position: 'right' },
+      },
+    },
+    {
+      speaker: '赫雷西成员B',
+      text: '各位，我们没有恶意，只是奉神指引迁来此地传教。',
+    },
+    {
+      speaker: 'Adora',
+      text: '好……的，我们也只是路过，同样也没有任何恶意。',
+      portrait: 'AdoraTalk.png',
+      position: 'center',
+      characters: {
+        Adora: { portrait: 'AdoraTalk.png', position: 'center' },
+        Dario: { portrait: 'DarioScared.png', position: 'left' },
+        Karma: { portrait: 'KarmaScared.png', position: 'right' },
+      },
+    },
+    {
+      speaker: '赫雷西成员A',
+      text: '非也……神明赐予我的直觉告诉我……你们是传教的阻碍……是赫雷西的障碍……必须清除。',
+    },
+    {
+      speaker: 'Dario',
+      text: '喂喂～各位放松，就像我们朋友说的一样，只是路过。没必要害人又害己啊，对吧。',
+      portrait: 'DarioSmile.png',
+      position: 'left',
+      characters: {
+        Adora: { portrait: 'AdoraTalk.png', position: 'center' },
+        Dario: { portrait: 'DarioSmile.png', position: 'left' },
+        Karma: { portrait: 'KarmaScared.png', position: 'right' },
+      },
+    },
+    {
+      speaker: '赫雷西成员B',
+      text: '放心，我们只是想发扬我们的信仰，但需要暂时借用你们的时间。',
+    },
+    {
+      speaker: '赫雷西成员A',
+      text: '无路可跑……',
+    },
+    {
+      speaker: 'Karma',
+      text: '他妈哪来那么多废话！要打就打！',
+      portrait: 'KarmaYell.png',
+      position: 'right',
+      characters: {
+        Adora: { portrait: 'AdoraAnnoyed.png', position: 'center' },
+        Dario: { portrait: 'DarioSmile.png', position: 'left' },
+        Karma: { portrait: 'KarmaYell.png', position: 'right' },
+      },
+    },
+    {
+      type: 'narration',
+      text: '雾气凝滞，双方同时拔出武器，杀意在狭窄巷道内炸开。',
+      audio: 'Cult dialog.mp3',
+      audioAction: 'stop',
+    },
+    {
+      type: 'narration',
+      text: '（进入战斗）',
+      audio: 'Cult1.mp3',
+      audioAction: 'play',
+      audioLoop: true,
+      audioVolume: 0.72,
+    },
   ],
   sevenSeas: [
     { type: 'narration', text: '夜幕低垂，海风裹挟着血腥味，从远方破旧的码头吹来。' },
@@ -1369,30 +1712,19 @@ function applyStoryCues(entry) {
   }
 
   // —— Audio Control: Play or stop audio ——
-  if (entry.audio) {
-    const audioFile = String(entry.audio);
-    const action = entry.audioAction ? String(entry.audioAction).toLowerCase() : 'play';
-    
-    if (action === 'stop') {
-      if (window.storyAudioController) {
-        window.storyAudioController.pause();
-        window.storyAudioController.currentTime = 0;
-        window.storyAudioController = null;
-      }
-    } else if (action === 'play') {
-      // Stop previous audio if playing
-      if (window.storyAudioController) {
-        window.storyAudioController.pause();
-        window.storyAudioController.currentTime = 0;
-      }
-      
-      // Create and play new audio
-      window.storyAudioController = new Audio(audioFile);
-      window.storyAudioController.volume = 0.7;
-      window.storyAudioController.loop = true;
-      window.storyAudioController.play().catch(err => {
-        console.warn('Story audio playback failed:', err);
-      });
+  if (entry.audio || entry.audioAction) {
+    const actionRaw = entry.audioAction ? String(entry.audioAction).toLowerCase() : '';
+    const normalizedAction = actionRaw || (entry.audio ? 'play' : '');
+
+    if (normalizedAction === 'stop') {
+      stopStoryAudio({ reset: entry.audioReset !== false });
+    } else if (normalizedAction === 'play' && entry.audio) {
+      const loop = entry.audioLoop !== false;
+      const volume = clampAudioVolume(
+        typeof entry.audioVolume === 'number' ? entry.audioVolume : NaN,
+        0.7,
+      );
+      playStoryAudio(entry.audio, { loop, volume });
     }
   }
 }
@@ -1572,6 +1904,7 @@ function startStageStory(stageId) {
 
   storyState = { stageId, script, index: -1 };
 
+  stopStoryAudio();
   storyOverlay.dataset.stage = stageId;
   storyOverlay.setAttribute('aria-hidden', 'false');
   storyOverlay.classList.remove('show-panel', 'is-narration');
@@ -1583,6 +1916,7 @@ function startStageStory(stageId) {
 
   if (bgmController && typeof bgmController.fadeOut === 'function') {
     bgmController.fadeOut(850);
+    ensureMenuBGMStopped();
   }
 
   if (storySpeaker) {
@@ -1620,11 +1954,7 @@ function finishStageStory(skipped = false) {
   }
 
   // cleanup story audio
-  if (window.storyAudioController) {
-    window.storyAudioController.pause();
-    window.storyAudioController.currentTime = 0;
-    window.storyAudioController = null;
-  }
+  stopStoryAudio();
 
   // cleanup portrait
   if (storyOverlay) {
@@ -1839,6 +2169,14 @@ function initStageBoard() {
           bgmController.fadeOut(850);
         }
         startStageStory('intro');
+        return;
+      }
+
+      if (currentStageId === 'firstHeresy') {
+        if (bgmController && typeof bgmController.fadeOut === 'function') {
+          bgmController.fadeOut(850);
+        }
+        startStageStory('firstHeresy');
         return;
       }
 
