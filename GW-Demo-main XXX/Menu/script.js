@@ -20,6 +20,116 @@ let storyState = null;
 let bgmController = null;
 let stageAmbientController = null;
 
+let currentStoryAudio = null;
+let currentStoryAudioSrc = null;
+
+function stopStoryAudio({ reset = true } = {}) {
+  const audio = currentStoryAudio || (typeof window !== 'undefined' ? window.storyAudioController : null);
+  if (audio) {
+    try {
+      audio.pause();
+      if (reset) {
+        audio.currentTime = 0;
+      }
+    } catch (error) {
+      console.warn('Failed to stop story audio:', error);
+    }
+  }
+
+  currentStoryAudio = null;
+  currentStoryAudioSrc = null;
+
+  if (typeof window !== 'undefined') {
+    window.storyAudioController = null;
+    if (window.storyAudioMetadata) {
+      delete window.storyAudioMetadata;
+    }
+  }
+}
+
+function ensureMenuBGMStopped({ resetTime = false } = {}) {
+  if (!bgmController) return;
+
+  try {
+    if (typeof bgmController.fadeOut === 'function') {
+      bgmController.fadeOut(0);
+    }
+  } catch (error) {
+    console.warn('Failed to fade out menu BGM:', error);
+  }
+
+  const audioEl = bgmController.audio;
+  if (!audioEl) return;
+
+  try {
+    if (!audioEl.paused) {
+      audioEl.pause();
+    }
+    if (resetTime) {
+      audioEl.currentTime = 0;
+    }
+  } catch (error) {
+    console.warn('Failed to pause menu BGM:', error);
+  }
+}
+
+function clampAudioVolume(value, fallback = 0.7) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return fallback;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function playStoryAudio(src, { volume = 0.7, loop = true, resetMenuBGM = false } = {}) {
+  const audioFile = typeof src === 'string' ? src.trim() : '';
+  if (!audioFile) return null;
+
+  ensureMenuBGMStopped({ resetTime: resetMenuBGM });
+
+  if (currentStoryAudio && currentStoryAudioSrc === audioFile) {
+    try {
+      currentStoryAudio.loop = loop;
+      currentStoryAudio.volume = clampAudioVolume(volume, currentStoryAudio.volume ?? 0.7);
+      if (currentStoryAudio.paused) {
+        currentStoryAudio.play().catch((err) => {
+          console.warn('Story audio replay failed:', err);
+        });
+      }
+      return currentStoryAudio;
+    } catch (error) {
+      console.warn('Failed to resume existing story audio:', error);
+    }
+  }
+
+  stopStoryAudio({ reset: false });
+
+  try {
+    const audio = new Audio(audioFile);
+    audio.loop = loop;
+    audio.volume = clampAudioVolume(volume);
+    audio.play().catch((err) => {
+      console.warn('Story audio playback failed:', err);
+    });
+
+    currentStoryAudio = audio;
+    currentStoryAudioSrc = audioFile;
+
+    if (typeof window !== 'undefined') {
+      window.storyAudioController = audio;
+      window.storyAudioMetadata = {
+        src: audioFile,
+        loop,
+        volume: audio.volume,
+      };
+    }
+
+    return audio;
+  } catch (error) {
+    console.warn('Failed to start story audio:', error);
+    return null;
+  }
+}
+
 const stageProgress = {
   intro: false,
   firstHeresy: false,
@@ -915,6 +1025,10 @@ const stageStories = {
     {
       type: 'narration',
       text: '（进入战斗）',
+      audio: 'Cult1.mp3',
+      audioAction: 'play',
+      audioLoop: true,
+      audioVolume: 0.72,
     },
   ],
   sevenSeas: [
@@ -1598,30 +1712,19 @@ function applyStoryCues(entry) {
   }
 
   // —— Audio Control: Play or stop audio ——
-  if (entry.audio) {
-    const audioFile = String(entry.audio);
-    const action = entry.audioAction ? String(entry.audioAction).toLowerCase() : 'play';
-    
-    if (action === 'stop') {
-      if (window.storyAudioController) {
-        window.storyAudioController.pause();
-        window.storyAudioController.currentTime = 0;
-        window.storyAudioController = null;
-      }
-    } else if (action === 'play') {
-      // Stop previous audio if playing
-      if (window.storyAudioController) {
-        window.storyAudioController.pause();
-        window.storyAudioController.currentTime = 0;
-      }
-      
-      // Create and play new audio
-      window.storyAudioController = new Audio(audioFile);
-      window.storyAudioController.volume = 0.7;
-      window.storyAudioController.loop = true;
-      window.storyAudioController.play().catch(err => {
-        console.warn('Story audio playback failed:', err);
-      });
+  if (entry.audio || entry.audioAction) {
+    const actionRaw = entry.audioAction ? String(entry.audioAction).toLowerCase() : '';
+    const normalizedAction = actionRaw || (entry.audio ? 'play' : '');
+
+    if (normalizedAction === 'stop') {
+      stopStoryAudio({ reset: entry.audioReset !== false });
+    } else if (normalizedAction === 'play' && entry.audio) {
+      const loop = entry.audioLoop !== false;
+      const volume = clampAudioVolume(
+        typeof entry.audioVolume === 'number' ? entry.audioVolume : NaN,
+        0.7,
+      );
+      playStoryAudio(entry.audio, { loop, volume });
     }
   }
 }
@@ -1801,6 +1904,7 @@ function startStageStory(stageId) {
 
   storyState = { stageId, script, index: -1 };
 
+  stopStoryAudio();
   storyOverlay.dataset.stage = stageId;
   storyOverlay.setAttribute('aria-hidden', 'false');
   storyOverlay.classList.remove('show-panel', 'is-narration');
@@ -1812,6 +1916,7 @@ function startStageStory(stageId) {
 
   if (bgmController && typeof bgmController.fadeOut === 'function') {
     bgmController.fadeOut(850);
+    ensureMenuBGMStopped();
   }
 
   if (storySpeaker) {
@@ -1849,11 +1954,7 @@ function finishStageStory(skipped = false) {
   }
 
   // cleanup story audio
-  if (window.storyAudioController) {
-    window.storyAudioController.pause();
-    window.storyAudioController.currentTime = 0;
-    window.storyAudioController = null;
-  }
+  stopStoryAudio();
 
   // cleanup portrait
   if (storyOverlay) {
