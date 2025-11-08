@@ -3289,7 +3289,7 @@ function processUnitsTurnStart(side){
       if(before !== enemySteps){ appendLog('疲劳的躯体：Khathia 本回合额外 -2 步'); updateStepsUI(); }
     }
 
-    const extraDraw = Math.max(0, u.turnsStarted - 1);
+    const extraDraw = Math.max(0, u.turnsStarted);
     if(extraDraw>0) drawSkills(u, extraDraw);
 
     if(u._stanceType && u._stanceTurns>0){
