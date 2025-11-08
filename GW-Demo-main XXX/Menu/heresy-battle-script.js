@@ -109,6 +109,16 @@ function armAIWatchdog(token, ms=12000){
 }
 function clearAIWatchdog(){ if(aiWatchdogTimer){ clearTimeout(aiWatchdogTimer); aiWatchdogTimer=null; } }
 
+// Heresy AI - Sacrifice skill management
+let sacrificeSkillsDisabled = false;
+
+// Helper: Check if all player units have cultTarget status
+function allPlayersHaveCultTarget(){
+  const players = Object.values(units).filter(u=>u.side==='player' && u.hp>0);
+  if(players.length === 0) return false;
+  return players.every(p => p.status.cultTarget === true);
+}
+
 // —— 地图/掩体 ——
 function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return { r, c }; }
 function isVoidCell(r,c){
@@ -2900,7 +2910,7 @@ function buildSkillFactoriesForUnit(u){
         {},
         {moveSkill:true, moveRadius:3, castMs:600}
       )},
-      { key:'献祭', prob:0.25, cond:()=>true, make:()=> skill('献祭',2,'orange','牺牲20HP，增加一层暴力，标记最近敌人为邪教目标',
+      { key:'献祭', prob:0.25, cond:()=>!sacrificeSkillsDisabled, make:()=> skill('献祭',2,'orange','牺牲20HP，增加一层暴力，标记最近敌人为邪教目标',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> cultistNovice_Sacrifice(uu),
         {},
@@ -2928,7 +2938,7 @@ function buildSkillFactoriesForUnit(u){
         {},
         {moveSkill:true, moveRadius:3, castMs:600}
       )},
-      { key:'献祭', prob:0.25, cond:()=>true, make:()=> skill('献祭',2,'orange','牺牲20HP，友方增加一层暴力，标记最近敌人为邪教目标',
+      { key:'献祭', prob:0.25, cond:()=>!sacrificeSkillsDisabled, make:()=> skill('献祭',2,'orange','牺牲20HP，友方增加一层暴力，标记最近敌人为邪教目标',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> cultistMage_Sacrifice(uu),
         {},
@@ -3284,6 +3294,8 @@ function summarizeNegatives(u){
   if(u.status.agileStacks>0) parts.push(`灵活x${u.status.agileStacks}`);
   if(u.status.mockeryStacks>0) parts.push(`戏谑x${u.status.mockeryStacks}`);
   if(u.status.violenceStacks>0) parts.push(`暴力x${u.status.violenceStacks}`);
+  if(u.status.cultTarget) parts.push(`邪教目标`);
+  if(u.status.vulnerabilityStacks>0) parts.push(`脆弱x${u.status.vulnerabilityStacks}`);
   if(u._spBroken) parts.push(`SP崩溃`);
   if(u._spCrashVuln) parts.push('SP崩溃易伤');
   if(u._stanceType && u._stanceTurns>0){
@@ -3913,9 +3925,62 @@ function enemyLivingPlayers(){ return Object.values(units).filter(u=>u.side==='p
 function buildSkillCandidates(en){
   const skillset = (en.skillPool && en.skillPool.length) ? en.skillPool : [];
   const candidates=[];
+  
+  // Check if all players have cultTarget and handle sacrifice skills
+  if(allPlayersHaveCultTarget() && !sacrificeSkillsDisabled){
+    sacrificeSkillsDisabled = true;
+    appendLog('所有玩家已标记邪教目标，献祭技能已禁用');
+    // Remove all sacrifice skills from all enemy units
+    for(const uid in units){
+      const u = units[uid];
+      if(u.side === 'enemy' && u.hp > 0 && u.skillPool){
+        const beforeCount = u.skillPool.length;
+        u.skillPool = u.skillPool.filter(s => s.name !== '献祭');
+        const removedCount = beforeCount - u.skillPool.length;
+        if(removedCount > 0){
+          appendLog(`${u.name} 的 ${removedCount} 张献祭技能已移除`);
+        }
+      }
+    }
+  }
+  
+  // Calculate if we need to chase (check if any player is at distance > 1)
+  const players = Object.values(units).filter(u=>u.side==='player' && u.hp>0);
+  let needsToChase = false;
+  if(players.length > 0){
+    const minDist = Math.min(...players.map(p => distanceForAI(en, p)));
+    needsToChase = minDist > 3; // If closest player is more than 3 cells away
+  }
+  
   for(const sk of skillset){
     if(sk.cost>enemySteps) continue;
     try{
+      // Prioritize Sacrifice skill (highest priority)
+      if(sk.name === '献祭' && !sacrificeSkillsDisabled){
+        candidates.push({sk, dir:en.facing, score: 30}); // Highest priority for Sacrifice
+        continue;
+      }
+      
+      // Prioritize Chase skill when at distance
+      if(sk.name === '追上' && needsToChase){
+        // Find the best position to move to (toward nearest player)
+        const cells = sk.rangeFn(en) || [];
+        let bestCell = null;
+        let bestDist = Infinity;
+        for(const cell of cells){
+          if(getUnitAt(cell.r, cell.c)) continue; // Skip occupied cells
+          const minDistToAnyPlayer = Math.min(...players.map(p => Math.abs(cell.r - p.r) + Math.abs(cell.c - p.c)));
+          if(minDistToAnyPlayer < bestDist){
+            bestDist = minDistToAnyPlayer;
+            bestCell = cell;
+          }
+        }
+        if(bestCell){
+          candidates.push({sk, dir:en.facing, moveTo: bestCell, score: 28}); // High priority for Chase when needed
+        }
+        continue;
+      }
+      
       // 自我增益先（锁链缠绕/堡垒/反伤）
       const selfCells = sk.rangeFn(en, en.facing, null) || [];
       const isSelfOnly = selfCells.length>0 && selfCells.every(c=>c.r===en.r && c.c===en.c);
@@ -3982,9 +4047,11 @@ async function execEnemySkillCandidate(en, cand){
   enemySteps = Math.max(0, enemySteps - cand.sk.cost);
   updateStepsUI();
 
-  const cells = cand.targetUnit
-    ? [{r:cand.targetUnit.r, c:cand.targetUnit.c}]
-    : computeCellsForSkill(en, cand.dir, cand.dir);
+  const cells = cand.moveTo
+    ? [{r:cand.moveTo.r, c:cand.moveTo.c}]
+    : (cand.targetUnit
+      ? [{r:cand.targetUnit.r, c:cand.targetUnit.c}]
+      : computeCellsForSkill(en, cand.dir, cand.dir));
 
   clearHighlights();
   cells.forEach(c=> markCell(c.r,c.c,'skill'));
@@ -4005,7 +4072,10 @@ async function execEnemySkillCandidate(en, cand){
   }
 
   try{
-    if(cand.targetUnit && cand.sk.meta && cand.sk.meta.cellTargeting){
+    if(cand.moveTo && cand.sk.meta && cand.sk.meta.moveSkill){
+      // Movement skill (Chase)
+      await cand.sk.execFn(en, {moveTo: cand.moveTo});
+    } else if(cand.targetUnit && cand.sk.meta && cand.sk.meta.cellTargeting){
       await cand.sk.execFn(en, {r:cand.targetUnit.r, c:cand.targetUnit.c});
     } else if(cand.targetUnit){
       await cand.sk.execFn(en, cand.targetUnit);
