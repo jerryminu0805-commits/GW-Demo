@@ -3294,6 +3294,8 @@ function summarizeNegatives(u){
   if(u.status.agileStacks>0) parts.push(`灵活x${u.status.agileStacks}`);
   if(u.status.mockeryStacks>0) parts.push(`戏谑x${u.status.mockeryStacks}`);
   if(u.status.violenceStacks>0) parts.push(`暴力x${u.status.violenceStacks}`);
+  if(u.status.cultTarget) parts.push(`邪教目标`);
+  if(u.status.vulnerabilityStacks>0) parts.push(`脆弱x${u.status.vulnerabilityStacks}`);
   if(u._spBroken) parts.push(`SP崩溃`);
   if(u._spCrashVuln) parts.push('SP崩溃易伤');
   if(u._stanceType && u._stanceTurns>0){
