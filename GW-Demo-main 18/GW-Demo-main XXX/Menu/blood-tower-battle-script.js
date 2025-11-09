@@ -3722,10 +3722,18 @@ document.addEventListener('fullscreenchange', ()=>{
 function buildGrid(){
   if(!battleAreaEl) return;
   // 确保 --cell 可用，避免“无角色/看不到格子”
-  battleAreaEl.style.setProperty('--cell', `${CELL_SIZE}px`);
-  // Safari兼容性修复：直接使用像素值而不是CSS变量
-  battleAreaEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL_SIZE}px)`;
-  battleAreaEl.style.gridTemplateRows = `repeat(${ROWS}, ${CELL_SIZE}px)`;
+  const cellPx = `${CELL_SIZE}px`;
+  battleAreaEl.style.setProperty('--cell', cellPx);
+  battleAreaEl.style.width = `${BOARD_WIDTH}px`;
+  battleAreaEl.style.height = `${BOARD_HEIGHT}px`;
+  battleAreaEl.style.gridTemplateColumns = `repeat(${COLS}, ${cellPx})`;
+  battleAreaEl.style.gridTemplateRows = `repeat(${ROWS}, ${cellPx})`;
+  if(mapPaneEl){
+    mapPaneEl.style.minWidth = `${BOARD_WIDTH}px`;
+    mapPaneEl.style.maxWidth = `${BOARD_WIDTH}px`;
+    mapPaneEl.style.minHeight = `${BOARD_HEIGHT}px`;
+    mapPaneEl.style.maxHeight = `${BOARD_HEIGHT}px`;
+  }
   const preservedFxLayer = fxLayer;
   battleAreaEl.innerHTML = '';
   for(let r=1;r<=ROWS;r++){
