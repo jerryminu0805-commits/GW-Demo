@@ -137,6 +137,10 @@ function markRectByXY(x1, y1, x2, y2, targetSet){
   }
 }
 
+function coalesce(value, fallback){
+  return (value === undefined || value === null) ? fallback : value;
+}
+
 // Add void areas based on updated Blood Tower specification (coordinates provided as X,Y)
 markRectByXY(6, 18, 18, 21, voidCells);
 markRectByXY(1, 8, 13, 12, voidCells);
@@ -1076,9 +1080,9 @@ function buildAttackSwingFx({anchor, angle, config}){
   node.innerHTML = html;
   const arcs = node.querySelectorAll('.arc');
   const pivot = (swings - 1) / 2;
-  const spread = config.spread ?? 16;
-  const delayBase = config.delayBase ?? 0;
-  const delayStep = config.delayStep ?? 40;
+  const spread = coalesce(config.spread, 16);
+  const delayBase = coalesce(config.delayBase, 0);
+  const delayStep = coalesce(config.delayStep, 40);
   arcs.forEach((el, i)=>{
     const offset = (i - pivot) * spread;
     el.style.setProperty('--arc-angle-offset', `${offset}deg`);
@@ -1150,14 +1154,14 @@ function deriveAttackFxConfig(config){
     case 'slash':{
       const swings = Math.max(1, config.slashes || 1);
       const variant = config.variant === 'harpoon' ? 'wide' : (config.variant || 'slash');
-      const spread = config.attackSpread ?? (variant === 'wide' ? 22 : 16);
+      const spread = coalesce(config.attackSpread, (variant === 'wide' ? 22 : 16));
       return {type:'swing', swings, spread, delayStep: swings>1 ? 34 : 0, variant};
     }
     case 'claw':{
       const swings = Math.max(1, Math.min(4, config.scratches || 3));
-      const spread = config.attackSpread ?? 14;
+      const spread = coalesce(config.attackSpread, 14);
       const variant = config.variant === 'mecha' ? 'mecha' : 'claw';
-      return {type:'swing', swings, spread, delayStep: config.delayStep ?? 26, variant};
+      return {type:'swing', swings, spread, delayStep: coalesce(config.delayStep, 26), variant};
     }
     case 'beam':{
       return {type:'muzzle', length: Math.max(70, config.length || 120)};
@@ -1227,9 +1231,9 @@ function buildClawSkillFx({anchor, angle, config}){
   node.style.setProperty('--skill-secondary', config.secondary || '#ffefa9');
   node.dataset.variant = config.variant || 'default';
   const scratchCount = Math.max(3, config.scratches || 3);
-  const scratchSpacing = config.spacing ?? 16;
-  const scratchDelay = config.delayStep ?? 30;
-  const scratchBaseDelay = config.delayBase ?? 0;
+  const scratchSpacing = coalesce(config.spacing, 16);
+  const scratchDelay = coalesce(config.delayStep, 30);
+  const scratchBaseDelay = coalesce(config.delayBase, 0);
   let scratchHtml='';
   for(let i=0;i<scratchCount;i++){
     scratchHtml += `<div class="scratch" data-index="${i}"><span></span></div>`;
@@ -1254,9 +1258,9 @@ function buildClawSkillFx({anchor, angle, config}){
   });
   const shardEls = node.querySelectorAll('.shard');
   const shardPivot = shardCount > 0 ? (shardCount - 1) / 2 : 0;
-  const shardSpread = config.shardSpread ?? 22;
-  const shardArc = config.shardArc ?? 18;
-  const shardStart = config.shardStartAngle ?? -26;
+  const shardSpread = coalesce(config.shardSpread, 22);
+  const shardArc = coalesce(config.shardArc, 18);
+  const shardStart = coalesce(config.shardStartAngle, -26);
   shardEls.forEach((el,i)=>{
     const drift = (i - shardPivot) * shardSpread;
     const rot = shardStart + (i - shardPivot) * shardArc;
@@ -1857,7 +1861,7 @@ function handleSpCrashIfNeeded(u){
     applyStunOrStack(u, 1, {bypass:true, reason:'SP崩溃'});
     if(u.side==='player'){ playerSteps = Math.max(0, playerSteps - 1); } else { enemySteps = Math.max(0, enemySteps - 1); }
     const restored = Math.floor(u.maxSp * u.restoreOnZeroPct);
-    u.spPendingRestore = Math.max(u.spPendingRestore ?? 0, restored);
+    u.spPendingRestore = Math.max(coalesce(u.spPendingRestore, 0), restored);
     appendLog(`${u.name} 的 SP 崩溃：下个己方回合自动恢复至 ${u.spPendingRestore}`);
   }
   if(u.sp > 0 && u._spBroken) u._spBroken = false;
@@ -5090,7 +5094,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(interactionLocked || godsWillLockedOut) return;
     if(!godsWillUnlocked){
       const answer = prompt('请输入 GOD\'S WILL 密码');
-      const normalized = (answer ?? '').trim();
+      const normalized = String(coalesce(answer, '')).trim();
       if(normalized === GODS_WILL_PASSWORD){
         godsWillUnlocked = true;
         if(godsWillBtn){
