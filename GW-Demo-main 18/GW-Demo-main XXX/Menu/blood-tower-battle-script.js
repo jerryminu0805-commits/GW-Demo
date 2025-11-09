@@ -3719,8 +3719,9 @@ function buildGrid(){
   if(!battleAreaEl) return;
   // 确保 --cell 可用，避免“无角色/看不到格子”
   battleAreaEl.style.setProperty('--cell', `${CELL_SIZE}px`);
-  battleAreaEl.style.gridTemplateColumns = `repeat(${COLS}, var(--cell))`;
-  battleAreaEl.style.gridTemplateRows = `repeat(${ROWS}, var(--cell))`;
+  // Safari兼容性修复：直接使用像素值而不是CSS变量
+  battleAreaEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL_SIZE}px)`;
+  battleAreaEl.style.gridTemplateRows = `repeat(${ROWS}, ${CELL_SIZE}px)`;
   const preservedFxLayer = fxLayer;
   battleAreaEl.innerHTML = '';
   for(let r=1;r<=ROWS;r++){
