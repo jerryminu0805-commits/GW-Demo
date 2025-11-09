@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>血楼计划 - GOD'S WILL Demo</title>
+  <link rel="stylesheet" href="blood-tower-battle-styles.css" />
+</head>
+<body>
+  <div id="battleCamera">
+    <div class="app">
+      <div class="left" id="mapPane">
+        <div id="battleArea" class="board" role="img" aria-label="血楼计划 战术示意"></div>
+        <div class="legend">
+          <span><span class="chip player"></span> 我方</span>
+          <span><span class="chip enemy"></span> 敌方</span>
+          <span><span class="chip wall"></span> 可摧毁墙体</span>
+          <span><span class="chip fog"></span> 血雾倒计时/生效区</span>
+          <span><span class="chip heal"></span> 恢复格</span>
+          <span><span class="chip cover"></span> 掩体</span>
+          <span><span class="chip void"></span> 空洞</span>
+        </div>
+      </div>
+      <div class="right">
+        <section class="panel status">
+          <header>
+            <h2>血楼计划 · 作战演算</h2>
+            <p class="sub">根据情报编排的战术模拟，支持分波回放与血雾进度跟踪。</p>
+          </header>
+          <dl class="meta">
+            <div>
+              <dt>当前波次</dt>
+              <dd id="phaseLabel">-</dd>
+            </div>
+            <div>
+              <dt>回合记录</dt>
+              <dd id="roundLabel">第 1 回合</dd>
+            </div>
+            <div>
+              <dt>血雾倒计时</dt>
+              <dd id="fogCountdown">无血雾</dd>
+            </div>
+          </dl>
+          <div class="actions">
+            <button id="advancePhaseBtn" type="button">模拟击破当前波次</button>
+            <button id="simulateTurnBtn" type="button">推进 1 回合并结算血雾</button>
+            <button id="resetBtn" type="button">重置演算</button>
+          </div>
+        </section>
+        <section class="panel roster">
+          <header>
+            <h3>单位状态</h3>
+          </header>
+          <div class="roster-columns">
+            <div>
+              <h4>我方</h4>
+              <ul id="allyList" class="unit-list"></ul>
+            </div>
+            <div>
+              <h4>敌方</h4>
+              <ul id="enemyList" class="unit-list"></ul>
+            </div>
+          </div>
+        </section>
+        <section class="panel log-panel">
+          <header>
+            <h3>战斗事件</h3>
+          </header>
+          <div id="log" class="log" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="accomplish" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2>战斗胜利！</h2>
+      <p>血楼计划模拟完成，已记录在 Demo 资料库。</p>
+      <div class="modal-actions">
+        <button id="confirmBtn" type="button">返回关卡</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="defeatModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2>模拟已重置</h2>
+      <p>重新布置全部单位与墙体状态。</p>
+      <div class="modal-actions">
+        <button id="defeatConfirmBtn" type="button">继续战术演算</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="towerBGM" src="Tower.mp3" loop preload="auto"></audio>
+  <audio id="memberBGM" src="成员B.mp3" loop preload="auto"></audio>
+
+  <script src="blood-tower-battle-script.js"></script>
+</body>
+</html>

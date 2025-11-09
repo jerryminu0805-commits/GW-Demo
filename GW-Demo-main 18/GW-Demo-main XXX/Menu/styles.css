@@ -392,6 +392,53 @@ body {
   box-shadow: 0 0 12px rgba(255, 168, 86, 0.4), 0 14px 30px rgba(255, 168, 86, 0.2);
 }
 
+.stage-item.stage-bloodtower {
+  color: #fda4af;
+  border-color: rgba(248, 113, 113, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.25);
+}
+
+.stage-item.stage-bloodtower::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%, rgba(248, 113, 113, 0.4) 0%, rgba(96, 165, 250, 0.2) 48%, rgba(59, 130, 246, 0) 78%);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.stage-item.stage-bloodtower:hover {
+  color: #fef2f2;
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 16px rgba(248, 113, 113, 0.3), 0 0 28px rgba(96, 165, 250, 0.2);
+}
+
+.stage-item.stage-bloodtower.active {
+  color: #fff;
+  border-color: rgba(96, 165, 250, 0.65);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 34px rgba(248, 113, 113, 0.32), 0 0 44px rgba(59, 130, 246, 0.24);
+}
+
+.stage-item.stage-bloodtower.active::before {
+  opacity: 1;
+  animation: bloodtowerPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes bloodtowerPulse {
+  0% {
+    background: radial-gradient(circle at 50% 50%, rgba(248, 113, 113, 0.55) 0%, rgba(248, 113, 113, 0.32) 42%, rgba(59, 130, 246, 0) 78%);
+  }
+  45% {
+    background: radial-gradient(circle at 50% 50%, rgba(252, 165, 165, 0.25) 0%, rgba(96, 165, 250, 0.4) 46%, rgba(59, 130, 246, 0) 78%);
+  }
+  100% {
+    background: radial-gradient(circle at 50% 50%, rgba(248, 113, 113, 0.55) 0%, rgba(248, 113, 113, 0.32) 42%, rgba(59, 130, 246, 0) 78%);
+  }
+}
+
 .stage-item.stage-seven {
   color: #f35656;
   border-color: rgba(243, 86, 86, 0.55);
