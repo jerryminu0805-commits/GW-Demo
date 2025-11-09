@@ -2298,14 +2298,31 @@ function karmaObeyMove(u, payload){
 function karmaGrip(u,target){
   if(!target || target.side===u.side){ appendLog('嗜血之握 目标无效'); return; }
   cameraFocusOnCell(target.r, target.c);
-  let fixed = null;
-  if(target.id==='khathia') fixed = 75;
-  if(fixed!==null){
-    const deal = Math.min(target.hp, fixed);
-    damageUnit(target.id, deal, 0, `${u.name} 嗜血之握 重创 ${target.name}`, u.id, {ignoreToughBody:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
+  
+  // Determine damage based on enemy type (stunThreshold indicates enemy rank)
+  const stunThr = target.stunThreshold || 1;
+  let damage;
+  let logMsg;
+  
+  if(stunThr >= 4) {
+    // Boss: 75 HP fixed damage
+    damage = Math.min(target.hp, 75);
+    logMsg = `${u.name} 嗜血之握 重创 ${target.name}`;
+  } else if(stunThr === 3) {
+    // Mini-boss: 80 HP fixed damage
+    damage = Math.min(target.hp, 80);
+    logMsg = `${u.name} 嗜血之握 重创 ${target.name}`;
+  } else if(stunThr === 2) {
+    // Elite: 100 HP fixed damage
+    damage = Math.min(target.hp, 100);
+    logMsg = `${u.name} 嗜血之握 重创 ${target.name}`;
   } else {
-    damageUnit(target.id, target.hp, 0, `${u.name} 嗜血之握 处决 ${target.name}`, u.id, {ignoreToughBody:true, skillFx:'karma:嗜血之握'});
+    // Normal enemy: Execute (full HP as true damage)
+    damage = target.hp;
+    logMsg = `${u.name} 嗜血之握 处决 ${target.name}`;
   }
+  
+  damageUnit(target.id, damage, 0, logMsg, u.id, {ignoreToughBody:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
   unitActed(u);
 }
 function unitActed(u){
