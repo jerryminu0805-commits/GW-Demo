@@ -2478,6 +2478,19 @@ function findClosestEnemy(u){
   return closest;
 }
 
+// Find closest enemy without cultTarget status (for Sacrifice skill)
+function findClosestEnemyWithoutCultTarget(u){
+  const enemies = Object.values(units).filter(t=> t.side !== u.side && t.hp > 0 && !t.status.cultTarget);
+  if(enemies.length === 0) return null;
+  let closest = enemies[0];
+  let minDist = mdist(u, enemies[0]);
+  for(const t of enemies){
+    const d = mdist(u, t);
+    if(d < minDist){ minDist = d; closest = t; }
+  }
+  return closest;
+}
+
 // Helper: Check if any enemy with cultTarget in 3x3 radius
 function hasCultTargetNearby(u, radius=1){
   const enemies = Object.values(units).filter(t=> t.side !== u.side && t.hp > 0);
@@ -2556,12 +2569,14 @@ async function cultistNovice_Sacrifice(u){
   // Add violence stack to self
   addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
   
-  // Mark closest enemy with cultTarget
-  const closest = findClosestEnemy(u);
+  // Mark closest enemy without cultTarget (bypass those who already have it)
+  const closest = findClosestEnemyWithoutCultTarget(u);
   if(closest){
     closest.status.cultTarget = true;
     showStatusFloat(closest,'邪教目标',{type:'debuff', offsetY:-48});
     appendLog(`${u.name} 将 ${closest.name} 标记为邪教目标`);
+  } else {
+    appendLog(`${u.name} 没有找到可标记的目标（所有敌人已有邪教目标）`);
   }
   
   renderAll();
@@ -2590,12 +2605,14 @@ async function cultistMage_Sacrifice(u){
     addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
   }
   
-  // Mark closest enemy with cultTarget
-  const closest = findClosestEnemy(u);
+  // Mark closest enemy without cultTarget (bypass those who already have it)
+  const closest = findClosestEnemyWithoutCultTarget(u);
   if(closest){
     closest.status.cultTarget = true;
     showStatusFloat(closest,'邪教目标',{type:'debuff', offsetY:-48});
     appendLog(`${u.name} 将 ${closest.name} 标记为邪教目标`);
+  } else {
+    appendLog(`${u.name} 没有找到可标记的目标（所有敌人已有邪教目标）`);
   }
   
   renderAll();
