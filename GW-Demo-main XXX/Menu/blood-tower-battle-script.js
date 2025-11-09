@@ -150,7 +150,7 @@ function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCel
 
 // —— 迷雾系统 (Fog of War) ——
 const revealedCells = new Set();
-const FOG_INITIAL_RANGE = 5; // Initial reveal radius around player units
+const FOG_INITIAL_RANGE = 6; // Initial reveal radius around player units
 
 function revealCell(r, c){
   if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS){
@@ -163,7 +163,7 @@ function isCellRevealed(r, c){
 }
 
 function revealAreaAroundUnit(u, radius){
-  // Reveal all cells within Manhattan distance from unit
+  // Reveal all cells within Manhattan distance from unit, including cover cells
   for(let r = 1; r <= ROWS; r++){
     for(let c = 1; c <= COLS; c++){
       if(isVoidCell(r, c)) continue;
@@ -177,13 +177,14 @@ function revealAreaAroundUnit(u, radius){
 
 function initializeFogOfWar(){
   // Reveal area around all player units at battle start
+  // This includes the starting area where Adora and team are, extending to cover cells
   for(const id in units){
     const u = units[id];
     if(u.side === 'player' && u.hp > 0){
       revealAreaAroundUnit(u, FOG_INITIAL_RANGE);
     }
   }
-  appendLog(`战斗开始：迷雾笼罩战场，仅显示初始区域（Adora等人周围${FOG_INITIAL_RANGE}格范围）`);
+  appendLog(`战斗开始：迷雾笼罩战场，仅显示第一区域（Adora等人所在区域，包含可摧毁墙体1以内）`);
 }
 
 // —— 单位 ——
