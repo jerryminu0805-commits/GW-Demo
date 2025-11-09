@@ -123,21 +123,19 @@ function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return 
 
 const voidCells = new Set();
 
-// Add void areas based on problem statement
-// Area 1: (6,21) to (18,21) to (18,18) to (6,18)  
-// This forms a rectangle from column 6-18, row 18-21 (in 1-indexed)
-for (let r = 18; r <= 21; r++) {
-  for (let c = 6; c <= 18; c++) {
+// Add void areas based on updated Blood Tower specification
+// Area 1: (6,21) → (18,21) → (18,18) → (6,18)
+for (let r = 6; r <= 18; r++) {
+  for (let c = 18; c <= 21; c++) {
     if (r >= 1 && r <= ROWS && c >= 1 && c <= COLS) {
       voidCells.add(`${r},${c}`);
     }
   }
 }
 
-// Area 2: (1,8) to (1,12) to (13,12) to (13,8)
-// This forms a rectangle from column 1-13, row 8-12 (in 1-indexed)
-for (let r = 8; r <= 12; r++) {
-  for (let c = 1; c <= 13; c++) {
+// Area 2: (1,8) → (1,12) → (13,12) → (13,8)
+for (let r = 1; r <= 13; r++) {
+  for (let c = 8; c <= 12; c++) {
     if (r >= 1 && r <= ROWS && c >= 1 && c <= COLS) {
       voidCells.add(`${r},${c}`);
     }
@@ -148,12 +146,11 @@ function isVoidCell(r,c){
   return voidCells.has(`${r},${c}`);
 }
 const coverCells = new Set();
-function addCoverRectBL(x1,y1,x2,y2){
-  const xmin = Math.min(x1,x2), xmax = Math.max(x1,x2);
-  const ymin = Math.min(y1,y2), ymax = Math.max(y1,y2);
-  for(let x=xmin; x<=xmax; x++){
-    for(let y=ymin; y<=ymax; y++){
-      const {r,c} = toRC_FromBottomLeft(x,y);
+function addCoverRange(r1,c1,r2,c2){
+  const rMin = Math.min(r1,r2), rMax = Math.max(r1,r2);
+  const cMin = Math.min(c1,c2), cMax = Math.max(c1,c2);
+  for(let r=rMin; r<=rMax; r++){
+    for(let c=cMin; c<=cMax; c++){
       if(r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c)){
         coverCells.add(`${r},${c}`);
       }
@@ -222,10 +219,10 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// — Player units (Level 25, positioned at row 11) —
-units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
-units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+// — Player units (Level 25) —
+units['dario'] = createUnit('dario','Dario','player',25, 16, 23, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+units['adora'] = createUnit('adora','Adora','player',25, 16, 24, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+units['karma'] = createUnit('karma','Karma','player',25, 16, 25, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
 // Enemy units - Initial wave
 // 雏形赫雷西成员 (Cultist Novice)
@@ -238,8 +235,8 @@ const noviceCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (70) when SP crashes
 };
-units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 23, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 25, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 3, 23, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 25, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
 
 // 法形赫雷西成员 (Cultist Mage)
 const mageCultistConfig = {
@@ -251,7 +248,7 @@ const mageCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (90) when SP crashes
 };
-units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 24, 5, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 5, 24, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
 
 // 刺形赫雷西成员 (Cultist Assassin)
 const assassinCultistConfig = {
@@ -263,16 +260,16 @@ const assassinCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (100) when SP crashes
 };
-units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 24, 18, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 18, 24, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
 
 // Destructible walls - these will be implemented as special terrain
 // Wall 1: columns 1-5, row 21 (will spawn enemies when destroyed)
 // Wall 2: column 13, rows 13-17 (will spawn enemies when destroyed)
 // Wall 3: column 13, rows 1-7 (will spawn enemies and boss when destroyed)
 
-// No cover cells in this battle (removed the old cover definitions)
-coverCells.add('5,4');
-// No additional cover cells needed for this battle
+// Cover cells (impassable obstacles representing debris/cover)
+addCoverRange(3,6,5,6);
+addCoverRange(1,9,7,9);
 
 // —— 范围/工具 ——
 const DIRS = { up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1} };
@@ -4425,7 +4422,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   startCameraLoop();
 
   // 掩体（不可进入）
-  // 初见赫雷西战斗：三排掩体在 row 5（columns 2-4, 7-9, 12-14）
+  // 血楼计划：两道掩体带位于 (3-5,6) 与 (1-7,9)
   injectFXStyles();
 
   // 起手手牌
@@ -4446,9 +4443,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   window.addEventListener('load', ()=> refreshLargeOverlays());
 
-  appendLog('初见赫雷西战斗：地图 12x15，包含三排掩体（row 5）。');
-  appendLog('赫雷西成员具有多种被动：忠诚信仰、神恩、强化躯体、神明指示。');
-  appendLog('赫雷西成员的SP降至0时会自动恢复至初始值（70或90）。');
+  appendLog('血楼计划：地图 18x26，包含两块空缺区域与掩体线。');
+  appendLog('任务：破除三道可摧毁墙体，最终迎战赫雷西成员B。');
+  appendLog('赫雷西成员的SP降至 0 时会立即恢复至初始值。');
 
   const endTurnBtn=document.getElementById('endTurnBtn');
   if(endTurnBtn) endTurnBtn.addEventListener('click', ()=>{ if(interactionLocked) return; endTurn(); });
