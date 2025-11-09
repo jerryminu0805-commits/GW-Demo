@@ -392,6 +392,41 @@ body {
   box-shadow: 0 0 12px rgba(255, 168, 86, 0.4), 0 14px 30px rgba(255, 168, 86, 0.2);
 }
 
+.stage-item.stage-blood-tower {
+  color: #ff9999;
+  border-color: rgba(255, 153, 153, 0.5);
+  animation: bloodTowerGlow 4s ease-in-out infinite;
+}
+
+.stage-item.stage-blood-tower:hover {
+  color: #ffcccc;
+  animation: bloodTowerGlowHover 4s ease-in-out infinite;
+}
+
+@keyframes bloodTowerGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(255, 100, 100, 0.3), 0 14px 30px rgba(255, 100, 100, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(150, 200, 255, 0.4), 0 14px 30px rgba(150, 200, 255, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(255, 100, 100, 0.3), 0 14px 30px rgba(255, 100, 100, 0.15);
+  }
+}
+
+@keyframes bloodTowerGlowHover {
+  0% {
+    box-shadow: 0 0 14px rgba(255, 120, 120, 0.5), 0 14px 35px rgba(255, 120, 120, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(170, 210, 255, 0.6), 0 14px 35px rgba(170, 210, 255, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 14px rgba(255, 120, 120, 0.5), 0 14px 35px rgba(255, 120, 120, 0.25);
+  }
+}
+
 .stage-item.stage-seven {
   color: #f35656;
   border-color: rgba(243, 86, 86, 0.55);
