@@ -114,6 +114,28 @@ body {
   pointer-events: none; /* 掩体不可进入 */
 }
 
+/* 迷雾样式 (Fog of War) */
+.cell.fog {
+  background: #050709;
+  border-color: #0a0d12;
+  position: relative;
+}
+.cell.fog::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(10,13,18,0.7) 0%, rgba(5,7,9,0.95) 70%);
+  pointer-events: none;
+}
+.cell.fog .coord {
+  opacity: 0.2;
+}
+/* Hide units in fog */
+.cell.fog .unit {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* 1x1 单位：放在 cell 内，绝对定位铺满 cell */
 .unit {
   position: absolute;

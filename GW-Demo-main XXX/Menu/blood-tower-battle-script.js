@@ -148,6 +148,44 @@ function addCoverRectBL(x1,y1,x2,y2){
 function isCoverCell(r,c){ return coverCells.has(`${r},${c}`); }
 function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c); }
 
+// —— 迷雾系统 (Fog of War) ——
+const revealedCells = new Set();
+const FOG_INITIAL_RANGE = 5; // Initial reveal radius around player units
+
+function revealCell(r, c){
+  if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS){
+    revealedCells.add(`${r},${c}`);
+  }
+}
+
+function isCellRevealed(r, c){
+  return revealedCells.has(`${r},${c}`);
+}
+
+function revealAreaAroundUnit(u, radius){
+  // Reveal all cells within Manhattan distance from unit
+  for(let r = 1; r <= ROWS; r++){
+    for(let c = 1; c <= COLS; c++){
+      if(isVoidCell(r, c)) continue;
+      const dist = Math.abs(r - u.r) + Math.abs(c - u.c);
+      if(dist <= radius){
+        revealCell(r, c);
+      }
+    }
+  }
+}
+
+function initializeFogOfWar(){
+  // Reveal area around all player units at battle start
+  for(const id in units){
+    const u = units[id];
+    if(u.side === 'player' && u.hp > 0){
+      revealAreaAroundUnit(u, FOG_INITIAL_RANGE);
+    }
+  }
+  appendLog(`战斗开始：迷雾笼罩战场，仅显示初始区域（Adora等人周围${FOG_INITIAL_RANGE}格范围）`);
+}
+
 // —— 单位 ——
 function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct, spZeroHpPenalty=0, passives=[], extra={}){
   return {
@@ -3141,6 +3179,7 @@ function buildGrid(){
       cell.className = 'cell';
       if(isVoidCell(r,c)) cell.classList.add('void');
       if(isCoverCell(r,c)) cell.classList.add('cover');
+      if(!isCellRevealed(r,c)) cell.classList.add('fog');
       cell.dataset.r=r; cell.dataset.c=c;
       const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
 
@@ -4439,6 +4478,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // 起手手牌
   for(const id in units){ const u=units[id]; if(u.hp>0) ensureStartHand(u); }
+
+  // 初始化迷雾系统
+  initializeFogOfWar();
 
   playerSteps = computeBaseSteps();
   enemySteps = computeBaseSteps();
