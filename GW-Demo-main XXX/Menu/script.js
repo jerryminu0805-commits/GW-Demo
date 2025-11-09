@@ -831,7 +831,6 @@ pushRect(3, 4, 5, 6);
 
 const stageStories = {
   intro: [
-    { type: 'narration', text: '进入黑暗……' },
     { type: 'narration', text: '剧情缓缓展开……', background: 'Home.png', audio: 'Intro 1.mp3', audioAction: 'play' },
     { speaker: 'Karma', text: '。。。。。', portrait: 'KarmaSpeachless.png', position: 'right', characters: { Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
     { speaker: 'Dario', text: '所以你们怎么想？', portrait: 'DarioNorms.png', position: 'left', characters: { Dario: { portrait: 'DarioNorms.png', position: 'left' }, Karma: { portrait: 'KarmaSpeachless.png', position: 'right' } } },
@@ -1025,10 +1024,6 @@ const stageStories = {
     {
       type: 'narration',
       text: '（进入战斗）',
-      audio: 'Cult1.mp3',
-      audioAction: 'play',
-      audioLoop: true,
-      audioVolume: 0.72,
     },
   ],
   sevenSeas: [
