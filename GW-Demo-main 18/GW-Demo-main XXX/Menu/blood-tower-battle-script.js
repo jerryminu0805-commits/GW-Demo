@@ -2,12 +2,12 @@
 // 变更摘要：
 // - 敌方阵容：多波次赫雷西成员 + 精英成员 + 小Boss（赫雷西成员B）
 // - 特殊机制：可摧毁墙体、血雾区域、恢复格子
-// - 地图尺寸：18x26，包含多个空缺区域与墙体
+// - 地图尺寸：26x18，包含多个空缺区域与墙体
 // - Boss对话：摧毁第三面墙后触发剧情对话
 // - BGM切换：战斗开始用Tower.mp3，Boss出现后切换到成员B.mp3
 
-let ROWS = 18;
-let COLS = 26;
+let ROWS = 26;
+let COLS = 18;
 
 const CELL_SIZE = 56;
 const GRID_GAP = 6;
@@ -123,42 +123,30 @@ function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return 
 
 const voidCells = new Set();
 
-// Add void areas based on problem statement
-// Area 1: (6,21) to (18,21) to (18,18) to (6,18)  
-// This forms a rectangle from column 6-18, row 18-21 (in 1-indexed)
-for (let r = 18; r <= 21; r++) {
-  for (let c = 6; c <= 18; c++) {
-    if (r >= 1 && r <= ROWS && c >= 1 && c <= COLS) {
-      voidCells.add(`${r},${c}`);
+function markRectByXY(x1, y1, x2, y2, targetSet){
+  const xmin = Math.min(x1, x2);
+  const xmax = Math.max(x1, x2);
+  const ymin = Math.min(y1, y2);
+  const ymax = Math.max(y1, y2);
+  for(let y = ymin; y <= ymax; y++){
+    for(let x = xmin; x <= xmax; x++){
+      if(y >= 1 && y <= ROWS && x >= 1 && x <= COLS){
+        targetSet.add(`${y},${x}`);
+      }
     }
   }
 }
 
-// Area 2: (1,8) to (1,12) to (13,12) to (13,8)
-// This forms a rectangle from column 1-13, row 8-12 (in 1-indexed)
-for (let r = 8; r <= 12; r++) {
-  for (let c = 1; c <= 13; c++) {
-    if (r >= 1 && r <= ROWS && c >= 1 && c <= COLS) {
-      voidCells.add(`${r},${c}`);
-    }
-  }
-}
+// Add void areas based on updated Blood Tower specification (coordinates provided as X,Y)
+markRectByXY(6, 18, 18, 21, voidCells);
+markRectByXY(1, 8, 13, 12, voidCells);
 
 function isVoidCell(r,c){
   return voidCells.has(`${r},${c}`);
 }
 const coverCells = new Set();
-function addCoverRectBL(x1,y1,x2,y2){
-  const xmin = Math.min(x1,x2), xmax = Math.max(x1,x2);
-  const ymin = Math.min(y1,y2), ymax = Math.max(y1,y2);
-  for(let x=xmin; x<=xmax; x++){
-    for(let y=ymin; y<=ymax; y++){
-      const {r,c} = toRC_FromBottomLeft(x,y);
-      if(r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c)){
-        coverCells.add(`${r},${c}`);
-      }
-    }
-  }
+function addCoverByXY(x1,y1,x2,y2){
+  markRectByXY(x1,y1,x2,y2,coverCells);
 }
 function isCoverCell(r,c){ return coverCells.has(`${r},${c}`); }
 function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c); }
@@ -222,7 +210,7 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// — Player units (Level 25, positioned at row 11) —
+// — Player units (Level 25) —
 units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
 units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
 units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
@@ -270,9 +258,9 @@ units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员
 // Wall 2: column 13, rows 13-17 (will spawn enemies when destroyed)
 // Wall 3: column 13, rows 1-7 (will spawn enemies and boss when destroyed)
 
-// No cover cells in this battle (removed the old cover definitions)
-coverCells.add('5,4');
-// No additional cover cells needed for this battle
+// Cover cells (impassable obstacles representing debris/cover)
+addCoverByXY(3,6,5,6);
+addCoverByXY(1,9,7,9);
 
 // —— 范围/工具 ——
 const DIRS = { up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1} };
@@ -4425,7 +4413,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   startCameraLoop();
 
   // 掩体（不可进入）
-  // 初见赫雷西战斗：三排掩体在 row 5（columns 2-4, 7-9, 12-14）
+  // 血楼计划：两道掩体带位于 (3-5,6) 与 (1-7,9)
   injectFXStyles();
 
   // 起手手牌
@@ -4446,9 +4434,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   window.addEventListener('load', ()=> refreshLargeOverlays());
 
-  appendLog('初见赫雷西战斗：地图 12x15，包含三排掩体（row 5）。');
-  appendLog('赫雷西成员具有多种被动：忠诚信仰、神恩、强化躯体、神明指示。');
-  appendLog('赫雷西成员的SP降至0时会自动恢复至初始值（70或90）。');
+  appendLog('血楼计划：地图 18x26，包含两块空缺区域与掩体线。');
+  appendLog('任务：破除三道可摧毁墙体，最终迎战赫雷西成员B。');
+  appendLog('赫雷西成员的SP降至 0 时会立即恢复至初始值。');
 
   const endTurnBtn=document.getElementById('endTurnBtn');
   if(endTurnBtn) endTurnBtn.addEventListener('click', ()=>{ if(interactionLocked) return; endTurn(); });
