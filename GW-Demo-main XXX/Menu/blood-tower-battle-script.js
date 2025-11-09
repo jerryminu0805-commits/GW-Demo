@@ -120,6 +120,16 @@ function allPlayersHaveCultTarget(){
 // —— 地图/掩体 ——
 function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return { r, c }; }
 function isVoidCell(r,c){
+  // Void area 1: (6,21) to (18,21) to (18,18) to (6,18)
+  // This defines a rectangle from rows 6-18 and columns 18-21
+  if (r >= 6 && r <= 18 && c >= 18 && c <= 21) {
+    return true;
+  }
+  // Void area 2: (1,8) to (1,12) to (13,12) to (13,8)
+  // This defines a rectangle from rows 1-13 and columns 8-12
+  if (r >= 1 && r <= 13 && c >= 8 && c <= 12) {
+    return true;
+  }
   return false;
 }
 const coverCells = new Set();
@@ -197,10 +207,11 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// — Player units (Level 25, positioned at row 11) —
-units['dario'] = createUnit('dario','Dario','player',25, 11, 7, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
-units['adora'] = createUnit('adora','Adora','player',25, 11, 8, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['karma'] = createUnit('karma','Karma','player',25, 11, 9, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+// — Player units (Level 25, positioned at bottom right area) —
+// Dario at (col 16, row 23), Adora at (col 16, row 24), Karma at (col 16, row 25)
+units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
 // Enemy units - 雏形赫雷西成员 (Cultist Novice)
 const noviceCultistConfig = {
@@ -212,9 +223,9 @@ const noviceCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (70) when SP crashes
 };
-units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 2, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 7, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 3, 9, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+// Initial enemies: 雏形 at (3,23), 雏形 at (3,25), 法形 at (5,24), 刺形 at (18,24)
+units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 23, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 25, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
 
 // Enemy units - 法形赫雷西成员 (Cultist Mage)
 const mageCultistConfig = {
@@ -226,22 +237,33 @@ const mageCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (90) when SP crashes
 };
-units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 2, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
-units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 2, 13, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 24, 5, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
 
-// Add cover cells (three horizontal strips at row 5)
-// Row 5, columns 2-4
-coverCells.add('5,2');
-coverCells.add('5,3');
-coverCells.add('5,4');
-// Row 5, columns 7-9
-coverCells.add('5,7');
-coverCells.add('5,8');
-coverCells.add('5,9');
-// Row 5, columns 12-14
-coverCells.add('5,12');
-coverCells.add('5,13');
-coverCells.add('5,14');
+// Enemy units - 刺形赫雷西成员 (Cultist Assassin)
+const assassinCultistConfig = {
+  size:1,
+  stunThreshold:1,
+  spFloor:0,
+  disableSpCrash:false,
+  initialSp:100,
+  pullImmune:false,
+  restoreOnZeroPct:1.0, // Restore to 100% of maxSp (100) when SP crashes
+};
+units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 24, 18, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','piercing','godInstruction'], assassinCultistConfig);
+
+// Add cover cells according to problem statement
+// Cover 1: (3,6) to (5,6) - columns 3-5 at row 6
+coverCells.add('6,3');
+coverCells.add('6,4');
+coverCells.add('6,5');
+// Cover 2: (1,9) to (7,9) - columns 1-7 at row 9
+coverCells.add('9,1');
+coverCells.add('9,2');
+coverCells.add('9,3');
+coverCells.add('9,4');
+coverCells.add('9,5');
+coverCells.add('9,6');
+coverCells.add('9,7');
 
 
 // —— 范围/工具 ——
@@ -4508,5 +4530,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   applyParalysisAtTurnStart('player');
   processUnitsTurnStart('player');
   updateStepsUI();
-  setTimeout(()=> playIntroCinematic(), 80);
+  // Intro cinematic disabled as per requirements (取消前面剧情)
+  // setTimeout(()=> playIntroCinematic(), 80);
 });
