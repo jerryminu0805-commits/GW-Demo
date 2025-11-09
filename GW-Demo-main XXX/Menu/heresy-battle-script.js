@@ -2791,7 +2791,7 @@ function buildSkillFactoriesForUnit(u){
         {aoe:false},
         {cellTargeting:true, castMs:900}
       )},
-      { key:'加油哇！', prob:0.20, cond:()=>u.level>=25, make:()=> skill('加油哇！',4,'orange','以自身为中心5x5内选择友方：赋予 1 层“鸡血”（下一次攻击伤害翻倍，使用后移除）',
+      { key:'加油哇！', prob:0.20, cond:()=>u.level>=25, make:()=> skill('加油哇！',2,'orange','以自身为中心5x5内选择友方：赋予 1 层“鸡血”（下一次攻击伤害翻倍，使用后移除）',
         (uu)=> range_square_n(uu,2).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
         (uu,aim)=> adoraCheer(uu,aim),
         {aoe:false},
