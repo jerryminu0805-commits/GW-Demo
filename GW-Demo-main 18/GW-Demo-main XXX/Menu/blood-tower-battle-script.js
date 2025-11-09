@@ -3152,6 +3152,385 @@ async function cultistAssassin_DarkAssault(u, payload){
   
   for(const cell of adj){
     const target = getUnitAt(cell.r, cell.c);
+// —— Elite Enemy Skills ——
+
+// 异臂 (Strange Arm) - Elite skill
+async function cultistElite_StrangeArm(u, desc){
+  const dir = desc && desc.dir;
+  if(!dir){ appendLog('异臂：无效方向'); unitActed(u); return; }
+  
+  const cells = range_forward_n(u,2,dir);
+  await telegraphThenImpact(cells);
+  cameraFocusOnCell(u.r, u.c);
+  
+  let hitCultTarget = false;
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 100);
+      const dmg = calcOutgoingDamage(u,15,target,'异臂');
+      damageUnit(target.id, dmg, 5, `${u.name} 异臂 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+      u.dmgDone += dmg;
+      
+      if(target.status.cultTarget){
+        hitCultTarget = true;
+      }
+    }
+  }
+  
+  if(hitCultTarget){
+    addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
+    appendLog(`${u.name} 攻击了邪教目标，获得一层暴力`);
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 重锤 (Heavy Hammer) - Elite skill
+async function cultistElite_HeavyHammer(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // 5x5 AoE centered on self
+  const cells = range_square_n(u, 2);
+  let cultTargetCount = 0;
+  const hitEnemies = [];
+  
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 100);
+      const dmg = calcOutgoingDamage(u,20,target,'重锤');
+      damageUnit(target.id, dmg, 5, `${u.name} 重锤 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+      u.dmgDone += dmg;
+      hitEnemies.push(target);
+      
+      if(target.status.cultTarget){
+        cultTargetCount++;
+      }
+    }
+  }
+  
+  // If hit 2+ cultTargets, apply vulnerability to all hit enemies
+  if(cultTargetCount >= 2){
+    appendLog(`${u.name} 攻击了多个邪教目标，给所有敌人施加脆弱`);
+    for(const target of hitEnemies){
+      addStatusStacks(target,'vulnerabilityStacks',1,{label:'脆弱', type:'debuff'});
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 献祭 (Sacrifice) - Elite version
+async function cultistElite_Sacrifice(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Self damage 10HP
+  u.hp = Math.max(0, u.hp - 10);
+  showDamageFloat(u, 10, 0);
+  appendLog(`${u.name} 献祭自己 10HP`);
+  
+  // Add violence stack to self
+  addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
+  
+  // Mark closest enemy without cultTarget
+  const closest = findClosestEnemyWithoutCultTarget(u);
+  if(closest){
+    closest.status.cultTarget = true;
+    showStatusFloat(closest,'邪教目标',{type:'debuff', offsetY:-48});
+    appendLog(`${u.name} 将 ${closest.name} 标记为邪教目标`);
+  } else {
+    appendLog(`${u.name} 没有找到可标记的目标（所有敌人已有邪教目标）`);
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 爆锤 (Explosive Hammer) - Elite skill (multi-stage)
+async function cultistElite_ExplosiveHammer(u){
+  // Self damage 30HP
+  u.hp = Math.max(0, u.hp - 30);
+  showDamageFloat(u, 30, 0);
+  appendLog(`${u.name} 爆锤 牺牲自己 30HP`);
+  
+  // Stage 1: 3x3 AoE 15HP + bleed
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  let cells = range_square_n(u, 1); // 3x3
+  let hitCultTarget = false;
+  
+  appendLog(`${u.name} 爆锤第一阶段：砸地`);
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 80);
+      const dmg = calcOutgoingDamage(u,15,target,'爆锤');
+      damageUnit(target.id, dmg, 0, `${u.name} 爆锤·一 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+      u.dmgDone += dmg;
+      if(target.status.cultTarget) hitCultTarget = true;
+    }
+  }
+  
+  // Stage 2: 3x3 AoE 15HP + 5SP
+  appendLog(`${u.name} 爆锤第二阶段：再砸`);
+  await stageMark([{r:u.r,c:u.c}]);
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 80);
+      const dmg = calcOutgoingDamage(u,15,target,'爆锤');
+      damageUnit(target.id, dmg, 5, `${u.name} 爆锤·二 命中 ${target.name}`, u.id);
+      u.dmgDone += dmg;
+      if(target.status.cultTarget) hitCultTarget = true;
+    }
+  }
+  
+  // Stage 3: 5x5 AoE 20HP + 5SP + bleed
+  appendLog(`${u.name} 爆锤第三阶段：蓄力大砸！`);
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cells = range_square_n(u, 2); // 5x5
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 80);
+      const dmg = calcOutgoingDamage(u,20,target,'爆锤');
+      damageUnit(target.id, dmg, 5, `${u.name} 爆锤·终 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
+      u.dmgDone += dmg;
+      if(target.status.cultTarget) hitCultTarget = true;
+    }
+  }
+  
+  if(hitCultTarget){
+    addStatusStacks(u,'violenceStacks',1,{label:'暴力', type:'buff'});
+    appendLog(`${u.name} 攻击了邪教目标，获得一层暴力`);
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// —— Boss Enemy Skills ——
+
+// 以神明之名："祝福" (In God's Name: Blessing) - Boss skill
+async function heresyBoss_Blessing(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // 7x7 AoE centered on self
+  const cells = range_square_n(u, 3); // 7x7
+  
+  for(const cell of cells){
+    const ally = getUnitAt(cell.r, cell.c);
+    if(ally && ally.side === u.side && ally.hp > 0 && ally.id !== u.id){
+      addStatusStacks(ally,'violenceStacks',1,{label:'暴力', type:'buff'});
+      appendLog(`${u.name} 祝福 ${ally.name}，赋予一层暴力`);
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 以神明之名："关怀" (In God's Name: Care) - Boss skill
+async function heresyBoss_Care(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // 7x7 AoE centered on self (including self)
+  const cells = range_square_n(u, 3); // 7x7
+  
+  for(const cell of cells){
+    const ally = getUnitAt(cell.r, cell.c);
+    if(ally && ally.side === u.side && ally.hp > 0){
+      ally.hp = Math.min(ally.maxHp, ally.hp + 25);
+      ally.sp = Math.min(ally.maxSp, ally.sp + 10);
+      syncSpBroken(ally);
+      showGainFloat(ally,25,10);
+      appendLog(`${u.name} 关怀 ${ally.name}，恢复 25HP 和 10SP`);
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 以神明之名："自由" (In God's Name: Freedom) - Boss skill
+async function heresyBoss_Freedom(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // 7x7 AoE centered on self
+  const cells = range_square_n(u, 3); // 7x7
+  
+  for(const cell of cells){
+    const ally = getUnitAt(cell.r, cell.c);
+    if(ally && ally.side === u.side && ally.hp > 0 && ally.id !== u.id){
+      // Clear all debuffs
+      ally.status.stunned = 0;
+      ally.status.paralyzed = 0;
+      ally.status.bleed = 0;
+      ally.status.resentStacks = 0;
+      ally.status.vulnerabilityStacks = 0;
+      appendLog(`${u.name} 自由 ${ally.name}，清除所有负面效果`);
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 协助我们！ (Assist Us!) - Boss skill (spawns Novice)
+async function heresyBoss_AssistUs(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Find nearest empty cell
+  const emptyCell = findNearestEmptyCell(u);
+  if(!emptyCell){
+    appendLog(`${u.name} 协助我们失败：没有空格`);
+    unitActed(u);
+    return;
+  }
+  
+  // Spawn a novice cultist
+  const spawnId = `cultistNoviceSpawn${Date.now()}`;
+  const noviceCultistConfig = {
+    size:1,
+    stunThreshold:1,
+    spFloor:0,
+    disableSpCrash:false,
+    initialSp:70,
+    pullImmune:false,
+    restoreOnZeroPct:1.0
+  };
+  units[spawnId] = createUnit(spawnId,'雏形赫雷西成员','enemy',25, emptyCell.r, emptyCell.c, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  ensureStartHand(units[spawnId]);
+  
+  appendLog(`${u.name} 召唤了雏形赫雷西成员！`);
+  renderAll();
+  unitActed(u);
+}
+
+// 辅助我们！ (Support Us!) - Boss skill (spawns Mage)
+async function heresyBoss_SupportUs(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Find nearest empty cell
+  const emptyCell = findNearestEmptyCell(u);
+  if(!emptyCell){
+    appendLog(`${u.name} 辅助我们失败：没有空格`);
+    unitActed(u);
+    return;
+  }
+  
+  // Spawn a mage cultist
+  const spawnId = `cultistMageSpawn${Date.now()}`;
+  const mageCultistConfig = {
+    size:1,
+    stunThreshold:1,
+    spFloor:0,
+    disableSpCrash:false,
+    initialSp:90,
+    pullImmune:false,
+    restoreOnZeroPct:1.0
+  };
+  units[spawnId] = createUnit(spawnId,'法形赫雷西成员','enemy',25, emptyCell.r, emptyCell.c, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+  ensureStartHand(units[spawnId]);
+  
+  appendLog(`${u.name} 召唤了法形赫雷西成员！`);
+  renderAll();
+  unitActed(u);
+}
+
+// 暗杀令 (Assassination Order) - Boss skill (spawns half-HP Assassin)
+async function heresyBoss_AssassinationOrder(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Find nearest empty cell
+  const emptyCell = findNearestEmptyCell(u);
+  if(!emptyCell){
+    appendLog(`${u.name} 暗杀令失败：没有空格`);
+    unitActed(u);
+    return;
+  }
+  
+  // Spawn an assassin cultist with half HP
+  const spawnId = `cultistAssassinSpawn${Date.now()}`;
+  const assassinCultistConfig = {
+    size:1,
+    stunThreshold:1,
+    spFloor:0,
+    disableSpCrash:false,
+    initialSp:100,
+    pullImmune:false,
+    restoreOnZeroPct:1.0
+  };
+  units[spawnId] = createUnit(spawnId,'刺形赫雷西成员','enemy',25, emptyCell.r, emptyCell.c, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+  units[spawnId].hp = 25; // Half HP
+  ensureStartHand(units[spawnId]);
+  
+  appendLog(`${u.name} 下达暗杀令！刺形赫雷西成员出现！`);
+  renderAll();
+  unitActed(u);
+}
+
+// 以神明之名："清除" (In God's Name: Purge) - Boss skill
+async function heresyBoss_Purge(u, desc){
+  const dir = desc && desc.dir;
+  if(!dir){ appendLog('清除：无效方向'); unitActed(u); return; }
+  
+  // 3x3 area in front
+  const cells = forwardRectCentered(u, dir, 3, 3);
+  await telegraphThenImpact(cells);
+  cameraFocusOnCell(u.r, u.c);
+  
+  for(const cell of cells){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0){
+      await stageMark([{r:target.r,c:target.c}], 100);
+      const dmg = calcOutgoingDamage(u,15,target,'清除');
+      damageUnit(target.id, dmg, 15, `${u.name} 清除 命中 ${target.name}`, u.id);
+      u.dmgDone += dmg;
+      
+      // Explode cultTarget stacks
+      if(target.status.cultTarget){
+        const explosionDmg = 10;
+        const explosionSp = 10;
+        damageUnit(target.id, explosionDmg, explosionSp, `${u.name} 引爆邪教目标！`, u.id);
+        u.dmgDone += explosionDmg;
+        target.status.cultTarget = false; // Remove the mark after explosion
+        appendLog(`${target.name} 的邪教目标被引爆！额外 10HP 10SP 伤害`);
+      }
+    }
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// Helper function to find nearest empty cell
+function findNearestEmptyCell(u){
+  for(let radius = 1; radius <= 10; radius++){
+    const cells = range_move_radius(u, radius);
+    for(const cell of cells){
+      if(!getUnitAt(cell.r, cell.c)){
+        return {r: cell.r, c: cell.c};
+      }
+    }
+  }
+  return null;
+}
     if(target && target.side !== u.side && target.hp > 0 && target.status.cultTarget){
       const dist = mdist(u, target);
       if(dist < minDist){
@@ -3473,6 +3852,84 @@ function buildSkillFactoriesForUnit(u){
         {castMs:1400}
       )}
     );
+  } else if(u.name==='赫雷西初代精英成员'){
+    // Elite Cultist skills
+    F.push(
+      { key:'异臂', prob:0.80, cond:()=>true, make:()=> skill('异臂',2,'red','前方2格 15HP+5SP+1流血（邪教目标增加暴力）',
+        (uu,aimDir)=> aimDir? range_forward_n(uu,2,aimDir) : (()=>{const a=[]; for(const d in DIRS) range_forward_n(uu,2,d).forEach(x=>a.push(x)); return a;})(),
+        (uu,desc)=> cultistElite_StrangeArm(uu,desc),
+        {aoe:true},
+        {castMs:1200}
+      )},
+      { key:'重锤', prob:0.50, cond:()=>true, make:()=> skill('重锤',2,'red','5x5 AoE 20HP+5SP+1流血（2+邪教目标施加脆弱）',
+        (uu)=> range_square_n(uu,2),
+        (uu)=> cultistElite_HeavyHammer(uu),
+        {aoe:true},
+        {castMs:1300}
+      )},
+      { key:'献祭', prob:0.25, cond:()=>!sacrificeSkillsDisabled, make:()=> skill('献祭',2,'orange','牺牲10HP，增加一层暴力，标记最近敌人为邪教目标',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> cultistElite_Sacrifice(uu),
+        {},
+        {castMs:900}
+      )},
+      { key:'爆锤', prob:0.15, cond:()=>true, make:()=> skill('爆锤',3,'red','牺牲30HP，多段：3x3 15HP+流血，3x3 15HP+5SP，5x5 20HP+5SP+流血（邪教目标增加暴力）',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> cultistElite_ExplosiveHammer(uu),
+        {aoe:true},
+        {castMs:2000}
+      )}
+    );
+  } else if(u.name==='赫雷西成员B'){
+    // Boss skills
+    const hasAlly = ()=> Object.values(units).some(ally=> ally.side===u.side && ally.hp>0 && ally.id!==u.id);
+    const allyHasDebuff = ()=> Object.values(units).some(ally=> ally.side===u.side && ally.hp>0 && ally.id!==u.id && (ally.status.stunned>0 || ally.status.bleed>0 || ally.status.resentStacks>0 || ally.status.vulnerabilityStacks>0));
+    
+    F.push(
+      { key:'以神明之名："祝福"', prob:0.40, cond:()=>hasAlly(), make:()=> skill('以神明之名："祝福"',2,'orange','7x7友方获得一层暴力（需友方存在）',
+        (uu)=> range_square_n(uu,3),
+        (uu)=> heresyBoss_Blessing(uu),
+        {aoe:true},
+        {castMs:1000}
+      )},
+      { key:'以神明之名："关怀"', prob:0.40, cond:()=>hasAlly(), make:()=> skill('以神明之名："关怀"',2,'green','7x7友方（含自己）恢复25HP+10SP（需友方存在）',
+        (uu)=> range_square_n(uu,3),
+        (uu)=> heresyBoss_Care(uu),
+        {aoe:true},
+        {castMs:1000}
+      )},
+      { key:'以神明之名："自由"', prob:0.40, cond:()=>allyHasDebuff(), make:()=> skill('以神明之名："自由"',3,'green','7x7友方清除所有负面效果（需友方有Debuff）',
+        (uu)=> range_square_n(uu,3),
+        (uu)=> heresyBoss_Freedom(uu),
+        {aoe:true},
+        {castMs:1000}
+      )},
+      { key:'协助我们！', prob:0.40, cond:()=>true, make:()=> skill('协助我们！',3,'orange','召唤雏形赫雷西成员',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> heresyBoss_AssistUs(uu),
+        {},
+        {castMs:1200}
+      )},
+      { key:'辅助我们！', prob:0.40, cond:()=>true, make:()=> skill('辅助我们！',3,'orange','召唤法形赫雷西成员',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> heresyBoss_SupportUs(uu),
+        {},
+        {castMs:1200}
+      )},
+      { key:'暗杀令', prob:0.40, cond:()=>true, make:()=> skill('暗杀令',2,'orange','召唤半血刺形赫雷西成员',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> heresyBoss_AssassinationOrder(uu),
+        {},
+        {castMs:1200}
+      )},
+      { key:'以神明之名："清除"', prob:0.60, cond:()=>true, make:()=> skill('以神明之名："清除"',2,'red','前方3x3 15HP+15SP，引爆邪教目标（每层10HP10SP）',
+        (uu,aimDir)=> aimDir? forwardRectCentered(uu,aimDir,3,3) : (()=>{const a=[]; for(const d in DIRS) forwardRectCentered(uu,d,3,3).forEach(x=>a.push(x)); return a;})(),
+        (uu,desc)=> heresyBoss_Purge(uu,desc),
+        {aoe:true},
+        {castMs:1400}
+      )}
+    );
+  }
   }
   return F;
 }
@@ -4238,6 +4695,28 @@ function processUnitsTurnStart(side){
       if(u.sp > beforeSP){
         showGainFloat(u,0,10);
         appendLog(`${u.name} 的忠臣的信仰：+10 SP`);
+      }
+    }
+    
+    // Extra Action passive for Elite and Boss
+    if(u.passives.includes('extraAction') && side === 'enemy'){
+      enemySteps += 1;
+      appendLog(`${u.name} 额外行动：+1 步`);
+      updateStepsUI();
+    }
+    
+    // Soul Comfort passive for Boss (heal nearby allies)
+    if(u.passives.includes('soulComfort')){
+      const cells = range_square_n(u, 3); // 7x7
+      for(const cell of cells){
+        const ally = getUnitAt(cell.r, cell.c);
+        if(ally && ally.side === u.side && ally.hp > 0 && ally.id !== u.id){
+          const heal = Math.floor(ally.maxHp * 0.05);
+          ally.hp = Math.min(ally.maxHp, ally.hp + heal);
+          ally.sp = Math.min(ally.maxSp, ally.sp + 5);
+          syncSpBroken(ally);
+          showGainFloat(ally, heal, 5);
+        }
       }
     }
   }
