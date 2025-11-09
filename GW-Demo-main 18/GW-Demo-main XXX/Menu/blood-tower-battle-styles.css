@@ -10,8 +10,8 @@
   --danger: #ff4d4f;
   --grid-gap: 6px;
   --cell: 56px; /* 与脚本 CELL_SIZE 对齐 */
-  --board-width: calc(var(--cell) * 15 + var(--grid-gap) * 14 + 18px);
-  --board-height: calc(var(--cell) * 12 + var(--grid-gap) * 11 + 18px);
+  --board-width: calc(var(--cell, 56px) * 18 + var(--grid-gap, 6px) * 17 + 18px);
+  --board-height: calc(var(--cell, 56px) * 26 + var(--grid-gap, 6px) * 25 + 18px);
   --radius: 10px;
 }
 
@@ -51,11 +51,11 @@ body {
 
 .left.dragging { cursor: grabbing; }
 
-.board {
-  position: relative; /* largeOverlay 依赖相对定位 */
-  display: grid;
-  /* 行列由脚本动态设置为 12x15 */
-  gap: var(--grid-gap);
+  .board {
+    position: relative; /* largeOverlay 依赖相对定位 */
+    display: grid;
+  /* 行列由脚本动态设置为 26x18 */
+  gap: var(--grid-gap, 6px);
   background: #0c0f15;
   padding: 8px;
   border-radius: var(--radius);
@@ -79,8 +79,8 @@ body {
 
 .cell {
   position: relative;
-  width: var(--cell);
-  height: var(--cell);
+  width: var(--cell, 56px);
+  height: var(--cell, 56px);
   background: #141a26;
   border-radius: 8px;
   border: 1px solid #1e2536;

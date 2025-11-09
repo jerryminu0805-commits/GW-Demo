@@ -18,22 +18,22 @@ This document tracks the implementation status of the Blood Tower Plan stage, a 
 - ✅ blood-tower-battle-script.js created (based on heresy-battle-script.js)
 
 ### Map Configuration
-- ✅ Map size: 18 rows × 26 columns
+- ✅ Map size: 26 rows × 18 columns (coordinates follow 行,列 → row, column)
 - ✅ Void areas defined:
   - Area 1: rows 18-21, columns 6-18 (rectangle)
   - Area 2: rows 8-12, columns 1-13 (rectangle)
-- ✅ Cover cells: None (as per requirements)
+- ✅ Cover cells: (rows 6, columns 3-5) and (rows 9, columns 1-7)
 
 ### Player Units
-- ✅ Dario: Level 25, Position (23, 16), HP 150, SP 100
-- ✅ Adora: Level 25, Position (24, 16), HP 100, SP 100
-- ✅ Karma: Level 25, Position (25, 16), HP 200, SP 50
+- ✅ Dario: Level 25, Position (16, 23), HP 150, SP 100
+- ✅ Adora: Level 25, Position (16, 24), HP 100, SP 100
+- ✅ Karma: Level 25, Position (16, 25), HP 200, SP 50
 
 ### Initial Enemy Wave
-- ✅ 雏形赫雷西成员 #1: Position (23, 3), HP 150, SP 70
-- ✅ 雏形赫雷西成员 #2: Position (25, 3), HP 150, SP 70
-- ✅ 法形赫雷西成员: Position (24, 5), HP 100, SP 90
-- ✅ 刺形赫雷西成员: Position (24, 18), HP 50, SP 100
+- ✅ 雏形赫雷西成员 #1: Position (3, 23), HP 150, SP 70
+- ✅ 雏形赫雷西成员 #2: Position (3, 25), HP 150, SP 70
+- ✅ 法形赫雷西成员: Position (5, 24), HP 100, SP 90
+- ✅ 刺形赫雷西成员: Position (18, 24), HP 50, SP 100
 
 ## ⚠️ Partially Implemented Features
 
