@@ -2777,6 +2777,130 @@ async function cultistMage_NoDignity(u){
   unitActed(u);
 }
 
+// —— Cultist Assassin Skills ——
+
+// 割喉 (Throat Slash) - Cultist Assassin skill
+async function cultistAssassin_ThroatSlash(u, target){
+  if(!target || target.hp<=0){ appendLog('割喉：没有目标'); unitActed(u); return; }
+  
+  await telegraphThenImpact([{r:target.r,c:target.c}]);
+  cameraFocusOnCell(target.r, target.c);
+  
+  let dmg = 20;
+  // Check for cultTarget - increase damage by 25%
+  if(target.status.cultTarget){
+    dmg = Math.floor(dmg * 1.25);
+    appendLog(`${target.name} 有邪教目标标记，割喉伤害提升25%`);
+  }
+  
+  const finalDmg = calcOutgoingDamage(u,dmg,target,'割喉');
+  damageUnit(target.id, finalDmg, 5, `${u.name} 割喉 命中 ${target.name}`, u.id);
+  u.dmgDone += finalDmg;
+  
+  unitActed(u);
+}
+
+// 暗袭 (Dark Assault) - Cultist Assassin skill
+async function cultistAssassin_DarkAssault(u, payload){
+  const dest = payload && payload.moveTo; 
+  if(!dest){ appendLog('暗袭：无效的目的地'); unitActed(u); return; }
+  
+  cameraFocusOnCell(dest.r, dest.c); 
+  showTrail(u.r,u.c,dest.r,dest.c);
+  
+  if(dest.r !== u.r || dest.c !== u.c){
+    const dir = cardinalDirFromDelta(dest.r - u.r, dest.c - u.c);
+    setUnitFacing(u, dir);
+  }
+  u.r=dest.r; u.c=dest.c; 
+  pulseCell(u.r,u.c);
+  registerUnitMove(u);
+  appendLog(`${u.name} 暗袭至 (${u.r},${u.c})`);
+  
+  // Check for adjacent enemies with cultTarget and追击
+  const adj = range_adjacent(u);
+  let cultTargetFound = null;
+  let minDist = Infinity;
+  
+  for(const cell of adj){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && target.hp > 0 && target.status.cultTarget){
+      const dist = mdist(u, target);
+      if(dist < minDist){
+        minDist = dist;
+        cultTargetFound = target;
+      }
+    }
+  }
+  
+  if(cultTargetFound){
+    appendLog(`${u.name} 检测到邻近邪教目标，追击割喉！`);
+    await stageMark([{r:cultTargetFound.r,c:cultTargetFound.c}]);
+    await cultistAssassin_ThroatSlash(u, cultTargetFound);
+    return; // unitActed already called in ThroatSlash
+  }
+  
+  unitActed(u);
+}
+
+// 献祭 (Sacrifice) - Cultist Assassin version
+async function cultistAssassin_Sacrifice(u){
+  await telegraphThenImpact([{r:u.r,c:u.c}]);
+  cameraFocusOnCell(u.r, u.c);
+  
+  // Self damage 10HP
+  u.hp = Math.max(0, u.hp - 10);
+  showDamageFloat(u, 10, 0);
+  appendLog(`${u.name} 献祭自己 10HP`);
+  
+  // Add agile stack to self
+  addStatusStacks(u,'agileStacks',1,{label:'灵活', type:'buff'});
+  
+  // Mark closest enemy without cultTarget
+  const closest = findClosestEnemyWithoutCultTarget(u);
+  if(closest){
+    closest.status.cultTarget = true;
+    showStatusFloat(closest,'邪教目标',{type:'debuff', offsetY:-48});
+    appendLog(`${u.name} 将 ${closest.name} 标记为邪教目标`);
+  } else {
+    appendLog(`${u.name} 没有找到可标记的目标（所有敌人已有邪教目标）`);
+  }
+  
+  renderAll();
+  unitActed(u);
+}
+
+// 血溅当场 (Blood Splash) - Cultist Assassin skill
+async function cultistAssassin_BloodSplash(u, target){
+  if(!target || target.hp<=0){ appendLog('血溅当场：没有目标'); unitActed(u); return; }
+  
+  // Self damage 30HP
+  u.hp = Math.max(0, u.hp - 30);
+  showDamageFloat(u, 30, 0);
+  appendLog(`${u.name} 血溅当场 牺牲自己 30HP`);
+  
+  await telegraphThenImpact([{r:target.r,c:target.c}]);
+  cameraFocusOnCell(target.r, target.c);
+  
+  let dmg = 45;
+  let spDmg = 0;
+  
+  // Check for cultTarget - add bonus damage
+  if(target.status.cultTarget){
+    dmg += 10;
+    spDmg = 5;
+    addStatusStacks(u,'agileStacks',1,{label:'灵活', type:'buff'});
+    appendLog(`${target.name} 有邪教目标标记，${u.name} 获得额外伤害并增加灵活`);
+  }
+  
+  const finalDmg = calcOutgoingDamage(u,dmg,target,'血溅当场');
+  damageUnit(target.id, finalDmg, spDmg, `${u.name} 血溅当场 命中 ${target.name}`, u.id);
+  u.dmgDone += finalDmg;
+  
+  renderAll();
+  unitActed(u);
+}
+
 // —— Khathia 防御姿态兼容（保留旧函数以支持玩家技能） ——
 // —— 技能池/抽牌（含调整：Katz/Nelya/Kyn 技能）；移动卡统一蓝色 —— 
 function skill(name,cost,color,desc,rangeFn,execFn,estimate={},meta={}){ return {name,cost,color,desc,rangeFn,execFn,estimate,meta}; }
@@ -2991,6 +3115,34 @@ function buildSkillFactoriesForUnit(u){
         (uu)=> cultistMage_NoDignity(uu),
         {aoe:true},
         {castMs:1800}
+      )}
+    );
+  } else if(u.name==='刺形赫雷西成员'){
+    // Cultist Assassin skills
+    F.push(
+      { key:'割喉', prob:0.80, cond:()=>true, make:()=> skill('割喉',2,'red','前方1格 20HP+5SP（邪教目标伤害+25%）',
+        (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
+        (uu,target)=> cultistAssassin_ThroatSlash(uu,target),
+        {},
+        {castMs:1100}
+      )},
+      { key:'暗袭', prob:0.50, cond:()=>true, make:()=> skill('暗袭',2,'blue','5x5移动，邻近邪教目标追击割喉',
+        (uu)=> range_square_n(uu,2).filter(p=> !getUnitAt(p.r,p.c)),
+        (uu,payload)=> cultistAssassin_DarkAssault(uu,payload),
+        {},
+        {moveSkill:true, castMs:700}
+      )},
+      { key:'献祭', prob:0.25, cond:()=>!sacrificeSkillsDisabled, make:()=> skill('献祭',2,'orange','牺牲10HP，增加一层灵活，标记最近敌人为邪教目标',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> cultistAssassin_Sacrifice(uu),
+        {},
+        {castMs:900}
+      )},
+      { key:'血溅当场', prob:0.15, cond:()=>true, make:()=> skill('血溅当场',3,'red','牺牲30HP，前方1格 45HP（邪教目标+10HP+5SP并获得灵活）',
+        (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
+        (uu,target)=> cultistAssassin_BloodSplash(uu,target),
+        {},
+        {castMs:1400}
       )}
     );
   }
