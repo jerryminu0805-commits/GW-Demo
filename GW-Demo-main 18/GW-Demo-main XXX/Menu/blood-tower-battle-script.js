@@ -120,8 +120,32 @@ function allPlayersHaveCultTarget(){
 
 // —— 地图/掩体 ——
 function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return { r, c }; }
+
+const voidCells = new Set();
+
+// Add void areas based on problem statement
+// Area 1: (6,21) to (18,21) to (18,18) to (6,18)  
+// This forms a rectangle from column 6-18, row 18-21 (in 1-indexed)
+for (let r = 18; r <= 21; r++) {
+  for (let c = 6; c <= 18; c++) {
+    if (r >= 1 && r <= ROWS && c >= 1 && c <= COLS) {
+      voidCells.add(`${r},${c}`);
+    }
+  }
+}
+
+// Area 2: (1,8) to (1,12) to (13,12) to (13,8)
+// This forms a rectangle from column 1-13, row 8-12 (in 1-indexed)
+for (let r = 8; r <= 12; r++) {
+  for (let c = 1; c <= 13; c++) {
+    if (r >= 1 && r <= ROWS && c >= 1 && c <= COLS) {
+      voidCells.add(`${r},${c}`);
+    }
+  }
+}
+
 function isVoidCell(r,c){
-  return false;
+  return voidCells.has(`${r},${c}`);
 }
 const coverCells = new Set();
 function addCoverRectBL(x1,y1,x2,y2){
@@ -203,7 +227,8 @@ units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0
 units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
 units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
-// Enemy units - 雏形赫雷西成员 (Cultist Novice)
+// Enemy units - Initial wave
+// 雏形赫雷西成员 (Cultist Novice)
 const noviceCultistConfig = {
   size:1,
   stunThreshold:1,
@@ -213,11 +238,10 @@ const noviceCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (70) when SP crashes
 };
-units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 2, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 7, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 3, 9, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 23, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 25, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
 
-// Enemy units - 法形赫雷西成员 (Cultist Mage)
+// 法形赫雷西成员 (Cultist Mage)
 const mageCultistConfig = {
   size:1,
   stunThreshold:1,
@@ -227,23 +251,28 @@ const mageCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (90) when SP crashes
 };
-units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 2, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
-units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 2, 13, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 24, 5, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
 
-// Add cover cells (three horizontal strips at row 5)
-// Row 5, columns 2-4
-coverCells.add('5,2');
-coverCells.add('5,3');
+// 刺形赫雷西成员 (Cultist Assassin)
+const assassinCultistConfig = {
+  size:1,
+  stunThreshold:1,
+  spFloor:0,
+  disableSpCrash:false,
+  initialSp:100,
+  pullImmune:false,
+  restoreOnZeroPct:1.0, // Restore to 100% of maxSp (100) when SP crashes
+};
+units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 24, 18, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+
+// Destructible walls - these will be implemented as special terrain
+// Wall 1: columns 1-5, row 21 (will spawn enemies when destroyed)
+// Wall 2: column 13, rows 13-17 (will spawn enemies when destroyed)
+// Wall 3: column 13, rows 1-7 (will spawn enemies and boss when destroyed)
+
+// No cover cells in this battle (removed the old cover definitions)
 coverCells.add('5,4');
-// Row 5, columns 7-9
-coverCells.add('5,7');
-coverCells.add('5,8');
-coverCells.add('5,9');
-// Row 5, columns 12-14
-coverCells.add('5,12');
-coverCells.add('5,13');
-coverCells.add('5,14');
-
+// No additional cover cells needed for this battle
 
 // —— 范围/工具 ——
 const DIRS = { up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1} };
