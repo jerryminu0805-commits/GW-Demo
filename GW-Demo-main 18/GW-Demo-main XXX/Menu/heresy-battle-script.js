@@ -747,6 +747,10 @@ function injectFXStyles(){
   .cell { width: var(--cell); height: var(--cell); position: relative; background: #1f1f1f; border-radius: 6px; overflow: hidden; }
   .cell.void { background: repeating-linear-gradient(45deg, #111 0 6px, #0b0b0b 6px 12px); opacity: 0.5; }
   .cell.cover { background: #1e293b; box-shadow: inset 0 0 0 2px rgba(59,130,246,0.35); }
+  .cell.wall { background: #3d3026; box-shadow: inset 0 0 0 3px rgba(139,69,19,0.7); border: 1px solid #8b4513; cursor: not-allowed; }
+  .cell.wall.fragile { background: #4a3829; box-shadow: inset 0 0 0 3px rgba(255,165,0,0.6); border: 1px solid #ff8c00; animation: pulse-fragile 1.5s ease-in-out infinite; cursor: pointer; }
+  .cell.blood-mist { background: radial-gradient(circle, rgba(139,0,0,0.4) 0%, rgba(69,0,0,0.3) 100%); box-shadow: inset 0 0 12px rgba(255,0,0,0.5); animation: pulse-blood-mist 2s ease-in-out infinite; }
+  .cell.healing-tile { background: radial-gradient(circle, rgba(0,255,127,0.3) 0%, rgba(0,139,69,0.2) 100%); box-shadow: inset 0 0 8px rgba(0,255,127,0.6); animation: pulse-heal 1.8s ease-in-out infinite; }
   .cell .coord { position: absolute; right: 4px; bottom: 2px; font-size: 10px; color: rgba(255,255,255,0.35); }
   .unit { position: absolute; inset: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; font-size: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
   .unit.player { background: rgba(82,196,26,0.15); border-color: rgba(82,196,26,0.35); }
@@ -1174,6 +1178,21 @@ function injectFXStyles(){
   @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(255,255,0,0.6); }
     100% { box-shadow: 0 0 0 12px rgba(255,255,0,0); }
+  }
+  @keyframes pulse-fragile {
+    0% { box-shadow: inset 0 0 0 3px rgba(255,165,0,0.6); }
+    50% { box-shadow: inset 0 0 0 3px rgba(255,165,0,0.9), 0 0 8px rgba(255,140,0,0.7); }
+    100% { box-shadow: inset 0 0 0 3px rgba(255,165,0,0.6); }
+  }
+  @keyframes pulse-blood-mist {
+    0% { box-shadow: inset 0 0 12px rgba(255,0,0,0.5); }
+    50% { box-shadow: inset 0 0 18px rgba(255,0,0,0.8), 0 0 6px rgba(139,0,0,0.6); }
+    100% { box-shadow: inset 0 0 12px rgba(255,0,0,0.5); }
+  }
+  @keyframes pulse-heal {
+    0% { box-shadow: inset 0 0 8px rgba(0,255,127,0.6); }
+    50% { box-shadow: inset 0 0 14px rgba(0,255,127,0.9), 0 0 8px rgba(0,255,127,0.7); }
+    100% { box-shadow: inset 0 0 8px rgba(0,255,127,0.6); }
   }
 
   /* Telegraph/Impact 高亮 */
@@ -3442,6 +3461,20 @@ function buildGrid(){
       cell.className = 'cell';
       if(isVoidCell(r,c)) cell.classList.add('void');
       if(isCoverCell(r,c)) cell.classList.add('cover');
+      
+      // Add wall and blood mist visualization
+      const wallInfo = getWallAt(r, c);
+      if(wallInfo){
+        cell.classList.add('wall');
+        if(wallInfo.wall.fragile) cell.classList.add('fragile');
+      }
+      if(bloodMistZones.has(`${r},${c}`)){
+        cell.classList.add('blood-mist');
+      }
+      if(isHealingTile(r, c)){
+        cell.classList.add('healing-tile');
+      }
+      
       cell.dataset.r=r; cell.dataset.c=c;
       const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
 
@@ -3452,6 +3485,15 @@ function buildGrid(){
           handleSkillConfirmCell(_skillSelection.unit,_skillSelection.skill,{r:rr,c:cc});
           return;
         }
+        
+        // Check if clicking on a fragile wall to destroy it
+        const wallInfo = getWallAt(rr, cc);
+        if(wallInfo && wallInfo.wall.fragile){
+          appendLog(`点击摧毁易碎墙体${wallInfo.id.replace('wall','')}`);
+          destroyWall(wallInfo.id);
+          return;
+        }
+        
         const occ = getUnitAt(rr,cc);
         if(occ){
           if(godsWillArmed){ showGodsWillMenuAtUnit(occ); return; }
