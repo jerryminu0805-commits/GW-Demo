@@ -2,12 +2,12 @@
 // 变更摘要：
 // - 敌方阵容：多波次赫雷西成员 + 精英成员 + 小Boss（赫雷西成员B）
 // - 特殊机制：可摧毁墙体、血雾区域、恢复格子
-// - 地图尺寸：26x18，包含多个空缺区域与墙体
+// - 地图尺寸：18x26（X × Y），包含多个空缺区域与墙体
 // - Boss对话：摧毁第三面墙后触发剧情对话
 // - BGM切换：战斗开始用Tower.mp3，Boss出现后切换到成员B.mp3
 
-let ROWS = 18;
-let COLS = 26;
+let ROWS = 26; // Y 轴（纵向）
+let COLS = 18; // X 轴（横向）
 
 const CELL_SIZE = 56;
 const GRID_GAP = 6;
@@ -123,6 +123,19 @@ function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return 
 
 const voidCells = new Set();
 
+function gridKeyFromRC(r,c){
+  return `${r},${c}`;
+}
+
+function xyToGrid(x, y){
+  return { r: y, c: x };
+}
+
+function gridKeyFromXY(x,y){
+  const {r,c} = xyToGrid(x,y);
+  return gridKeyFromRC(r,c);
+}
+
 function markRectByXY(x1, y1, x2, y2, targetSet){
   const xmin = Math.min(x1, x2);
   const xmax = Math.max(x1, x2);
@@ -131,7 +144,7 @@ function markRectByXY(x1, y1, x2, y2, targetSet){
   for(let y = ymin; y <= ymax; y++){
     for(let x = xmin; x <= xmax; x++){
       if(y >= 1 && y <= ROWS && x >= 1 && x <= COLS){
-        targetSet.add(`${y},${x}`);
+        targetSet.add(gridKeyFromXY(x,y));
       }
     }
   }
@@ -146,83 +159,14 @@ markRectByXY(6, 18, 18, 21, voidCells);
 markRectByXY(1, 8, 13, 12, voidCells);
 
 function isVoidCell(r,c){
-  return voidCells.has(`${r},${c}`);
+  return voidCells.has(gridKeyFromRC(r,c));
 }
 const coverCells = new Set();
 function addCoverByXY(x1,y1,x2,y2){
   markRectByXY(x1,y1,x2,y2,coverCells);
 }
-function isCoverCell(r,c){ return coverCells.has(`${r},${c}`); }
-
-// —— Destructible Walls System ——
-const wallCells = new Set();
-const walls = {
-  wall1: { cells: [], state: 'intact', fogArea: [], fogActiveTurn: null },
-  wall2: { cells: [], state: 'intact', fogArea: [], fogActiveTurn: null },
-  wall3: { cells: [], state: 'intact', fogArea: [], fogActiveTurn: null }
-};
-
-// Initialize Wall 1: columns 1-5, row 21
-for(let c = 1; c <= 5; c++){
-  walls.wall1.cells.push({r: 21, c});
-  wallCells.add(`21,${c}`);
-}
-// Blood fog area for Wall 1: area behind it (lower rows in the (6,18)-(18,21) void region)
-for(let r = 18; r <= 21; r++){
-  for(let c = 6; c <= 18; c++){
-    if(!isVoidCell(r, c)) walls.wall1.fogArea.push({r, c});
-  }
-}
-
-// Initialize Wall 2: column 13, rows 13-17
-for(let r = 13; r <= 17; r++){
-  walls.wall2.cells.push({r, c: 13});
-  wallCells.add(`${r},13`);
-}
-// Blood fog area for Wall 2: area behind it (columns 14-18 in relevant rows)
-for(let r = 8; r <= 17; r++){
-  for(let c = 14; c <= 18; c++){
-    if(!isVoidCell(r, c)) walls.wall2.fogArea.push({r, c});
-  }
-}
-
-// Initialize Wall 3: column 13, rows 1-7
-for(let r = 1; r <= 7; r++){
-  walls.wall3.cells.push({r, c: 13});
-  wallCells.add(`${r},13`);
-}
-// Blood fog area for Wall 3: area behind it (columns 14-18 in these rows)
-for(let r = 1; r <= 7; r++){
-  for(let c = 14; c <= 18; c++){
-    if(!isVoidCell(r, c)) walls.wall3.fogArea.push({r, c});
-  }
-}
-
-function isWallCell(r,c){ return wallCells.has(`${r},${c}`); }
-function getWallAtCell(r,c){
-  for(const wallKey in walls){
-    const wall = walls[wallKey];
-    if(wall.cells.some(cell => cell.r === r && cell.c === c)){
-      return { key: wallKey, wall };
-    }
-  }
-  return null;
-}
-
-// —— Healing Tiles System ——
-const healingTiles = {
-  tile1: { r: 18, c: 3, used: false },
-  tile2: { r: 9, c: 16, used: false }
-};
-
-function isHealingTile(r,c){
-  return Object.values(healingTiles).some(tile => tile.r === r && tile.c === c && !tile.used);
-}
-
-// —— Blood Fog System ——
-const bloodFogZones = new Set();
-
-function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c) && !isWallCell(r,c); }
+function isCoverCell(r,c){ return coverCells.has(gridKeyFromRC(r,c)); }
+function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c); }
 
 // —— 单位 ——
 function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct, spZeroHpPenalty=0, passives=[], extra={}){
@@ -282,11 +226,16 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
     _fortressTurns: 0, // 兼容旧逻辑（已由姿态系统替代）
   };
 }
+function createUnitXY(id, name, side, level, x, y, maxHp, maxSp, restoreOnZeroPct, spZeroHpPenalty=0, passives=[], extra={}){
+  const {r,c} = xyToGrid(x,y);
+  return createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct, spZeroHpPenalty, passives, extra);
+}
+
 const units = {};
 // — Player units (Level 25) —
-units['dario'] = createUnit('dario','Dario','player',25, 16, 23, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
-units['adora'] = createUnit('adora','Adora','player',25, 16, 24, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['karma'] = createUnit('karma','Karma','player',25, 16, 25, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+units['dario'] = createUnitXY('dario','Dario','player',25, 16, 23, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+units['adora'] = createUnitXY('adora','Adora','player',25, 16, 24, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+units['karma'] = createUnitXY('karma','Karma','player',25, 16, 25, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
 // Enemy units - Initial wave
 // 雏形赫雷西成员 (Cultist Novice)
@@ -299,8 +248,8 @@ const noviceCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (70) when SP crashes
 };
-units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 3, 23, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 25, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice1'] = createUnitXY('cultistNovice1','雏形赫雷西成员','enemy',25, 3, 23, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice2'] = createUnitXY('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 25, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
 
 // 法形赫雷西成员 (Cultist Mage)
 const mageCultistConfig = {
@@ -312,7 +261,7 @@ const mageCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (90) when SP crashes
 };
-units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 5, 24, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+units['cultistMage1'] = createUnitXY('cultistMage1','法形赫雷西成员','enemy',25, 5, 24, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
 
 // 刺形赫雷西成员 (Cultist Assassin)
 const assassinCultistConfig = {
@@ -324,43 +273,14 @@ const assassinCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (100) when SP crashes
 };
-units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 18, 24, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
-
-// 赫雷西初代精英成员 (Elite Cultist) - spawns in Wave 3
-const eliteCultistConfig = {
-  size:1,
-  stunThreshold:2, // Needs 2 stun stacks to actually stun
-  spFloor:0,
-  disableSpCrash:false,
-  initialSp:50,
-  pullImmune:false,
-  restoreOnZeroPct:1.0,
-  bloodlustGripHpCap: 100, // Bloodlust Grip only deals 100 HP damage (not instant kill)
-};
-
-// 组装型进阶赫雷西成员 (Boss - Heresy Member B) - spawns in Wave 4
-const bossCultistConfig = {
-  size:1,
-  stunThreshold:3, // Needs 3 stun stacks to actually stun
-  spFloor:0,
-  disableSpCrash:false,
-  initialSp:90,
-  pullImmune:true, // Boss is immune to pull
-  restoreOnZeroPct:1.0,
-  bloodlustGripHpCap: 80, // Bloodlust Grip only deals 80 HP damage
-};
+units['cultistAssassin1'] = createUnitXY('cultistAssassin1','刺形赫雷西成员','enemy',25, 18, 24, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
 
 // Note: Elite and Boss units will be spawned dynamically when walls are destroyed
 // They are not placed at initialization
 
-// Destructible walls - implemented as special terrain (see wall system above)
-// Wall 1: columns 1-5, row 21 (spawns Wave 2 when destroyed)
-// Wall 2: column 13, rows 13-17 (spawns Wave 3 including Elite when destroyed)
-// Wall 3: column 13, rows 1-7 (spawns Wave 4 including Boss after dialogue when destroyed)
-
 // Cover cells (impassable obstacles representing debris/cover)
-addCoverByXY(6,3,6,5);
-addCoverByXY(9,1,9,7);
+addCoverByXY(3,6,5,6);
+addCoverByXY(1,9,7,9);
 
 // —— 范围/工具 ——
 const DIRS = { up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1} };
@@ -3853,7 +3773,7 @@ function buildGrid(){
       if(isHealingTile(r,c)) cell.classList.add("healing-tile");
       if(isCoverCell(r,c)) cell.classList.add('cover');
       cell.dataset.r=r; cell.dataset.c=c;
-      const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
+      const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`(${c},${r})`; cell.appendChild(coord);
 
       cell.addEventListener('click', ()=>{
         if(interactionLocked) return;
@@ -5594,7 +5514,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   window.addEventListener('load', ()=> refreshLargeOverlays());
 
-  appendLog('血楼计划：地图 18x26，包含两块空缺区域与掩体线。');
+  appendLog('血楼计划：地图 18×26（X×Y），包含两块空缺区域与掩体线。');
   appendLog('任务：破除三道可摧毁墙体，最终迎战赫雷西成员B。');
   appendLog('赫雷西成员的SP降至 0 时会立即恢复至初始值。');
 

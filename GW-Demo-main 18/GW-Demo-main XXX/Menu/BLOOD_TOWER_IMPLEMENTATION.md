@@ -18,11 +18,11 @@ This document tracks the implementation status of the Blood Tower Plan stage, a 
 - ✅ blood-tower-battle-script.js created (based on heresy-battle-script.js)
 
 ### Map Configuration
-- ✅ Map size: 26 rows × 18 columns (coordinates follow 行,列 → row, column)
-- ✅ Void areas defined:
-  - Area 1: rows 18-21, columns 6-18 (rectangle)
-  - Area 2: rows 8-12, columns 1-13 (rectangle)
-- ✅ Cover cells: (rows 6, columns 3-5) and (rows 9, columns 1-7)
+- ✅ Map size: 18 × 26 (X axis horizontal, Y axis vertical)
+- ✅ Void areas defined (using X,Y coordinates):
+  - Area 1: X 6-18, Y 18-21 (rectangle)
+  - Area 2: X 1-13, Y 8-12 (rectangle)
+- ✅ Cover cells: (X 3-5, Y 6) and (X 1-7, Y 9)
 
 ### Player Units
 - ✅ Dario: Level 25, Position (16, 23), HP 150, SP 100
