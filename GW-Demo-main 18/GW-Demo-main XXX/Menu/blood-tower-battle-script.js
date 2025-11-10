@@ -3597,7 +3597,6 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
   }
-  }
   return F;
 }
 function drawOneSkill(u){
@@ -4293,6 +4292,23 @@ function applyLevelSuppression(){
   else if(enemyAvg>playerAvg){ enemySteps += 2; appendLog(`敌方 +2 步（等级压制）`); }
   updateStepsUI();
 }
+
+// Blood fog mechanic - placeholder implementation
+function checkAndActivateBloodFog(){
+  // TODO: Implement blood fog activation logic based on game state
+  // This would check if certain conditions are met to activate blood fog areas
+}
+
+function applyBloodFogDamage(){
+  // TODO: Implement blood fog damage logic
+  // This would apply damage to units standing in blood fog areas
+}
+
+function checkWallsAfterWaveDefeat(){
+  // TODO: Implement wall destruction and spawn logic
+  // This would check if a wave is defeated and destroy walls, spawning new enemies
+}
+
 function processUnitsTurnStart(side){
   // Check for blood fog activation and apply damage
   if(side==='player'){
