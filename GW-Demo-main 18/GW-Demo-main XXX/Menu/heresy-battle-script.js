@@ -7,8 +7,8 @@
 // - 地图尺寸：12x15，包含三排掩体（row 5）
 // - AI 调整：保留 BFS+兜底消步机制，确保敌方用尽所有步数
 
-let ROWS = 12;
-let COLS = 15;
+let ROWS = 26;
+let COLS = 18;
 
 const CELL_SIZE = 56;
 const GRID_GAP = 6;
@@ -120,11 +120,41 @@ function allPlayersHaveCultTarget(){
 }
 
 // —— 地图/掩体 ——
+// Coordinate system: (X, Y) where top-left is (1,1), X is horizontal (column), Y is vertical (row)
+function toRC(x, y){ return { r: y, c: x }; }
 function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return { r, c }; }
+
+// Define void areas (empty cells that cannot be occupied)
+const voidCells = new Set();
+function addVoidRect(x1, y1, x2, y2){
+  const xmin = Math.min(x1, x2), xmax = Math.max(x1, x2);
+  const ymin = Math.min(y1, y2), ymax = Math.max(y1, y2);
+  for(let x = xmin; x <= xmax; x++){
+    for(let y = ymin; y <= ymax; y++){
+      const {r, c} = toRC(x, y);
+      if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS){
+        voidCells.add(`${r},${c}`);
+      }
+    }
+  }
+}
+
 function isVoidCell(r,c){
-  return false;
+  return voidCells.has(`${r},${c}`);
 }
 const coverCells = new Set();
+function addCoverRect(x1, y1, x2, y2){
+  const xmin = Math.min(x1, x2), xmax = Math.max(x1, x2);
+  const ymin = Math.min(y1, y2), ymax = Math.max(y1, y2);
+  for(let x = xmin; x <= xmax; x++){
+    for(let y = ymin; y <= ymax; y++){
+      const {r, c} = toRC(x, y);
+      if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS && !isVoidCell(r, c)){
+        coverCells.add(`${r},${c}`);
+      }
+    }
+  }
+}
 function addCoverRectBL(x1,y1,x2,y2){
   const xmin = Math.min(x1,x2), xmax = Math.max(x1,x2);
   const ymin = Math.min(y1,y2), ymax = Math.max(y1,y2);
@@ -199,10 +229,12 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// — Player units (Level 25, positioned at row 11) —
-units['dario'] = createUnit('dario','Dario','player',25, 11, 7, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
-units['adora'] = createUnit('adora','Adora','player',25, 11, 8, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['karma'] = createUnit('karma','Karma','player',25, 11, 9, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+// — Player units (Level 25) - Blood Tower Plan positions —
+// Position format: (X, Y) where X is column (horizontal), Y is row (vertical)
+// Dario at (16, 23), Adora at (16, 24), Karma at (16, 25)
+units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
 // Enemy units - 雏形赫雷西成员 (Cultist Novice)
 const noviceCultistConfig = {
@@ -214,9 +246,9 @@ const noviceCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (70) when SP crashes
 };
-units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 2, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 7, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 3, 9, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+// Initial enemy positions for Blood Tower Plan
+units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 23, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 25, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
 
 // Enemy units - 法形赫雷西成员 (Cultist Mage)
 const mageCultistConfig = {
@@ -228,22 +260,33 @@ const mageCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (90) when SP crashes
 };
-units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 2, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
-units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 2, 13, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+// 法形赫雷西成员 at (5, 24) - row=24, col=5
+units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 24, 5, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
 
-// Add cover cells (three horizontal strips at row 5)
-// Row 5, columns 2-4
-coverCells.add('5,2');
-coverCells.add('5,3');
-coverCells.add('5,4');
-// Row 5, columns 7-9
-coverCells.add('5,7');
-coverCells.add('5,8');
-coverCells.add('5,9');
-// Row 5, columns 12-14
-coverCells.add('5,12');
-coverCells.add('5,13');
-coverCells.add('5,14');
+// Enemy units - 刺形赫雷西成员 (Cultist Assassin)
+const assassinCultistConfig = {
+  size:1,
+  stunThreshold:1,
+  spFloor:0,
+  disableSpCrash:false,
+  initialSp:80,
+  pullImmune:false,
+  restoreOnZeroPct:1.0,
+};
+// 刺形赫雷西成员 at (18, 24) - row=24, col=18
+units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 24, 18, 120, 80, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], assassinCultistConfig);
+
+// Add void areas (empty regions that cannot be occupied or seen through)
+// Area 1: (6,21) to (18,21) to (18,18) to (6,18) - rectangle from x=6 to x=18, y=18 to y=21
+addVoidRect(6, 18, 18, 21);
+// Area 2: (1,8) to (1,12) to (13,12) to (13,8) - rectangle from x=1 to x=13, y=8 to y=12
+addVoidRect(1, 8, 13, 12);
+
+// Add cover cells (掩体)
+// Cover area 1: (3,6) to (5,6) - row 6, columns 3-5
+addCoverRect(3, 6, 5, 6);
+// Cover area 2: (1,9) to (7,9) - row 9, columns 1-7
+addCoverRect(1, 9, 7, 9);
 
 
 // —— 范围/工具 ——
@@ -4418,7 +4461,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   window.addEventListener('load', ()=> refreshLargeOverlays());
 
-  appendLog('初见赫雷西战斗：地图 12x15，包含三排掩体（row 5）。');
+  appendLog('血楼计划：地图 18x26，包含多个空白区域和掩体。');
   appendLog('赫雷西成员具有多种被动：忠诚信仰、神恩、强化躯体、神明指示。');
   appendLog('赫雷西成员的SP降至0时会自动恢复至初始值（70或90）。');
 
