@@ -397,6 +397,9 @@ function range_adjacent(u){
     for(const k in DIRS){ const d=DIRS[k]; const r=u.r+d.dr, c=u.c+d.dc; if(clampCell(r,c)) res.push({r,c,dir:k}); }
   }
   return res;
+// Utility: delay function
+function delay(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
 }
 function range_forward_n(u,n, aimDir){ const dir=aimDir||u.facing; const arr=[]; for(let i=1;i<=n;i++){ const c=forwardCellAt(u,dir,i); if(c) arr.push({r:c.r,c:c.c,dir}); } return arr; }
 function range_line(u, aimDir){ const dir=aimDir||u.facing; return forwardLineAt(u,dir).map(p=>({r:p.r,c:p.c,dir})); }
@@ -3652,7 +3655,7 @@ function buildSkillFactoriesForUnit(u){
         {castMs:2000}
       )}
     );
-  } else if(u.name==='赫雷西成员B'){
+  } else if(u.name==='组装型进阶赫雷西成员（赫雷西成员B）'){
     // Boss skills
     const hasAlly = ()=> Object.values(units).some(ally=> ally.side===u.side && ally.hp>0 && ally.id!==u.id);
     const allyHasDebuff = ()=> Object.values(units).some(ally=> ally.side===u.side && ally.hp>0 && ally.id!==u.id && (ally.status.stunned>0 || ally.status.bleed>0 || ally.status.resentStacks>0 || ally.status.vulnerabilityStacks>0));
@@ -4862,14 +4865,16 @@ function processUnitsTurnStart(side){
       }
     }
 
-    // 忠臣的信仰 (Loyal Faith) - 每回合增加10SP
+    // 忠臣的信仰 (Loyal Faith) - 每回合增加10SP (Boss 15SP)
     if(u.passives.includes('loyalFaith')){
       const beforeSP = u.sp;
-      u.sp = Math.min(u.maxSp, u.sp + 10);
+      const isBoss = u.name === '组装型进阶赫雷西成员（赫雷西成员B）';
+      const spGain = isBoss ? 15 : 10;
+      u.sp = Math.min(u.maxSp, u.sp + spGain);
       syncSpBroken(u);
       if(u.sp > beforeSP){
-        showGainFloat(u,0,10);
-        appendLog(`${u.name} 的忠臣的信仰：+10 SP`);
+        showGainFloat(u,0,spGain);
+        appendLog(`${u.name} 的忠臣的信仰：+${spGain} SP`);
       }
     }
     
