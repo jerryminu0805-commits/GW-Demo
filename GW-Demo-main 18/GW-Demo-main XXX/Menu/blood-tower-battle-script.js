@@ -6,8 +6,8 @@
 // - Boss对话：摧毁第三面墙后触发剧情对话
 // - BGM切换：战斗开始用Tower.mp3，Boss出现后切换到成员B.mp3
 
-let ROWS = 26;
-let COLS = 18;
+let ROWS = 18;
+let COLS = 26;
 
 const CELL_SIZE = 56;
 const GRID_GAP = 6;
@@ -284,9 +284,9 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
 }
 const units = {};
 // — Player units (Level 25) —
-units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
-units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+units['dario'] = createUnit('dario','Dario','player',25, 16, 23, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+units['adora'] = createUnit('adora','Adora','player',25, 16, 24, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+units['karma'] = createUnit('karma','Karma','player',25, 16, 25, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
 // Enemy units - Initial wave
 // 雏形赫雷西成员 (Cultist Novice)
@@ -4517,32 +4517,32 @@ function spawnWave2Enemies(){
   let spawnCount = 0;
   
   // 法形赫雷西成员 at (3, 15)
-  if(clampCell(15, 3)){
-    units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 15, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+  if(clampCell(3, 15)){
+    units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 3, 15, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
     spawnCount++;
   }
   
   // 雏形赫雷西成员 at (10, 16)
-  if(clampCell(16, 10)){
-    units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 16, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  if(clampCell(10, 16)){
+    units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 10, 16, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
   // 雏形赫雷西成员 at (10, 14)
-  if(clampCell(14, 10)){
-    units['cultistNovice4'] = createUnit('cultistNovice4','雏形赫雷西成员','enemy',25, 14, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  if(clampCell(10, 14)){
+    units['cultistNovice4'] = createUnit('cultistNovice4','雏形赫雷西成员','enemy',25, 10, 14, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
-  // 雏形赫雷西成员 at (8, 25) - Note: coordinate (25, 8) might be out of bounds, using (25, 8) as (r, c)
-  if(clampCell(25, 8)){
-    units['cultistNovice5'] = createUnit('cultistNovice5','雏形赫雷西成员','enemy',25, 25, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  // 雏形赫雷西成员 at (8, 25)
+  if(clampCell(8, 25)){
+    units['cultistNovice5'] = createUnit('cultistNovice5','雏形赫雷西成员','enemy',25, 8, 25, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
   // 刺形赫雷西成员 at (12, 15)
-  if(clampCell(15, 12)){
-    units['cultistAssassin2'] = createUnit('cultistAssassin2','刺形赫雷西成员','enemy',25, 15, 12, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+  if(clampCell(12, 15)){
+    units['cultistAssassin2'] = createUnit('cultistAssassin2','刺形赫雷西成员','enemy',25, 12, 15, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
     spawnCount++;
   }
   
@@ -4558,39 +4558,39 @@ function spawnWave2Enemies(){
 function spawnWave3Enemies(){
   let spawnCount = 0;
   
-  // 雏形赫雷西成员 at (15, 2) - Note: (2, 15) as (r, c)
-  if(clampCell(2, 15)){
-    units['cultistNovice6'] = createUnit('cultistNovice6','雏形赫雷西成员','enemy',25, 2, 15, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  // 雏形赫雷西成员 at (15, 2)
+  if(clampCell(15, 2)){
+    units['cultistNovice6'] = createUnit('cultistNovice6','雏形赫雷西成员','enemy',25, 15, 2, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
   // 雏形赫雷西成员 at (17, 2)
-  if(clampCell(2, 17)){
-    units['cultistNovice7'] = createUnit('cultistNovice7','雏形赫雷西成员','enemy',25, 2, 17, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  if(clampCell(17, 2)){
+    units['cultistNovice7'] = createUnit('cultistNovice7','雏形赫雷西成员','enemy',25, 17, 2, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
   // 刺形赫雷西成员 at (16, 15)
-  if(clampCell(15, 16)){
-    units['cultistAssassin3'] = createUnit('cultistAssassin3','刺形赫雷西成员','enemy',25, 15, 16, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+  if(clampCell(16, 15)){
+    units['cultistAssassin3'] = createUnit('cultistAssassin3','刺形赫雷西成员','enemy',25, 16, 15, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
     spawnCount++;
   }
   
   // 刺形赫雷西成员 at (15, 13)
-  if(clampCell(13, 15)){
-    units['cultistAssassin4'] = createUnit('cultistAssassin4','刺形赫雷西成员','enemy',25, 13, 15, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+  if(clampCell(15, 13)){
+    units['cultistAssassin4'] = createUnit('cultistAssassin4','刺形赫雷西成员','enemy',25, 15, 13, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
     spawnCount++;
   }
   
   // 刺形赫雷西成员 at (17, 7)
-  if(clampCell(7, 17)){
-    units['cultistAssassin5'] = createUnit('cultistAssassin5','刺形赫雷西成员','enemy',25, 7, 17, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+  if(clampCell(17, 7)){
+    units['cultistAssassin5'] = createUnit('cultistAssassin5','刺形赫雷西成员','enemy',25, 17, 7, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
     spawnCount++;
   }
   
   // 赫雷西初代精英成员 (Elite) at (16, 4)
-  if(clampCell(4, 16)){
-    units['eliteCultist1'] = createUnit('eliteCultist1','赫雷西初代精英成员','enemy',25, 4, 16, 200, 50, 1.0, 0, ['loyalFaith','extraAction','godInstruction'], eliteCultistConfig);
+  if(clampCell(16, 4)){
+    units['eliteCultist1'] = createUnit('eliteCultist1','赫雷西初代精英成员','enemy',25, 16, 4, 200, 50, 1.0, 0, ['loyalFaith','extraAction','godInstruction'], eliteCultistConfig);
     spawnCount++;
   }
   
@@ -4711,32 +4711,32 @@ async function spawnWave4EnemiesWithDialogue(){
   let spawnCount = 0;
   
   // 雏形赫雷西成员 at (10, 5)
-  if(clampCell(5, 10)){
-    units['cultistNovice8'] = createUnit('cultistNovice8','雏形赫雷西成员','enemy',25, 5, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  if(clampCell(10, 5)){
+    units['cultistNovice8'] = createUnit('cultistNovice8','雏形赫雷西成员','enemy',25, 10, 5, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
   // 雏形赫雷西成员 at (10, 3)
-  if(clampCell(3, 10)){
-    units['cultistNovice9'] = createUnit('cultistNovice9','雏形赫雷西成员','enemy',25, 3, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+  if(clampCell(10, 3)){
+    units['cultistNovice9'] = createUnit('cultistNovice9','雏形赫雷西成员','enemy',25, 10, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
     spawnCount++;
   }
   
   // 法形赫雷西成员 at (4, 6)
-  if(clampCell(6, 4)){
-    units['cultistMage3'] = createUnit('cultistMage3','法形赫雷西成员','enemy',25, 6, 4, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+  if(clampCell(4, 6)){
+    units['cultistMage3'] = createUnit('cultistMage3','法形赫雷西成员','enemy',25, 4, 6, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
     spawnCount++;
   }
   
   // 法形赫雷西成员 at (4, 2)
-  if(clampCell(2, 4)){
-    units['cultistMage4'] = createUnit('cultistMage4','法形赫雷西成员','enemy',25, 2, 4, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+  if(clampCell(4, 2)){
+    units['cultistMage4'] = createUnit('cultistMage4','法形赫雷西成员','enemy',25, 4, 2, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
     spawnCount++;
   }
   
   // 组装型进阶赫雷西成员 (Boss - Member B) at (2, 4)
-  if(clampCell(4, 2)){
-    units['heresyBoss'] = createUnit('heresyBoss','组装型进阶赫雷西成员（赫雷西成员B）','enemy',25, 4, 2, 250, 90, 1.0, 0, ['loyalFaith','extraAction','soulComfort','divineInstructionTransmitter'], bossCultistConfig);
+  if(clampCell(2, 4)){
+    units['heresyBoss'] = createUnit('heresyBoss','组装型进阶赫雷西成员（赫雷西成员B）','enemy',25, 2, 4, 250, 90, 1.0, 0, ['loyalFaith','extraAction','soulComfort','divineInstructionTransmitter'], bossCultistConfig);
     spawnCount++;
   }
   
