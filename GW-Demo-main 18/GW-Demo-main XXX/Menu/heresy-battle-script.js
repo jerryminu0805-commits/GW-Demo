@@ -7,8 +7,8 @@
 // - 地图尺寸：12x15，包含三排掩体（row 5）
 // - AI 调整：保留 BFS+兜底消步机制，确保敌方用尽所有步数
 
-let ROWS = 12;
-let COLS = 15;
+let ROWS = 26;
+let COLS = 18;
 
 const CELL_SIZE = 56;
 const GRID_GAP = 6;
@@ -120,11 +120,319 @@ function allPlayersHaveCultTarget(){
 }
 
 // —— 地图/掩体 ——
+// Coordinate system: (X, Y) where top-left is (1,1), X is horizontal (column), Y is vertical (row)
+function toRC(x, y){ return { r: y, c: x }; }
 function toRC_FromBottomLeft(x, y){ const c = x + 1; const r = ROWS - y; return { r, c }; }
+
+// Define void areas (empty cells that cannot be occupied)
+const voidCells = new Set();
+function addVoidRect(x1, y1, x2, y2){
+  const xmin = Math.min(x1, x2), xmax = Math.max(x1, x2);
+  const ymin = Math.min(y1, y2), ymax = Math.max(y1, y2);
+  for(let x = xmin; x <= xmax; x++){
+    for(let y = ymin; y <= ymax; y++){
+      const {r, c} = toRC(x, y);
+      if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS){
+        voidCells.add(`${r},${c}`);
+      }
+    }
+  }
+}
+
 function isVoidCell(r,c){
+  return voidCells.has(`${r},${c}`);
+}
+
+// Destructible walls system
+const destructibleWalls = {
+  wall1: {
+    cells: new Set(),
+    guardEnemies: ['cultistNovice1', 'cultistNovice2', 'cultistMage1', 'cultistAssassin1'],
+    fragile: false,
+    destroyed: false,
+    bloodMistTurns: 0,
+    bloodMistActive: false,
+    spawnedEnemies: false
+  },
+  wall2: {
+    cells: new Set(),
+    guardEnemies: [],
+    fragile: false,
+    destroyed: false,
+    bloodMistTurns: 0,
+    bloodMistActive: false,
+    spawnedEnemies: false
+  },
+  wall3: {
+    cells: new Set(),
+    guardEnemies: [],
+    fragile: false,
+    destroyed: false,
+    bloodMistTurns: 0,
+    bloodMistActive: false,
+    spawnedEnemies: false
+  }
+};
+
+// Add wall cells
+function addWallRect(wallId, x1, y1, x2, y2){
+  const wall = destructibleWalls[wallId];
+  if(!wall) return;
+  const xmin = Math.min(x1, x2), xmax = Math.max(x1, x2);
+  const ymin = Math.min(y1, y2), ymax = Math.max(y1, y2);
+  for(let x = xmin; x <= xmax; x++){
+    for(let y = ymin; y <= ymax; y++){
+      const {r, c} = toRC(x, y);
+      if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS){
+        wall.cells.add(`${r},${c}`);
+      }
+    }
+  }
+}
+
+function isWallCell(r, c){
+  for(const wallId in destructibleWalls){
+    const wall = destructibleWalls[wallId];
+    if(!wall.destroyed && wall.cells.has(`${r},${c}`)){
+      return true;
+    }
+  }
   return false;
 }
+
+function getWallAt(r, c){
+  for(const wallId in destructibleWalls){
+    const wall = destructibleWalls[wallId];
+    if(!wall.destroyed && wall.cells.has(`${r},${c}`)){
+      return {id: wallId, wall};
+    }
+  }
+  return null;
+}
+
+// Check if wall should become fragile
+function checkWallFragile(wallId){
+  const wall = destructibleWalls[wallId];
+  if(!wall || wall.fragile || wall.destroyed) return;
+  
+  const allDead = wall.guardEnemies.every(id => {
+    const u = units[id];
+    return !u || u.hp <= 0;
+  });
+  
+  if(allDead){
+    wall.fragile = true;
+    appendLog(`可摧毁墙体${wallId.replace('wall','')}现在易碎，可以被任何攻击摧毁！`);
+  }
+}
+
+// Destroy wall
+function destroyWall(wallId){
+  const wall = destructibleWalls[wallId];
+  if(!wall || wall.destroyed) return;
+  
+  wall.destroyed = true;
+  appendLog(`可摧毁墙体${wallId.replace('wall','')}被摧毁！`);
+  
+  // Start blood mist countdown
+  wall.bloodMistTurns = 2;
+  appendLog(`警告：2回合后血雾区域将激活！`);
+  
+  // Spawn enemies based on wall
+  spawnWallEnemies(wallId);
+  
+  renderAll();
+}
+
+// Spawn enemies when wall is destroyed
+function spawnWallEnemies(wallId){
+  const wall = destructibleWalls[wallId];
+  if(!wall || wall.spawnedEnemies) return;
+  wall.spawnedEnemies = true;
+  
+  if(wallId === 'wall1'){
+    // Spawn enemies for wall 1
+    units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 15, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+    units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 16, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistNovice4'] = createUnit('cultistNovice4','雏形赫雷西成员','enemy',25, 14, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistNovice5'] = createUnit('cultistNovice5','雏形赫雷西成员','enemy',25, 25, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistAssassin2'] = createUnit('cultistAssassin2','刺形赫雷西成员','enemy',25, 15, 12, 120, 80, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], assassinCultistConfig);
+    // Add healing tile at (3, 18)
+    healingTiles.add('18,3');
+    appendLog('墙体1摧毁：新敌人已生成，恢复格子出现在 (3, 18)');
+  } else if(wallId === 'wall2'){
+    // Spawn enemies for wall 2
+    units['cultistNovice6'] = createUnit('cultistNovice6','雏形赫雷西成员','enemy',25, 2, 15, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistNovice7'] = createUnit('cultistNovice7','雏形赫雷西成员','enemy',25, 2, 17, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistAssassin3'] = createUnit('cultistAssassin3','刺形赫雷西成员','enemy',25, 15, 16, 120, 80, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], assassinCultistConfig);
+    units['cultistAssassin4'] = createUnit('cultistAssassin4','刺形赫雷西成员','enemy',25, 13, 15, 120, 80, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], assassinCultistConfig);
+    units['cultistAssassin5'] = createUnit('cultistAssassin5','刺形赫雷西成员','enemy',25, 7, 17, 120, 80, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], assassinCultistConfig);
+    units['cultistElite1'] = createUnit('cultistElite1','赫雷西初代精英成员','enemy',25, 4, 16, 200, 100, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], {size:1, stunThreshold:2, initialSp:100, restoreOnZeroPct:1.0});
+    // Add healing tile at (16, 9)
+    healingTiles.add('9,16');
+    appendLog('墙体2摧毁：新敌人已生成，恢复格子出现在 (16, 9)');
+  } else if(wallId === 'wall3'){
+    // Spawn enemies for wall 3
+    units['cultistNovice8'] = createUnit('cultistNovice8','雏形赫雷西成员','enemy',25, 5, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistNovice9'] = createUnit('cultistNovice9','雏形赫雷西成员','enemy',25, 3, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    units['cultistMage3'] = createUnit('cultistMage3','法形赫雷西成员','enemy',25, 6, 4, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+    units['cultistMage4'] = createUnit('cultistMage4','法形赫雷西成员','enemy',25, 2, 4, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+    units['memberB'] = createUnit('memberB','组装型进阶赫雷西成员（赫雷西成员B）','enemy',25, 4, 2, 300, 120, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], {size:1, stunThreshold:3, initialSp:120, restoreOnZeroPct:1.0});
+    appendLog('墙体3摧毁：新敌人已生成，包括赫雷西成员B');
+    // Trigger dialogue and music change
+    triggerMemberBDialogue();
+  }
+  
+  // Ensure start hands for new enemies
+  for(const id in units){
+    const u = units[id];
+    if(u.hp > 0 && !u.dealtStart){
+      ensureStartHand(u);
+    }
+  }
+}
+
+// Healing tiles system
+const healingTiles = new Set();
+const usedHealingTiles = new Set();
+
+function isHealingTile(r, c){
+  const key = `${r},${c}`;
+  return healingTiles.has(key) && !usedHealingTiles.has(key);
+}
+
+function useHealingTile(r, c, unit){
+  const key = `${r},${c}`;
+  if(!healingTiles.has(key) || usedHealingTiles.has(key)) return;
+  
+  usedHealingTiles.add(key);
+  unit.hp = unit.maxHp;
+  unit.sp = unit.maxSp;
+  syncSpBroken(unit);
+  
+  // Add jixue (鸡血) buff
+  unit.status.jixueStacks = (unit.status.jixueStacks || 0) + 1;
+  
+  appendLog(`${unit.name} 站上恢复格子：HP和SP完全恢复，获得1层鸡血！`);
+  showGainFloat(unit, unit.maxHp, unit.maxSp);
+  renderAll();
+}
+
+// Blood mist zones
+const bloodMistZones = new Set();
+
+function updateBloodMist(){
+  // Check each wall's blood mist countdown
+  for(const wallId in destructibleWalls){
+    const wall = destructibleWalls[wallId];
+    if(wall.destroyed && !wall.bloodMistActive && wall.bloodMistTurns > 0){
+      wall.bloodMistTurns--;
+      if(wall.bloodMistTurns === 0){
+        wall.bloodMistActive = true;
+        activateBloodMist(wallId);
+      } else {
+        appendLog(`血雾区域将在 ${wall.bloodMistTurns} 回合后激活`);
+      }
+    }
+  }
+}
+
+function activateBloodMist(wallId){
+  const wall = destructibleWalls[wallId];
+  if(!wall) return;
+  
+  // Add all cells behind the wall to blood mist zone
+  wall.cells.forEach(cellKey => {
+    bloodMistZones.add(cellKey);
+  });
+  
+  appendLog(`血雾区域激活！墙体${wallId.replace('wall','')}后方区域现在充满血雾！`);
+  renderAll();
+}
+
+function applyBloodMistDamage(){
+  // Apply blood mist damage to all units in blood mist zones
+  for(const id in units){
+    const u = units[id];
+    if(u.hp <= 0) continue;
+    
+    const key = `${u.r},${u.c}`;
+    if(bloodMistZones.has(key)){
+      // Apply 50 HP damage
+      damageUnit(u.id, 50, 0, `${u.name} 受血雾侵蚀`, null);
+      
+      // Apply 50 SP damage
+      applySpDamage(u, 50, {reason: `${u.name} 的SP被血雾吞噬`});
+      
+      // Add 10 stacks of bleed
+      u.status.bleed = (u.status.bleed || 0) + 10;
+      
+      // Add 10 stacks of resentment
+      u.status.resentStacks = (u.status.resentStacks || 0) + 10;
+      
+      appendLog(`${u.name} 在血雾中：-50HP, -50SP, +10流血, +10怨念`);
+    }
+  }
+}
+
+// Member B dialogue system
+let memberBDialoguePlayed = false;
+
+function triggerMemberBDialogue(){
+  if(memberBDialoguePlayed) return;
+  memberBDialoguePlayed = true;
+  
+  // Stop Tower.mp3
+  const battleBGM = document.getElementById('battleBGM');
+  if(battleBGM){
+    battleBGM.pause();
+    battleBGM.currentTime = 0;
+  }
+  
+  // Show dialogue
+  const dialogues = [
+    '赫雷西成员B：我真的非常尊重你们',
+    '赫雷西成员B：你们能走到这里以及完全证明了你们的意志以及信念',
+    '赫雷西成员B：。。。',
+    '赫雷西成员B：真是。。',
+    '赫雷西成员B：真是可惜，我们立场不同啊',
+    '赫雷西成员B：但愿来世相认时——',
+    '赫雷西成员B：再当挚友吧'
+  ];
+  
+  let index = 0;
+  const showNext = () => {
+    if(index < dialogues.length){
+      appendLog(dialogues[index]);
+      index++;
+      setTimeout(showNext, 2000);
+    } else {
+      // Start playing 成员B.mp3 (note: file needs to exist)
+      const memberBBGM = document.createElement('audio');
+      memberBBGM.id = 'memberBBGM';
+      memberBBGM.src = '成员B.mp3';
+      memberBBGM.loop = true;
+      memberBBGM.autoplay = true;
+      document.body.appendChild(memberBBGM);
+      appendLog('（成员B的BGM开始播放）');
+    }
+  };
+  showNext();
+}
+
 const coverCells = new Set();
+function addCoverRect(x1, y1, x2, y2){
+  const xmin = Math.min(x1, x2), xmax = Math.max(x1, x2);
+  const ymin = Math.min(y1, y2), ymax = Math.max(y1, y2);
+  for(let x = xmin; x <= xmax; x++){
+    for(let y = ymin; y <= ymax; y++){
+      const {r, c} = toRC(x, y);
+      if(r >= 1 && r <= ROWS && c >= 1 && c <= COLS && !isVoidCell(r, c)){
+        coverCells.add(`${r},${c}`);
+      }
+    }
+  }
+}
 function addCoverRectBL(x1,y1,x2,y2){
   const xmin = Math.min(x1,x2), xmax = Math.max(x1,x2);
   const ymin = Math.min(y1,y2), ymax = Math.max(y1,y2);
@@ -138,7 +446,7 @@ function addCoverRectBL(x1,y1,x2,y2){
   }
 }
 function isCoverCell(r,c){ return coverCells.has(`${r},${c}`); }
-function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c); }
+function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c) && !isWallCell(r,c); }
 
 // —— 单位 ——
 function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct, spZeroHpPenalty=0, passives=[], extra={}){
@@ -199,10 +507,12 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// — Player units (Level 25, positioned at row 11) —
-units['dario'] = createUnit('dario','Dario','player',25, 11, 7, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
-units['adora'] = createUnit('adora','Adora','player',25, 11, 8, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['karma'] = createUnit('karma','Karma','player',25, 11, 9, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+// — Player units (Level 25) - Blood Tower Plan positions —
+// Position format: (X, Y) where X is column (horizontal), Y is row (vertical)
+// Dario at (16, 23), Adora at (16, 24), Karma at (16, 25)
+units['dario'] = createUnit('dario','Dario','player',25, 23, 16, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+units['adora'] = createUnit('adora','Adora','player',25, 24, 16, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+units['karma'] = createUnit('karma','Karma','player',25, 25, 16, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
 
 // Enemy units - 雏形赫雷西成员 (Cultist Novice)
 const noviceCultistConfig = {
@@ -214,9 +524,9 @@ const noviceCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (70) when SP crashes
 };
-units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 2, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 3, 7, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
-units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 3, 9, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+// Initial enemy positions for Blood Tower Plan
+units['cultistNovice1'] = createUnit('cultistNovice1','雏形赫雷西成员','enemy',25, 23, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+units['cultistNovice2'] = createUnit('cultistNovice2','雏形赫雷西成员','enemy',25, 25, 3, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
 
 // Enemy units - 法形赫雷西成员 (Cultist Mage)
 const mageCultistConfig = {
@@ -228,22 +538,44 @@ const mageCultistConfig = {
   pullImmune:false,
   restoreOnZeroPct:1.0, // Restore to 100% of maxSp (90) when SP crashes
 };
-units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 2, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
-units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 2, 13, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+// 法形赫雷西成员 at (5, 24) - row=24, col=5
+units['cultistMage1'] = createUnit('cultistMage1','法形赫雷西成员','enemy',25, 24, 5, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
 
-// Add cover cells (three horizontal strips at row 5)
-// Row 5, columns 2-4
-coverCells.add('5,2');
-coverCells.add('5,3');
-coverCells.add('5,4');
-// Row 5, columns 7-9
-coverCells.add('5,7');
-coverCells.add('5,8');
-coverCells.add('5,9');
-// Row 5, columns 12-14
-coverCells.add('5,12');
-coverCells.add('5,13');
-coverCells.add('5,14');
+// Enemy units - 刺形赫雷西成员 (Cultist Assassin)
+const assassinCultistConfig = {
+  size:1,
+  stunThreshold:1,
+  spFloor:0,
+  disableSpCrash:false,
+  initialSp:80,
+  pullImmune:false,
+  restoreOnZeroPct:1.0,
+};
+// 刺形赫雷西成员 at (18, 24) - row=24, col=18
+units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 24, 18, 120, 80, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], assassinCultistConfig);
+
+// Add void areas (empty regions that cannot be occupied or seen through)
+// Area 1: (6,21) to (18,21) to (18,18) to (6,18) - rectangle from x=6 to x=18, y=18 to y=21
+addVoidRect(6, 18, 18, 21);
+// Area 2: (1,8) to (1,12) to (13,12) to (13,8) - rectangle from x=1 to x=13, y=8 to y=12
+addVoidRect(1, 8, 13, 12);
+
+// Add cover cells (掩体)
+// Cover area 1: (3,6) to (5,6) - row 6, columns 3-5
+addCoverRect(3, 6, 5, 6);
+// Cover area 2: (1,9) to (7,9) - row 9, columns 1-7
+addCoverRect(1, 9, 7, 9);
+
+// Add destructible walls
+// Wall 1: (1,21) to (5,21) - row 21, columns 1-5
+addWallRect('wall1', 1, 21, 5, 21);
+destructibleWalls.wall1.guardEnemies = ['cultistNovice1', 'cultistNovice2', 'cultistMage1', 'cultistAssassin1'];
+
+// Wall 2: (13,13) to (13,17) - column 13, rows 13-17
+addWallRect('wall2', 13, 13, 13, 17);
+
+// Wall 3: (13,1) to (13,7) - column 13, rows 1-7
+addWallRect('wall3', 13, 1, 13, 7);
 
 
 // —— 范围/工具 ——
@@ -415,6 +747,10 @@ function injectFXStyles(){
   .cell { width: var(--cell); height: var(--cell); position: relative; background: #1f1f1f; border-radius: 6px; overflow: hidden; }
   .cell.void { background: repeating-linear-gradient(45deg, #111 0 6px, #0b0b0b 6px 12px); opacity: 0.5; }
   .cell.cover { background: #1e293b; box-shadow: inset 0 0 0 2px rgba(59,130,246,0.35); }
+  .cell.wall { background: #3d3026; box-shadow: inset 0 0 0 3px rgba(139,69,19,0.7); border: 1px solid #8b4513; cursor: not-allowed; }
+  .cell.wall.fragile { background: #4a3829; box-shadow: inset 0 0 0 3px rgba(255,165,0,0.6); border: 1px solid #ff8c00; animation: pulse-fragile 1.5s ease-in-out infinite; cursor: pointer; }
+  .cell.blood-mist { background: radial-gradient(circle, rgba(139,0,0,0.4) 0%, rgba(69,0,0,0.3) 100%); box-shadow: inset 0 0 12px rgba(255,0,0,0.5); animation: pulse-blood-mist 2s ease-in-out infinite; }
+  .cell.healing-tile { background: radial-gradient(circle, rgba(0,255,127,0.3) 0%, rgba(0,139,69,0.2) 100%); box-shadow: inset 0 0 8px rgba(0,255,127,0.6); animation: pulse-heal 1.8s ease-in-out infinite; }
   .cell .coord { position: absolute; right: 4px; bottom: 2px; font-size: 10px; color: rgba(255,255,255,0.35); }
   .unit { position: absolute; inset: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; font-size: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
   .unit.player { background: rgba(82,196,26,0.15); border-color: rgba(82,196,26,0.35); }
@@ -842,6 +1178,21 @@ function injectFXStyles(){
   @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(255,255,0,0.6); }
     100% { box-shadow: 0 0 0 12px rgba(255,255,0,0); }
+  }
+  @keyframes pulse-fragile {
+    0% { box-shadow: inset 0 0 0 3px rgba(255,165,0,0.6); }
+    50% { box-shadow: inset 0 0 0 3px rgba(255,165,0,0.9), 0 0 8px rgba(255,140,0,0.7); }
+    100% { box-shadow: inset 0 0 0 3px rgba(255,165,0,0.6); }
+  }
+  @keyframes pulse-blood-mist {
+    0% { box-shadow: inset 0 0 12px rgba(255,0,0,0.5); }
+    50% { box-shadow: inset 0 0 18px rgba(255,0,0,0.8), 0 0 6px rgba(139,0,0,0.6); }
+    100% { box-shadow: inset 0 0 12px rgba(255,0,0,0.5); }
+  }
+  @keyframes pulse-heal {
+    0% { box-shadow: inset 0 0 8px rgba(0,255,127,0.6); }
+    50% { box-shadow: inset 0 0 14px rgba(0,255,127,0.9), 0 0 8px rgba(0,255,127,0.7); }
+    100% { box-shadow: inset 0 0 8px rgba(0,255,127,0.6); }
   }
 
   /* Telegraph/Impact 高亮 */
@@ -2023,7 +2374,13 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   }
   showDamageFloat(u, finalHp, finalSp);
   pulseCell(u.r, u.c);
-  if(died){ showDeathFx(u); }
+  if(died){ 
+    showDeathFx(u); 
+    // Check if any walls should become fragile
+    for(const wallId in destructibleWalls){
+      checkWallFragile(wallId);
+    }
+  }
 
   // 反伤姿态：反弹部分HP伤害
   if(sourceId && u._stanceType==='retaliate' && u._stanceTurns>0 && u._reflectPct>0 && !opts._reflected){
@@ -3104,6 +3461,20 @@ function buildGrid(){
       cell.className = 'cell';
       if(isVoidCell(r,c)) cell.classList.add('void');
       if(isCoverCell(r,c)) cell.classList.add('cover');
+      
+      // Add wall and blood mist visualization
+      const wallInfo = getWallAt(r, c);
+      if(wallInfo){
+        cell.classList.add('wall');
+        if(wallInfo.wall.fragile) cell.classList.add('fragile');
+      }
+      if(bloodMistZones.has(`${r},${c}`)){
+        cell.classList.add('blood-mist');
+      }
+      if(isHealingTile(r, c)){
+        cell.classList.add('healing-tile');
+      }
+      
       cell.dataset.r=r; cell.dataset.c=c;
       const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
 
@@ -3114,6 +3485,15 @@ function buildGrid(){
           handleSkillConfirmCell(_skillSelection.unit,_skillSelection.skill,{r:rr,c:cc});
           return;
         }
+        
+        // Check if clicking on a fragile wall to destroy it
+        const wallInfo = getWallAt(rr, cc);
+        if(wallInfo && wallInfo.wall.fragile){
+          appendLog(`点击摧毁易碎墙体${wallInfo.id.replace('wall','')}`);
+          destroyWall(wallInfo.id);
+          return;
+        }
+        
         const occ = getUnitAt(rr,cc);
         if(occ){
           if(godsWillArmed){ showGodsWillMenuAtUnit(occ); return; }
@@ -3632,6 +4012,11 @@ function markCell(r,c,kind){
 function registerUnitMove(u){
   if(!u) return;
   u.stepsMovedThisTurn = (u.stepsMovedThisTurn || 0) + 1;
+  
+  // Check if unit stepped on a healing tile
+  if(u.side === 'player' && isHealingTile(u.r, u.c)){
+    useHealingTile(u.r, u.c, u);
+  }
 }
 
 // —— 回合与被动（含“恢复”/Neyla 保底/姿态结算） —— 
@@ -3655,6 +4040,11 @@ function applyLevelSuppression(){
   updateStepsUI();
 }
 function processUnitsTurnStart(side){
+  // Apply blood mist damage at turn start
+  if(side === 'player'){
+    applyBloodMistDamage();
+  }
+  
   for(const id in units){
     const u=units[id];
     if(u.side!==side || u.hp<=0) continue;
@@ -3760,6 +4150,9 @@ function processUnitsTurnEnd(side){
   }
 }
 function applyEndOfRoundPassives(){
+  // Update blood mist countdown
+  updateBloodMist();
+  
   const adora = units['adora'];
   if(adora && adora.hp>0 && adora.passives.includes('proximityHeal')){
     for(const oid in units){
@@ -4418,7 +4811,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   window.addEventListener('load', ()=> refreshLargeOverlays());
 
-  appendLog('初见赫雷西战斗：地图 12x15，包含三排掩体（row 5）。');
+  appendLog('血楼计划：地图 18x26，包含多个空白区域和掩体。');
   appendLog('赫雷西成员具有多种被动：忠诚信仰、神恩、强化躯体、神明指示。');
   appendLog('赫雷西成员的SP降至0时会自动恢复至初始值（70或90）。');
 
