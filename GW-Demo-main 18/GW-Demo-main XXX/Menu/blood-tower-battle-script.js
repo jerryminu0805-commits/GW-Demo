@@ -279,8 +279,8 @@ units['cultistAssassin1'] = createUnitXY('cultistAssassin1','刺形赫雷西成�
 // They are not placed at initialization
 
 // Cover cells (impassable obstacles representing debris/cover)
-addCoverByXY(3,6,5,6);
-addCoverByXY(1,9,7,9);
+addCoverByXY(6,3,6,5);
+addCoverByXY(9,1,9,7);
 
 // —— 范围/工具 ——
 const DIRS = { up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1} };
