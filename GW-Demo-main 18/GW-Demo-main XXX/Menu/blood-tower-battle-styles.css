@@ -504,3 +504,126 @@ body {
   margin: 0 auto !important;
 }
 .introDialog .speaker { left: 16px !important; top: -16px !important; }
+
+/* Destructible Walls */
+.cell.wall {
+  background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+  border: 2px solid #666;
+  position: relative;
+}
+
+.cell.wall.intact {
+  background: linear-gradient(135deg, #555 0%, #333 100%);
+  border-color: #888;
+}
+
+.cell.wall.intact::after {
+  content: '🧱';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  opacity: 0.8;
+}
+
+.cell.wall.fragile {
+  background: linear-gradient(135deg, #665544 0%, #443322 100%);
+  border-color: #aa8866;
+  animation: wallFragile 1s ease-in-out infinite;
+}
+
+.cell.wall.fragile::after {
+  content: '💥';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  opacity: 0.9;
+}
+
+@keyframes wallFragile {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1.0; }
+}
+
+/* Blood Fog */
+.cell.blood-fog {
+  background: radial-gradient(circle, rgba(139, 0, 0, 0.4) 0%, rgba(80, 0, 0, 0.6) 100%);
+  animation: bloodFogPulse 3s ease-in-out infinite;
+  position: relative;
+}
+
+.cell.blood-fog::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(139, 0, 0, 0.1) 10px,
+    rgba(139, 0, 0, 0.1) 20px
+  );
+  animation: bloodFogScroll 10s linear infinite;
+}
+
+@keyframes bloodFogPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1.0; }
+}
+
+@keyframes bloodFogScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+/* Healing Tiles */
+.cell.healing-tile {
+  background: radial-gradient(circle, rgba(0, 255, 127, 0.3) 0%, rgba(0, 200, 100, 0.2) 100%);
+  border: 2px solid rgba(0, 255, 127, 0.5);
+  animation: healingGlow 2s ease-in-out infinite;
+  position: relative;
+}
+
+.cell.healing-tile::after {
+  content: '💚';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  opacity: 0.8;
+  animation: healingFloat 3s ease-in-out infinite;
+}
+
+@keyframes healingGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 127, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(0, 255, 127, 0.6); }
+}
+
+@keyframes healingFloat {
+  0%, 100% { transform: translate(-50%, -50%); }
+  50% { transform: translate(-50%, -55%); }
+}
+
+/* Cover cells styling enhancement */
+.cell.cover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #1a1a1a 100%);
+  border: 2px solid #555;
+}
+
+.cell.cover::after {
+  content: '🛡️';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  opacity: 0.6;
+}
+

@@ -153,6 +153,75 @@ function addCoverByXY(x1,y1,x2,y2){
   markRectByXY(x1,y1,x2,y2,coverCells);
 }
 function isCoverCell(r,c){ return coverCells.has(`${r},${c}`); }
+
+// —— Destructible Walls System ——
+const wallCells = new Set();
+const walls = {
+  wall1: { cells: [], state: 'intact', fogArea: [], fogActiveTurn: null },
+  wall2: { cells: [], state: 'intact', fogArea: [], fogActiveTurn: null },
+  wall3: { cells: [], state: 'intact', fogArea: [], fogActiveTurn: null }
+};
+
+// Initialize Wall 1: columns 1-5, row 21
+for(let c = 1; c <= 5; c++){
+  walls.wall1.cells.push({r: 21, c});
+  wallCells.add(`21,${c}`);
+}
+// Blood fog area for Wall 1: area behind it (lower rows in the (6,18)-(18,21) void region)
+for(let r = 18; r <= 21; r++){
+  for(let c = 6; c <= 18; c++){
+    if(!isVoidCell(r, c)) walls.wall1.fogArea.push({r, c});
+  }
+}
+
+// Initialize Wall 2: column 13, rows 13-17
+for(let r = 13; r <= 17; r++){
+  walls.wall2.cells.push({r, c: 13});
+  wallCells.add(`${r},13`);
+}
+// Blood fog area for Wall 2: area behind it (columns 14-18 in relevant rows)
+for(let r = 8; r <= 17; r++){
+  for(let c = 14; c <= 18; c++){
+    if(!isVoidCell(r, c)) walls.wall2.fogArea.push({r, c});
+  }
+}
+
+// Initialize Wall 3: column 13, rows 1-7
+for(let r = 1; r <= 7; r++){
+  walls.wall3.cells.push({r, c: 13});
+  wallCells.add(`${r},13`);
+}
+// Blood fog area for Wall 3: area behind it (columns 14-18 in these rows)
+for(let r = 1; r <= 7; r++){
+  for(let c = 14; c <= 18; c++){
+    if(!isVoidCell(r, c)) walls.wall3.fogArea.push({r, c});
+  }
+}
+
+function isWallCell(r,c){ return wallCells.has(`${r},${c}`); }
+function getWallAtCell(r,c){
+  for(const wallKey in walls){
+    const wall = walls[wallKey];
+    if(wall.cells.some(cell => cell.r === r && cell.c === c)){
+      return { key: wallKey, wall };
+    }
+  }
+  return null;
+}
+
+// —— Healing Tiles System ——
+const healingTiles = {
+  tile1: { r: 18, c: 3, used: false },
+  tile2: { r: 9, c: 16, used: false }
+};
+
+function isHealingTile(r,c){
+  return Object.values(healingTiles).some(tile => tile.r === r && tile.c === c && !tile.used);
+}
+
+// —— Blood Fog System ——
+const bloodFogZones = new Set();
+
 function clampCell(r,c){ return r>=1 && r<=ROWS && c>=1 && c<=COLS && !isVoidCell(r,c) && !isCoverCell(r,c) && !isWallCell(r,c); }
 
 // —— 单位 ——
@@ -257,10 +326,37 @@ const assassinCultistConfig = {
 };
 units['cultistAssassin1'] = createUnit('cultistAssassin1','刺形赫雷西成员','enemy',25, 18, 24, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
 
-// Destructible walls - these will be implemented as special terrain
-// Wall 1: columns 1-5, row 21 (will spawn enemies when destroyed)
-// Wall 2: column 13, rows 13-17 (will spawn enemies when destroyed)
-// Wall 3: column 13, rows 1-7 (will spawn enemies and boss when destroyed)
+// 赫雷西初代精英成员 (Elite Cultist) - spawns in Wave 3
+const eliteCultistConfig = {
+  size:1,
+  stunThreshold:2, // Needs 2 stun stacks to actually stun
+  spFloor:0,
+  disableSpCrash:false,
+  initialSp:50,
+  pullImmune:false,
+  restoreOnZeroPct:1.0,
+  bloodlustGripHpCap: 100, // Bloodlust Grip only deals 100 HP damage (not instant kill)
+};
+
+// 组装型进阶赫雷西成员 (Boss - Heresy Member B) - spawns in Wave 4
+const bossCultistConfig = {
+  size:1,
+  stunThreshold:3, // Needs 3 stun stacks to actually stun
+  spFloor:0,
+  disableSpCrash:false,
+  initialSp:90,
+  pullImmune:true, // Boss is immune to pull
+  restoreOnZeroPct:1.0,
+  bloodlustGripHpCap: 80, // Bloodlust Grip only deals 80 HP damage
+};
+
+// Note: Elite and Boss units will be spawned dynamically when walls are destroyed
+// They are not placed at initialization
+
+// Destructible walls - implemented as special terrain (see wall system above)
+// Wall 1: columns 1-5, row 21 (spawns Wave 2 when destroyed)
+// Wall 2: column 13, rows 13-17 (spawns Wave 3 including Elite when destroyed)
+// Wall 3: column 13, rows 1-7 (spawns Wave 4 including Boss after dialogue when destroyed)
 
 // Cover cells (impassable obstacles representing debris/cover)
 addCoverByXY(6,3,6,5);
@@ -301,6 +397,9 @@ function range_adjacent(u){
     for(const k in DIRS){ const d=DIRS[k]; const r=u.r+d.dr, c=u.c+d.dc; if(clampCell(r,c)) res.push({r,c,dir:k}); }
   }
   return res;
+// Utility: delay function
+function delay(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
 }
 function range_forward_n(u,n, aimDir){ const dir=aimDir||u.facing; const arr=[]; for(let i=1;i<=n;i++){ const c=forwardCellAt(u,dir,i); if(c) arr.push({r:c.r,c:c.c,dir}); } return arr; }
 function range_line(u, aimDir){ const dir=aimDir||u.facing; return forwardLineAt(u,dir).map(p=>({r:p.r,c:p.c,dir})); }
@@ -2045,6 +2144,15 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   pulseCell(u.r, u.c);
   if(died){ showDeathFx(u); }
 
+  // Divine Instruction Transmitter - Boss passive
+  if(source && source.passives && source.passives.includes("divineInstructionTransmitter")){
+    if(Math.random() < 0.35 && !u.status.cultTarget){
+      u.status.cultTarget = true;
+      appendLog(`${source.name} 的神明指示传递者：${u.name} 获得"邪教目标"标记！`);
+      showStatusFloat(u,"邪教目标",{type:"debuff", offsetY:-48});
+    }
+  }
+
   // 反伤姿态：反弹部分HP伤害
   if(sourceId && u._stanceType==='retaliate' && u._stanceTurns>0 && u._reflectPct>0 && !opts._reflected){
     const refl = Math.max(0, Math.round(finalHp * u._reflectPct));
@@ -3547,7 +3655,7 @@ function buildSkillFactoriesForUnit(u){
         {castMs:2000}
       )}
     );
-  } else if(u.name==='赫雷西成员B'){
+  } else if(u.name==='组装型进阶赫雷西成员（赫雷西成员B）'){
     // Boss skills
     const hasAlly = ()=> Object.values(units).some(ally=> ally.side===u.side && ally.hp>0 && ally.id!==u.id);
     const allyHasDebuff = ()=> Object.values(units).some(ally=> ally.side===u.side && ally.hp>0 && ally.id!==u.id && (ally.status.stunned>0 || ally.status.bleed>0 || ally.status.resentStacks>0 || ally.status.vulnerabilityStacks>0));
@@ -3740,6 +3848,9 @@ function buildGrid(){
       const cell = document.createElement('div');
       cell.className = 'cell';
       if(isVoidCell(r,c)) cell.classList.add('void');
+      if(isWallCell(r,c)) { const wallInfo = getWallAtCell(r,c); if(wallInfo) { cell.classList.add("wall"); cell.classList.add(wallInfo.wall.state); } }
+      if(bloodFogZones.has(`${r},${c}`)) cell.classList.add("blood-fog");
+      if(isHealingTile(r,c)) cell.classList.add("healing-tile");
       if(isCoverCell(r,c)) cell.classList.add('cover');
       cell.dataset.r=r; cell.dataset.c=c;
       const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
@@ -4122,6 +4233,9 @@ async function handleSkillConfirmCell(u, sk, aimCell){
 
   consumeCardFromHand(u, sk);
   clearSkillAiming();
+    
+    // Check if any wall was hit
+    await checkWallHit(aimCell.r, aimCell.c);
   renderAll();
   showSelected(u);
 
@@ -4293,20 +4407,392 @@ function applyLevelSuppression(){
   updateStepsUI();
 }
 
-// Blood fog mechanic - placeholder implementation
+// —— Blood Tower Mechanics Implementation ——
+
+// Check and activate blood fog zones based on wall destruction timers
 function checkAndActivateBloodFog(){
-  // TODO: Implement blood fog activation logic based on game state
-  // This would check if certain conditions are met to activate blood fog areas
+  for(const wallKey in walls){
+    const wall = walls[wallKey];
+    if(wall.fogActiveTurn !== null && roundsPassed >= wall.fogActiveTurn){
+      if(!wall.fogActivated){
+        wall.fogActivated = true;
+        // Mark all fog area cells as blood fog
+        for(const cell of wall.fogArea){
+          bloodFogZones.add(`${cell.r},${cell.c}`);
+        }
+        appendLog(`血雾降临！${wallKey} 后方区域被血雾笼罩！`);
+        renderAll(); // Re-render to show fog visual
+      }
+    }
+  }
 }
 
+// Apply blood fog damage to all units standing in blood fog zones
 function applyBloodFogDamage(){
-  // TODO: Implement blood fog damage logic
-  // This would apply damage to units standing in blood fog areas
+  for(const id in units){
+    const u = units[id];
+    if(u.hp <= 0) continue;
+    
+    const cellKey = `${u.r},${u.c}`;
+    if(bloodFogZones.has(cellKey)){
+      // Blood fog damage: -50 HP, -50 SP, +10 bleed, +10 resentment
+      u.hp = Math.max(0, u.hp - 50);
+      u.sp = Math.max(u.spFloor || 0, u.sp - 50);
+      u.status.bleed = (u.status.bleed || 0) + 10;
+      u.status.resentStacks = (u.status.resentStacks || 0) + 10;
+      
+      showDamageFloat(u, 50, 50);
+      appendLog(`${u.name} 在血雾中受到伤害：-50 HP, -50 SP, +10层流血, +10层怨念`);
+      
+      if(u.hp <= 0){
+        appendLog(`${u.name} 在血雾中死亡！`);
+      }
+    }
+  }
 }
 
+// Check if a wave is defeated and make corresponding wall fragile
 function checkWallsAfterWaveDefeat(){
-  // TODO: Implement wall destruction and spawn logic
-  // This would check if a wave is defeated and destroy walls, spawning new enemies
+  // Wave 1: Initial 4 enemies
+  if(walls.wall1.state === 'intact'){
+    const wave1Alive = ['cultistNovice1','cultistNovice2','cultistMage1','cultistAssassin1']
+      .some(id => units[id] && units[id].hp > 0);
+    if(!wave1Alive){
+      walls.wall1.state = 'fragile';
+      appendLog('Wave 1 消灭完毕！墙体1 获得易碎状态，可被任何攻击摧毁。');
+    }
+  }
+  
+  // Wave 2: 5 enemies spawned after Wall 1 breaks
+  if(walls.wall2.state === 'intact' && walls.wall1.state === 'destroyed'){
+    const wave2Alive = ['cultistMage2','cultistNovice3','cultistNovice4','cultistNovice5','cultistAssassin2']
+      .some(id => units[id] && units[id].hp > 0);
+    if(!wave2Alive){
+      walls.wall2.state = 'fragile';
+      appendLog('Wave 2 消灭完毕！墙体2 获得易碎状态，可被任何攻击摧毁。');
+    }
+  }
+  
+  // Wave 3: 6 enemies including Elite spawned after Wall 2 breaks
+  if(walls.wall3.state === 'intact' && walls.wall2.state === 'destroyed'){
+    const wave3Alive = ['cultistNovice6','cultistNovice7','cultistAssassin3','cultistAssassin4','cultistAssassin5','eliteCultist1']
+      .some(id => units[id] && units[id].hp > 0);
+    if(!wave3Alive){
+      walls.wall3.state = 'fragile';
+      appendLog('Wave 3 消灭完毕！墙体3 获得易碎状态，可被任何攻击摧毁。');
+    }
+  }
+}
+
+// Check if unit stepped on a healing tile
+function checkHealingTile(u){
+  if(!u || u.hp <= 0 || u.side !== 'player') return;
+  
+  for(const tileKey in healingTiles){
+    const tile = healingTiles[tileKey];
+    if(tile.r === u.r && tile.c === u.c && !tile.used){
+      // Restore all HP and SP
+      const hpGain = u.maxHp - u.hp;
+      const spGain = u.maxSp - u.sp;
+      u.hp = u.maxHp;
+      u.sp = u.maxSp;
+      
+      // Add 1 jixue stack
+      u.status.jixueStacks = (u.status.jixueStacks || 0) + 1;
+      
+      // Mark tile as used
+      tile.used = true;
+      
+      showGainFloat(u, hpGain, spGain);
+      appendLog(`${u.name} 踏上恢复格子！恢复所有 HP 和 SP，获得 1 层鸡血！`);
+      
+      renderAll();
+      return;
+    }
+  }
+}
+
+// Spawn Wave 2 enemies (after Wall 1 is destroyed)
+function spawnWave2Enemies(){
+  let spawnCount = 0;
+  
+  // 法形赫雷西成员 at (3, 15)
+  if(clampCell(15, 3)){
+    units['cultistMage2'] = createUnit('cultistMage2','法形赫雷西成员','enemy',25, 15, 3, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+    spawnCount++;
+  }
+  
+  // 雏形赫雷西成员 at (10, 16)
+  if(clampCell(16, 10)){
+    units['cultistNovice3'] = createUnit('cultistNovice3','雏形赫雷西成员','enemy',25, 16, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 雏形赫雷西成员 at (10, 14)
+  if(clampCell(14, 10)){
+    units['cultistNovice4'] = createUnit('cultistNovice4','雏形赫雷西成员','enemy',25, 14, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 雏形赫雷西成员 at (8, 25) - Note: coordinate (25, 8) might be out of bounds, using (25, 8) as (r, c)
+  if(clampCell(25, 8)){
+    units['cultistNovice5'] = createUnit('cultistNovice5','雏形赫雷西成员','enemy',25, 25, 8, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 刺形赫雷西成员 at (12, 15)
+  if(clampCell(15, 12)){
+    units['cultistAssassin2'] = createUnit('cultistAssassin2','刺形赫雷西成员','enemy',25, 15, 12, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+    spawnCount++;
+  }
+  
+  appendLog(`Wave 2 出现！${spawnCount} 个赫雷西成员降临战场！`);
+  
+  // Initialize skill pools for new enemies
+  for(const id of ['cultistMage2','cultistNovice3','cultistNovice4','cultistNovice5','cultistAssassin2']){
+    if(units[id]) ensureStartHand(units[id]);
+  }
+}
+
+// Spawn Wave 3 enemies including Elite (after Wall 2 is destroyed)
+function spawnWave3Enemies(){
+  let spawnCount = 0;
+  
+  // 雏形赫雷西成员 at (15, 2) - Note: (2, 15) as (r, c)
+  if(clampCell(2, 15)){
+    units['cultistNovice6'] = createUnit('cultistNovice6','雏形赫雷西成员','enemy',25, 2, 15, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 雏形赫雷西成员 at (17, 2)
+  if(clampCell(2, 17)){
+    units['cultistNovice7'] = createUnit('cultistNovice7','雏形赫雷西成员','enemy',25, 2, 17, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 刺形赫雷西成员 at (16, 15)
+  if(clampCell(15, 16)){
+    units['cultistAssassin3'] = createUnit('cultistAssassin3','刺形赫雷西成员','enemy',25, 15, 16, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+    spawnCount++;
+  }
+  
+  // 刺形赫雷西成员 at (15, 13)
+  if(clampCell(13, 15)){
+    units['cultistAssassin4'] = createUnit('cultistAssassin4','刺形赫雷西成员','enemy',25, 13, 15, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+    spawnCount++;
+  }
+  
+  // 刺形赫雷西成员 at (17, 7)
+  if(clampCell(7, 17)){
+    units['cultistAssassin5'] = createUnit('cultistAssassin5','刺形赫雷西成员','enemy',25, 7, 17, 50, 100, 1.0, 0, ['loyalFaith','hiddenGift','assassinTriangle','godInstruction'], assassinCultistConfig);
+    spawnCount++;
+  }
+  
+  // 赫雷西初代精英成员 (Elite) at (16, 4)
+  if(clampCell(4, 16)){
+    units['eliteCultist1'] = createUnit('eliteCultist1','赫雷西初代精英成员','enemy',25, 4, 16, 200, 50, 1.0, 0, ['loyalFaith','extraAction','godInstruction'], eliteCultistConfig);
+    spawnCount++;
+  }
+  
+  appendLog(`Wave 3 出现！${spawnCount} 个赫雷西成员降临战场，包括精英成员！`);
+  
+  // Initialize skill pools for new enemies
+  for(const id of ['cultistNovice6','cultistNovice7','cultistAssassin3','cultistAssassin4','cultistAssassin5','eliteCultist1']){
+    if(units[id]) ensureStartHand(units[id]);
+  }
+}
+
+// Boss dialogue system
+async function showBossDialogue(){
+  return new Promise((resolve) => {
+    interactionLocked = true;
+    
+    // Stop Tower.mp3
+    const towerBGM = document.getElementById('battleBGM');
+    if(towerBGM){
+      towerBGM.pause();
+    }
+    
+    const dialogueLines = [
+      '赫雷西成员B：我真的非常尊重你们',
+      '赫雷西成员B：你们能走到这里以及完全证明了你们的意志以及信念',
+      '赫雷西成员B：。。。',
+      '赫雷西成员B：真是。。',
+      '赫雷西成员B：真是可惜，我们立场不同啊',
+      '赫雷西成员B：但愿来世相认时——',
+      '赫雷西成员B：再当挚友吧'
+    ];
+    
+    let currentLine = 0;
+    
+    // Create dialogue overlay
+    const dialogueOverlay = document.createElement('div');
+    dialogueOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      font-family: sans-serif;
+    `;
+    
+    const dialogueBox = document.createElement('div');
+    dialogueBox.style.cssText = `
+      background: rgba(20, 20, 30, 0.95);
+      border: 3px solid #8b0000;
+      border-radius: 8px;
+      padding: 30px 40px;
+      max-width: 600px;
+      width: 80%;
+      box-shadow: 0 0 30px rgba(139, 0, 0, 0.6);
+    `;
+    
+    const dialogueText = document.createElement('div');
+    dialogueText.style.cssText = `
+      color: #fff;
+      font-size: 20px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      min-height: 100px;
+    `;
+    dialogueText.textContent = dialogueLines[0];
+    
+    const continueBtn = document.createElement('button');
+    continueBtn.textContent = '继续';
+    continueBtn.style.cssText = `
+      background: #8b0000;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 30px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+    continueBtn.onmouseover = () => continueBtn.style.background = '#a00000';
+    continueBtn.onmouseout = () => continueBtn.style.background = '#8b0000';
+    
+    continueBtn.onclick = () => {
+      currentLine++;
+      if(currentLine < dialogueLines.length){
+        dialogueText.textContent = dialogueLines[currentLine];
+      } else {
+        // Dialogue finished
+        document.body.removeChild(dialogueOverlay);
+        
+        // Start 成员B.mp3
+        const bossBGM = document.getElementById('bossBGM');
+        if(bossBGM){
+          bossBGM.play();
+        }
+        
+        interactionLocked = false;
+        resolve();
+      }
+    };
+    
+    dialogueBox.appendChild(dialogueText);
+    dialogueBox.appendChild(continueBtn);
+    dialogueOverlay.appendChild(dialogueBox);
+    document.body.appendChild(dialogueOverlay);
+  });
+}
+
+// Spawn Wave 4 enemies including Boss (after Wall 3 is destroyed and dialogue finishes)
+async function spawnWave4EnemiesWithDialogue(){
+  // Show boss dialogue first
+  await showBossDialogue();
+  
+  let spawnCount = 0;
+  
+  // 雏形赫雷西成员 at (10, 5)
+  if(clampCell(5, 10)){
+    units['cultistNovice8'] = createUnit('cultistNovice8','雏形赫雷西成员','enemy',25, 5, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 雏形赫雷西成员 at (10, 3)
+  if(clampCell(3, 10)){
+    units['cultistNovice9'] = createUnit('cultistNovice9','雏形赫雷西成员','enemy',25, 3, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], noviceCultistConfig);
+    spawnCount++;
+  }
+  
+  // 法形赫雷西成员 at (4, 6)
+  if(clampCell(6, 4)){
+    units['cultistMage3'] = createUnit('cultistMage3','法形赫雷西成员','enemy',25, 6, 4, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+    spawnCount++;
+  }
+  
+  // 法形赫雷西成员 at (4, 2)
+  if(clampCell(2, 4)){
+    units['cultistMage4'] = createUnit('cultistMage4','法形赫雷西成员','enemy',25, 2, 4, 100, 90, 1.0, 0, ['loyalFaith','gift','enhancedBody','godInstruction'], mageCultistConfig);
+    spawnCount++;
+  }
+  
+  // 组装型进阶赫雷西成员 (Boss - Member B) at (2, 4)
+  if(clampCell(4, 2)){
+    units['heresyBoss'] = createUnit('heresyBoss','组装型进阶赫雷西成员（赫雷西成员B）','enemy',25, 4, 2, 250, 90, 1.0, 0, ['loyalFaith','extraAction','soulComfort','divineInstructionTransmitter'], bossCultistConfig);
+    spawnCount++;
+  }
+  
+  appendLog(`最终之战！${spawnCount} 个赫雷西成员降临战场，包括小Boss赫雷西成员B！`);
+  
+  // Initialize skill pools for new enemies
+  for(const id of ['cultistNovice8','cultistNovice9','cultistMage3','cultistMage4','heresyBoss']){
+    if(units[id]) ensureStartHand(units[id]);
+  }
+  
+  renderAll();
+}
+
+
+// Handle wall destruction when attacked
+async function handleWallDestruction(wallKey, wall){
+  if(wall.state !== 'fragile') return;
+  
+  wall.state = 'destroyed';
+  
+  // Remove wall cells
+  for(const cell of wall.cells){
+    wallCells.delete(`${cell.r},${cell.c}`);
+  }
+  
+  appendLog(`${wallKey} 被摧毁！`);
+  
+  // Set fog activation timer (2 turns from now)
+  wall.fogActiveTurn = roundsPassed + 2;
+  appendLog(`血雾将在 2 回合后激活...`);
+  
+  renderAll();
+  
+  // Spawn corresponding wave
+  if(wallKey === 'wall1'){
+    await delay(500);
+    spawnWave2Enemies();
+    renderAll();
+  } else if(wallKey === 'wall2'){
+    await delay(500);
+    spawnWave3Enemies();
+    renderAll();
+  } else if(wallKey === 'wall3'){
+    await delay(500);
+    await spawnWave4EnemiesWithDialogue();
+  }
+}
+
+// Check if any attack hit a fragile wall and destroy it
+function checkWallHit(r, c){
+  const wallInfo = getWallAtCell(r, c);
+  if(wallInfo && wallInfo.wall.state === 'fragile'){
+    handleWallDestruction(wallInfo.key, wallInfo.wall);
+    return true;
+  }
+  return false;
 }
 
 function processUnitsTurnStart(side){
@@ -4379,14 +4865,16 @@ function processUnitsTurnStart(side){
       }
     }
 
-    // 忠臣的信仰 (Loyal Faith) - 每回合增加10SP
+    // 忠臣的信仰 (Loyal Faith) - 每回合增加10SP (Boss 15SP)
     if(u.passives.includes('loyalFaith')){
       const beforeSP = u.sp;
-      u.sp = Math.min(u.maxSp, u.sp + 10);
+      const isBoss = u.name === '组装型进阶赫雷西成员（赫雷西成员B）';
+      const spGain = isBoss ? 15 : 10;
+      u.sp = Math.min(u.maxSp, u.sp + spGain);
       syncSpBroken(u);
       if(u.sp > beforeSP){
-        showGainFloat(u,0,10);
-        appendLog(`${u.name} 的忠臣的信仰：+10 SP`);
+        showGainFloat(u,0,spGain);
+        appendLog(`${u.name} 的忠臣的信仰：+${spGain} SP`);
       }
     }
     
@@ -4409,6 +4897,11 @@ function processUnitsTurnStart(side){
           syncSpBroken(ally);
           showGainFloat(ally, heal, 5);
         }
+    
+    // Divine Instruction Transmitter (Boss passive) - 35% chance to apply cultTarget on attack
+    if(u.passives.includes("divineInstructionTransmitter") && source === u){
+      // This is handled in the damageUnit function
+    }
       }
     }
   }
