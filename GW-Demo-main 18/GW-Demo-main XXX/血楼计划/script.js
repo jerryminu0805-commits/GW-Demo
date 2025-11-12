@@ -1861,7 +1861,7 @@ async function playIntroCinematic(){
     cameraFocusOnCell(officer1.r, officer1.c, {scale: zoom, hold:0});
     await sleep(420);
   }
-  await showIntroLine('记住，这只是测试，不需要太认真');
+  await showIntroLine('（办公楼里尸横遍野，腥甜的空气让人感到沉重）');
   hideIntroDialog();
   cameraReset();
   await sleep(520);
