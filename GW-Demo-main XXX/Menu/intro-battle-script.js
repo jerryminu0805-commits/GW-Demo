@@ -2234,12 +2234,16 @@ function karmaGrip(u,target){
   if(!target || target.side===u.side){ appendLog('嗜血之握 目标无效'); return; }
   cameraFocusOnCell(target.r, target.c);
   let fixed = null;
+  // Boss and Elite fixed damage
   if(target.id==='khathia') fixed = 75;
+  if(target.id==='heresy_boss_b') fixed = 80;
+  if(target.id && target.id.startsWith('heresy_elite_')) fixed = 100;
   if(fixed!==null){
     const deal = Math.min(target.hp, fixed);
-    damageUnit(target.id, deal, 0, `${u.name} 嗜血之握 重创 ${target.name}`, u.id, {ignoreToughBody:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
+    damageUnit(target.id, deal, 0, `${u.name} 嗜血之握 重创 ${target.name}`, u.id, {trueDamage:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
   } else {
-    damageUnit(target.id, target.hp, 0, `${u.name} 嗜血之握 处决 ${target.name}`, u.id, {ignoreToughBody:true, skillFx:'karma:嗜血之握'});
+    // Normal enemies - execute with true damage
+    damageUnit(target.id, target.hp, 0, `${u.name} 嗜血之握 处决 ${target.name}`, u.id, {trueDamage:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
   }
   unitActed(u);
 }

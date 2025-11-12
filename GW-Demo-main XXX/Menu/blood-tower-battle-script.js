@@ -2322,12 +2322,16 @@ function karmaGrip(u,target){
   if(!target || target.side===u.side){ appendLog('嗜血之握 目标无效'); return; }
   cameraFocusOnCell(target.r, target.c);
   let fixed = null;
+  // Boss and Elite fixed damage
   if(target.id==='khathia') fixed = 75;
+  if(target.id==='heresy_boss_b') fixed = 80;
+  if(target.id && target.id.startsWith('heresy_elite_')) fixed = 100;
   if(fixed!==null){
     const deal = Math.min(target.hp, fixed);
-    damageUnit(target.id, deal, 0, `${u.name} 嗜血之握 重创 ${target.name}`, u.id, {ignoreToughBody:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
+    damageUnit(target.id, deal, 0, `${u.name} 嗜血之握 重创 ${target.name}`, u.id, {trueDamage:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
   } else {
-    damageUnit(target.id, target.hp, 0, `${u.name} 嗜血之握 处决 ${target.name}`, u.id, {ignoreToughBody:true, skillFx:'karma:嗜血之握'});
+    // Normal enemies - execute with true damage
+    damageUnit(target.id, target.hp, 0, `${u.name} 嗜血之握 处决 ${target.name}`, u.id, {trueDamage:true, ignoreTuskWall:true, skillFx:'karma:嗜血之握'});
   }
   unitActed(u);
 }
@@ -2641,47 +2645,42 @@ async function heresyBasic_Sacrifice(u){
 async function heresyBasic_Revenge(u, target){
   if(!target || target.hp<=0){ appendLog('讨回公道：没有目标'); unitActed(u); return; }
   
-  // Sacrifice 35 HP
-  const before = u.hp;
-  u.hp = Math.max(1, u.hp - 35);
-  showDamageFloat(u,35,0);
-  appendLog(`${u.name} 讨回公道牺牲35HP`);
+  // Self damage 35HP
+  u.hp = Math.max(0, u.hp - 35);
+  showDamageFloat(u, 35, 0);
+  appendLog(`${u.name} 讨回公道 牺牲自己 35HP`);
   
   await telegraphThenImpact([{r:target.r,c:target.c}]);
   cameraFocusOnCell(target.r, target.c);
   
   // 4 scratches
-  for(let i=0; i<4; i++){
+  for(let i = 0; i < 4; i++){
     if(target.hp <= 0) break;
-    let dmg = applyEnhancedDamage(10, u);
-    dmg = applyEnhancedDefense(dmg, target);
-    damageUnit(target.id,dmg,5,`${u.name} 讨回公道·第${i+1}次抓挠 命中 ${target.name}`, u.id);
+    await stageMark([{r:target.r,c:target.c}]);
+    const dmg = calcOutgoingDamage(u,10,target,'讨回公道');
+    damageUnit(target.id, dmg, 5, `${u.name} 讨回公道·抓挠${i+1} 命中 ${target.name}`, u.id);
+    addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
     u.dmgDone += dmg;
-    applyBleed(target, 1);
-    if(i < 3) await stageMark([{r:target.r,c:target.c}]);
   }
   
-  // If target has cult target, repeat
-  if(target.hp > 0 && hasCultTarget(target)){
-    await sleep(300);
-    appendLog(`${target.name} 有"邪教目标"，追击！`);
-    for(let i=0; i<4; i++){
+  // Check for cultTarget and追击
+  if(target.status.cultTarget && target.hp > 0){
+    appendLog(`${target.name} 有邪教目标标记，${u.name} 追击一次讨回公道！`);
+    await stageMark([{r:target.r,c:target.c}]);
+    // Self damage again
+    u.hp = Math.max(0, u.hp - 35);
+    showDamageFloat(u, 35, 0);
+    for(let i = 0; i < 4; i++){
       if(target.hp <= 0) break;
-      await telegraphThenImpact([{r:target.r,c:target.c}]);
-      let dmg = applyEnhancedDamage(10, u);
-      dmg = applyEnhancedDefense(dmg, target);
-      damageUnit(target.id,dmg,5,`${u.name} 讨回公道·追击·第${i+1}次抓挠 命中 ${target.name}`, u.id);
+      await stageMark([{r:target.r,c:target.c}]);
+      const dmg = calcOutgoingDamage(u,10,target,'讨回公道');
+      damageUnit(target.id, dmg, 5, `${u.name} 讨回公道(追击)·抓挠${i+1} 命中 ${target.name}`, u.id);
+      addStatusStacks(target,'bleed',1,{label:'流血', type:'debuff'});
       u.dmgDone += dmg;
-      applyBleed(target, 1);
-      if(i < 3) await stageMark([{r:target.r,c:target.c}]);
     }
   }
   
-  // Reset camera after skill completes to prevent stuck camera
-  if(!enemyActionCameraLock){
-    cameraReset({immediate: false});
-  }
-  
+  renderAll();
   unitActed(u);
 }
 
