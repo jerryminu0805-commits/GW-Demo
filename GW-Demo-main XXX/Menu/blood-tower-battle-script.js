@@ -2650,10 +2650,13 @@ async function heresyBasic_Revenge(u, target){
   showDamageFloat(u, 35, 0);
   appendLog(`${u.name} 讨回公道 牺牲自己 35HP`);
   
+  // Check if unit died from self-damage - still execute attack
+  const userDied = u.hp <= 0;
+  
   await telegraphThenImpact([{r:target.r,c:target.c}]);
   cameraFocusOnCell(target.r, target.c);
   
-  // 4 scratches
+  // 4 scratches - execute even if user died
   for(let i = 0; i < 4; i++){
     if(target.hp <= 0) break;
     await stageMark([{r:target.r,c:target.c}]);
@@ -2663,8 +2666,8 @@ async function heresyBasic_Revenge(u, target){
     u.dmgDone += dmg;
   }
   
-  // Check for cultTarget and追击
-  if(target.status && target.status.cultTarget > 0 && target.hp > 0){
+  // Check for cultTarget and追击 - only if user didn't die from first self-damage
+  if(!userDied && target.status && target.status.cultTarget > 0 && target.hp > 0){
     appendLog(`${target.name} 有邪教目标标记，${u.name} 追击一次讨回公道！`);
     await stageMark([{r:target.r,c:target.c}]);
     // Self damage again
