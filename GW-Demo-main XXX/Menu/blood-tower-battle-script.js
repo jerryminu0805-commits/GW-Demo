@@ -3519,7 +3519,14 @@ function buildSkillFactoriesForUnit(u){
       )},
       { key:'讨回公道！', prob:0.10, cond:()=>true, make:()=> skill('讨回公道！',3,'red','多段：牺牲35HP，前方2格：4次抓挠，每次10HP+5SP+1层流血',
         (uu,aimDir)=> aimDir? range_forward_n(uu,2,aimDir) : (()=>{const a=[]; for(const d in DIRS) range_forward_n(uu,2,d).forEach(x=>a.push(x)); return a;})(),
-        (uu,target)=> heresyBasic_Revenge(uu,target),
+        (uu,targetOrDesc)=> {
+          if(targetOrDesc && targetOrDesc.id) heresyBasic_Revenge(uu,targetOrDesc);
+          else if(targetOrDesc && targetOrDesc.dir){
+            const line = range_forward_n(uu,2,targetOrDesc.dir);
+            let tgt=null; for(const c of line){ const tu=getUnitAt(c.r,c.c); if(tu && tu.side!==uu.side){ tgt=tu; break; } }
+            if(tgt) heresyBasic_Revenge(uu,tgt); else { appendLog('讨回公道 未命中'); unitActed(uu); }
+          }
+        },
         {},
         {castMs:1400}
       )}
