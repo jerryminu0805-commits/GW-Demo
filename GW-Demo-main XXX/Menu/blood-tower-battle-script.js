@@ -2650,6 +2650,15 @@ async function heresyBasic_Revenge(u, target){
   showDamageFloat(u, 35, 0);
   appendLog(`${u.name} 讨回公道 牺牲自己 35HP`);
   
+  // Check if unit died from self-damage
+  if(u.hp <= 0){
+    appendLog(`${u.name} 因自我牺牲而死亡`);
+    showDeathFx(u);
+    renderAll();
+    unitActed(u);
+    return;
+  }
+  
   await telegraphThenImpact([{r:target.r,c:target.c}]);
   cameraFocusOnCell(target.r, target.c);
   
@@ -2670,6 +2679,16 @@ async function heresyBasic_Revenge(u, target){
     // Self damage again
     u.hp = Math.max(0, u.hp - 35);
     showDamageFloat(u, 35, 0);
+    
+    // Check if unit died from追击 self-damage
+    if(u.hp <= 0){
+      appendLog(`${u.name} 因追击的自我牺牲而死亡`);
+      showDeathFx(u);
+      renderAll();
+      unitActed(u);
+      return;
+    }
+    
     for(let i = 0; i < 4; i++){
       if(target.hp <= 0) break;
       await stageMark([{r:target.r,c:target.c}]);
