@@ -2566,6 +2566,7 @@ function karmaGrip(u,target){
   cameraFocusOnCell(target.r, target.c);
   let fixed = null;
   // Boss and Elite fixed damage
+  if(target.id==='velmira') fixed = 75;
   if(target.id==='khathia') fixed = 75;
   if(target.id==='heresy_boss_b') fixed = 80;
   if(target.id && target.id.startsWith('heresy_elite_')) fixed = 100;
