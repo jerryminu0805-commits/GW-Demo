@@ -2664,7 +2664,7 @@ async function heresyBasic_Revenge(u, target){
   }
   
   // Check for cultTarget and追击
-  if(target.status.cultTarget && target.hp > 0){
+  if(target.status && target.status.cultTarget > 0 && target.hp > 0){
     appendLog(`${target.name} 有邪教目标标记，${u.name} 追击一次讨回公道！`);
     await stageMark([{r:target.r,c:target.c}]);
     // Self damage again
