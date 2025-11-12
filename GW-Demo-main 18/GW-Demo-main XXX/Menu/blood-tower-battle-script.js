@@ -5029,13 +5029,16 @@ function checkWin(){
   }
   if(!playersAlive){ 
     stopMusic();
-    appendLog('全灭，失败（本 demo 未实现失败界面）'); 
+    appendLog('全灭，失败'); 
+    // Return to level selection after a short delay
+    setTimeout(() => returnToLevelSelection(), 2000);
     return true; 
   }
   return false;
 }
 function showAccomplish(){
   if(!accomplish) return;
+  stopMusic(); // Stop 成员B.mp3
   accomplish.classList.remove('hidden');
   if(damageSummary){
     damageSummary.innerHTML='';
@@ -5049,7 +5052,11 @@ function showAccomplish(){
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ accomplish.classList.add('hidden'); appendLog('通关!'); };
+  if(btn) btn.onclick=()=> { 
+    accomplish.classList.add('hidden'); 
+    appendLog('通关!'); 
+    returnToLevelSelection();
+  };
 }
 function renderAll(){
   buildGrid();
@@ -5113,7 +5120,7 @@ let wave3Cleared = false;
 
 // Music system
 let currentMusic = null;
-let musicEnabled = false; // Set to true when audio files are available
+let musicEnabled = true; // Music enabled by default for Blood Tower Plan
 
 function initDestructibleWalls(){
   // Wall 1: (1,21) to (5,21) - column 1-5, row 21
@@ -5271,7 +5278,7 @@ function spawnNextWave(wallId){
     currentWave = 3;
   } else if(wallId === 'wall3'){
     appendLog('=== 最终Boss战开始！ ===');
-    stopMusic('Tower.mp3');
+    stopMusic(); // Stop Tower.mp3
     
     // Boss cutscene
     setTimeout(() => {
@@ -5482,6 +5489,14 @@ function stopMusic(){
   }
 }
 
+function returnToLevelSelection(){
+  // Return to the level selection menu (index.html)
+  appendLog('正在返回关卡选择...');
+  setTimeout(() => {
+    window.location.href = 'index.html';
+  }, 500);
+}
+
 // —— 初始化 —— 
 document.addEventListener('DOMContentLoaded', ()=>{
   battleAreaEl = document.getElementById('battleArea');
@@ -5613,5 +5628,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   playMusic('Tower.mp3');
   appendLog('=== 血楼计划：第一波战斗开始 ===');
   
-  setTimeout(()=> playIntroCinematic(), 80);
+  // Skip intro cinematic - go directly to battle
+  introPlayed = true;
 });
