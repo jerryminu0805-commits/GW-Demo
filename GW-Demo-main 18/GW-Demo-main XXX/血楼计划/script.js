@@ -5029,13 +5029,18 @@ function checkWin(){
   }
   if(!playersAlive){ 
     stopMusic();
-    appendLog('全灭，失败（本 demo 未实现失败界面）'); 
+    appendLog('全灭，战败！');
+    // Return to menu after defeat
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 2000); // Wait 2 seconds before returning to menu
     return true; 
   }
   return false;
 }
 function showAccomplish(){
   if(!accomplish) return;
+  stopMusic(); // Stop 成员B.mp3 on victory
   accomplish.classList.remove('hidden');
   if(damageSummary){
     damageSummary.innerHTML='';
@@ -5049,7 +5054,14 @@ function showAccomplish(){
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ accomplish.classList.add('hidden'); appendLog('通关!'); };
+  if(btn) btn.onclick=()=>{ 
+    accomplish.classList.add('hidden'); 
+    appendLog('通关!');
+    // Return to menu after victory
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 500);
+  };
 }
 function renderAll(){
   buildGrid();
@@ -5113,7 +5125,7 @@ let wave3Cleared = false;
 
 // Music system
 let currentMusic = null;
-let musicEnabled = false; // Set to true when audio files are available
+let musicEnabled = true; // Music is enabled for Blood Tower Plan
 
 function initDestructibleWalls(){
   // Wall 1: (1,21) to (5,21) - column 1-5, row 21
@@ -5271,7 +5283,7 @@ function spawnNextWave(wallId){
     currentWave = 3;
   } else if(wallId === 'wall3'){
     appendLog('=== 最终Boss战开始！ ===');
-    stopMusic('Tower.mp3');
+    stopMusic(); // Stop Tower.mp3 when wall 3 is destroyed
     
     // Boss cutscene
     setTimeout(() => {
@@ -5291,7 +5303,7 @@ function spawnNextWave(wallId){
                   appendLog('赫雷西成员B：再当挚友吧');
                   appendLog('======================');
                   
-                  playMusic('成员B.mp3');
+                  playMusic('../Menu/成员B.mp3');
                   
                   // Spawn boss and minions
                   units['heresy_basic_8'] = createUnit('heresy_basic_8','雏形赫雷西成员','enemy',25, 5, 10, 150, 70, 1.0, 0, ['loyalFaith','gift','enhancedBody','godsCommand'], heresyBasicConfig);
@@ -5610,8 +5622,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   
   // Initialize Blood Tower Plan systems
   initDestructibleWalls();
-  playMusic('Tower.mp3');
+  playMusic('../Menu/Tower.mp3');
   appendLog('=== 血楼计划：第一波战斗开始 ===');
   
-  setTimeout(()=> playIntroCinematic(), 80);
+  // No intro cinematic - start battle directly
 });
