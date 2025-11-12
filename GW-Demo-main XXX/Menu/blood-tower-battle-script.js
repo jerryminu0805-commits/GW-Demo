@@ -2676,19 +2676,8 @@ async function heresyBasic_Revenge(u, target){
   if(target.status && target.status.cultTarget > 0 && target.hp > 0){
     appendLog(`${target.name} 有邪教目标标记，${u.name} 追击一次讨回公道！`);
     await stageMark([{r:target.r,c:target.c}]);
-    // Self damage again
-    u.hp = Math.max(0, u.hp - 35);
-    showDamageFloat(u, 35, 0);
     
-    // Check if unit died from追击 self-damage
-    if(u.hp <= 0){
-      appendLog(`${u.name} 因追击的自我牺牲而死亡`);
-      showDeathFx(u);
-      renderAll();
-      unitActed(u);
-      return;
-    }
-    
+    // Follow-up attack: 4 more scratches (no additional HP sacrifice)
     for(let i = 0; i < 4; i++){
       if(target.hp <= 0) break;
       await stageMark([{r:target.r,c:target.c}]);
