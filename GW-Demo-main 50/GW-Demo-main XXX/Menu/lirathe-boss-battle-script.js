@@ -3592,7 +3592,53 @@ function buildSkillFactoriesForUnit(u){
   
   return F;
 }
+
+// Load selected skills from localStorage (for skill selection system)
+function loadSelectedSkills() {
+  if (typeof localStorage === 'undefined') return null;
+  const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
+  const saved = localStorage.getItem(STORAGE_KEY_SELECTED_SKILLS);
+  return saved ? JSON.parse(saved) : null;
+}
+
 function drawOneSkill(u){
+  // For player units, use selected skills from skill selection system
+  if(u.side === 'player'){
+    const selectedSkills = loadSelectedSkills();
+    if(selectedSkills && selectedSkills[u.id]){
+      const selection = selectedSkills[u.id];
+      const fset = buildSkillFactoriesForUnit(u);
+      const available = fset.filter(f=>f.cond());
+      
+      // Build pool from selected skills
+      const selectedPool = [];
+      
+      // Add single-slot skills (green, blue, pink, white, red)
+      for(const color of ['green', 'blue', 'pink', 'white', 'red']){
+        if(selection[color]){
+          const factory = available.find(f => f.key === selection[color]);
+          if(factory) selectedPool.push(factory);
+        }
+      }
+      
+      // Add orange skills (up to 2)
+      if(selection.orange && Array.isArray(selection.orange)){
+        for(const skillKey of selection.orange){
+          const factory = available.find(f => f.key === skillKey);
+          if(factory) selectedPool.push(factory);
+        }
+      }
+      
+      // If no skills selected, return null (no skills available)
+      if(selectedPool.length === 0) return null;
+      
+      // Draw randomly from selected pool
+      const factory = selectedPool[Math.floor(Math.random() * selectedPool.length)];
+      return factory.make();
+    }
+  }
+  
+  // For enemy units or if no selection, use probability-based system
   const fset = buildSkillFactoriesForUnit(u);
   const viable = fset.filter(f=>f.cond());
   if(viable.length===0) return null;
