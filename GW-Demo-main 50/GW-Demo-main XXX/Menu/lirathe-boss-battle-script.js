@@ -98,6 +98,19 @@ let isSimFullscreen = false;
 
 // AI Watchdog
 let aiLoopToken = 0;
+// Lirathe Battle Specific State
+let lirathePhase = 1;  // 1 = Pre-transformation, 2 = Transformed
+let liratheTransformed = false;
+let consciousnessBudCounter = 0;
+let nextBudSpawnTurn = 5;
+let nextRecoveryTileSpawnTurn = 10;
+let finalSequenceTriggered = false;
+let finalSequenceStage = 0;
+let webTraps = new Set();  // Set of "r,c" for web trap locations
+let weakSpots = new Set();  // Set of "r,c" for weak spot locations
+let recoveryTiles = new Set();  // Set of "r,c" for recovery tile locations
+let bladeLightStacks = new Map();  // Map unitId -> stack count
+let corrosionStacks = new Map();  // Map unitId -> corrosion count
 let aiWatchdogTimer = null;
 function armAIWatchdog(token, ms=12000){
   if(aiWatchdogTimer) clearTimeout(aiWatchdogTimer);
@@ -2064,16 +2077,28 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
     hpDmg = Math.round(hpDmg * (1 - u._stanceDmgRed));
     spDmg = Math.round(spDmg * (1 - u._stanceDmgRed));
   }
+  // Lirathe Phase-specific damage handling
   if(!trueDamage && u.id==='lirathe'){
-    if(Math.random() < 0.15){
-      appendLog(`${u.name} 的“变态躯体”发动：完全免疫本次伤害`);
-      showStatusFloat(u,'免疫',{type:'buff', offsetY:-48});
+    // Phase 1: 舞女梦 - 30% dodge chance
+    if(lirathePhase === 1 && u.passives.includes('dancerDream') && Math.random() < 0.30){
+      appendLog(`${u.name} 的"舞女梦"触发：闪避攻击并移动！`);
+      showStatusFloat(u,'闪避',{type:'buff', offsetY:-48});
+      // Move to nearest empty cell (implementation simplified)
       pulseCell(u.r,u.c);
       renderAll();
       return;
     }
-    hpDmg = Math.round(hpDmg * 0.75);
-    spDmg = Math.round(spDmg * 0.75);
+    // Phase 2: 退去凡躯 - 25% damage reduction + 20% heal chance
+    if(lirathePhase === 2){
+      hpDmg = Math.round(hpDmg * 0.75);
+      spDmg = Math.round(spDmg * 0.75);
+      if(Math.random() < 0.20){
+        const healAmount = 5;
+        u.hp = Math.min(u.maxHp, u.hp + healAmount);
+        appendLog(`${u.name} 的"退去凡躯"触发：恢复 ${healAmount} HP`);
+        showGainFloat(u, healAmount, 0);
+      }
+    }
   }
   if(!trueDamage && u.passives.includes('toughBody') && !opts.ignoreToughBody){
     hpDmg = Math.round(hpDmg * 0.75);
