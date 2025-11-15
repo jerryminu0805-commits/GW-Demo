@@ -2742,146 +2742,385 @@ function rotateDirCounterClockwise(dir){
     default: return dir;
   }
 }
-async function lirathe_FleshBlade(u, dir){
-  markLiratheSkillUsed(u);
-  const area = forwardRect2x2(u, dir, 2, 2);
-  if(area.length===0){ appendLog('血肉之刃：前方没有可以攻击的格子'); unitActed(u); return; }
-  await telegraphThenImpact(area);
-  const targets = liratheCollectTargets(area);
-  if(targets.length){ cameraFocusOnCell(targets[0].r, targets[0].c); }
-  for(const target of targets){
-    damageUnit(target.id,15,0,`${u.name} 血肉之刃·第一段 命中 ${target.name}`, u.id,{skillFx:'lirathe:血肉之刃'});
+
+// ========== Lirathe Phase 1 Skill Implementations ==========
+
+async function lirathe_StabDash(u, dir){
+  const line = range_forward_n(u, 4, dir);
+  if(line.length===0){ appendLog('刺斩：没有空间冲刺'); unitActed(u); return; }
+  
+  await telegraphThenImpact(line);
+  
+  // Dash logic: move forward until hitting enemy or obstacle
+  let dashTarget = null;
+  for(const cell of line){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      dashTarget = target;
+      break;
+    }
+  }
+  
+  if(dashTarget){
+    appendLog(`${u.name} 冲刺并命中 ${dashTarget.name}！`);
+    damageUnit(dashTarget.id, 15, 0, `${u.name} 刺斩`, u.id, {skillFx:'lirathe:刺斩'});
+    // Add vulnerability debuff (15% more damage next turn)
+    if(!dashTarget._vulnerabilityStacks) dashTarget._vulnerabilityStacks = 0;
+    dashTarget._vulnerabilityStacks += 1;
+    appendLog(`${dashTarget.name} 获得1层脆弱！`);
     u.dmgDone += 15;
   }
-  await stageMark(area);
-  for(const target of targets){
-    damageUnit(target.id,10,0,`${u.name} 血肉之刃·第二段 命中 ${target.name}`, u.id,{skillFx:'lirathe:血肉之刃'});
-    applyResentment(target,1);
-    u.dmgDone += 10;
-  }
+  
   unitActed(u);
 }
-async function lirathe_GrudgeClaw(u, dir){
-  markLiratheSkillUsed(u);
-  const area = forwardRect2x2(u, dir, 2, 2);
-  if(area.length===0){ appendLog('怨念之爪：前方没有可以抓取的目标'); unitActed(u); return; }
-  await telegraphThenImpact(area);
-  const targets = liratheCollectTargets(area);
-  if(targets.length){ cameraFocusOnCell(targets[0].r, targets[0].c); }
-  for(const target of targets){
-    damageUnit(target.id,10,15,`${u.name} 怨念之爪 撕裂 ${target.name}`, u.id,{skillFx:'lirathe:怨念之爪'});
-    applyResentment(target,1);
-    u.dmgDone += 10;
+
+function lirathe_TryToEscape(u, payload){
+  if(!payload || payload.r===undefined){ appendLog('又想逃？：无效目标'); unitActed(u); return; }
+  
+  const nr = payload.r, nc = payload.c;
+  if(!clampCell(nr,nc) || getUnitAt(nr,nc)){ appendLog('又想逃？：目标格子被占用'); unitActed(u); return; }
+  
+  // Check if near wall for extended range (simplified)
+  const nearWall = (u.r === 1 || u.r === ROWS || u.c === 1 || u.c === COLS);
+  const actualRange = nearWall ? 4 : 2;
+  
+  if(mdist(u,{r:nr,c:nc}) > actualRange){ appendLog('又想逃？：超出移动范围'); unitActed(u); return; }
+  
+  u.r = nr; u.c = nc;
+  appendLog(`${u.name} 移动到 (${nr},${nc})`);
+  
+  // Check for adjacent enemies and damage them
+  const adjacent = range_adjacent(u);
+  for(const pos of adjacent){
+    const target = getUnitAt(pos.r, pos.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 5, 0, `${u.name} 又想逃？`, u.id);
+      u.dmgDone += 5;
+    }
   }
+  
+  renderAll();
   unitActed(u);
 }
-async function lirathe_BrutalSweep(u, dir){
-  markLiratheSkillUsed(u);
-  const area = forwardRect2x2(u, dir, 4, 2);
-  if(area.length===0){ appendLog('蛮横横扫：范围内没有敌人'); unitActed(u); return; }
+
+async function lirathe_BladeAbsorb(u, dir){
+  const area = forwardRectCentered(u, dir, 3, 2);
+  if(area.length===0){ appendLog('刀光吸入：范围内没有目标'); unitActed(u); return; }
+  
   await telegraphThenImpact(area);
-  const targets = liratheCollectTargets(area);
-  if(targets.length){ cameraFocusOnCell(targets[0].r, targets[0].c); }
+  
+  const targets = [];
+  for(const cell of area){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && !targets.includes(target)){
+      targets.push(target);
+    }
+  }
+  
   for(const target of targets){
-    damageUnit(target.id,20,0,`${u.name} 蛮横横扫 命中 ${target.name}`, u.id,{skillFx:'lirathe:蛮横横扫'});
-    addStatusStacks(target,'paralyzed',1,{label:'恐惧', type:'debuff'});
-    appendLog(`${target.name} 因恐惧下回合 -1 步`);
+    damageUnit(target.id, 20, 0, `${u.name} 刀光吸入`, u.id, {skillFx:'lirathe:刀光吸入'});
+    // Add blade light stack
+    const currentStacks = bladeLightStacks.get(target.id) || 0;
+    bladeLightStacks.set(target.id, currentStacks + 1);
+    appendLog(`${target.name} 刀光层数: ${currentStacks + 1}`);
+    
+    // Check for explosion at 10 stacks
+    if(bladeLightStacks.get(target.id) >= 10){
+      appendLog(`${target.name} 刀光爆炸！`);
+      damageUnit(target.id, 50, 50, `刀光爆炸`, u.id, {trueDamage:true});
+      // Heal Lirathe
+      u.hp = Math.min(u.maxHp, u.hp + 50);
+      u.sp = Math.min(u.maxSp, u.sp + 50);
+      appendLog(`${u.name} 恢复 50 HP / 50 SP`);
+      bladeLightStacks.set(target.id, 0);
+    }
+    
     u.dmgDone += 20;
   }
+  
   unitActed(u);
 }
-async function lirathe_Overwork(u, dir){
-  markLiratheSkillUsed(u);
-  // Stage 1: 2x2 area, 2 steps forward
-  const first = forwardRect2x2(u, dir, 2, 2);
-  if(first.length===0){ appendLog('能者多劳：前方没有空间'); unitActed(u); return; }
-  await telegraphThenImpact(first);
-  const firstTargets = liratheCollectTargets(first);
-  if(firstTargets.length){ cameraFocusOnCell(firstTargets[0].r, firstTargets[0].c); }
-  for(const target of firstTargets){
-    damageUnit(target.id,10,15,`${u.name} 能者多劳·第一段 命中 ${target.name}`, u.id,{skillFx:'lirathe:能者多劳'});
-    u.dmgDone += 10;
-  }
-  await stageMark(first);
+
+async function lirathe_SwordDance(u, dir){
+  // Multi-stage attack
+  appendLog(`${u.name} 施展剑舞！`);
   
-  // Stage 2: Same 2x2 area (attacks same cells again)
-  const second = forwardRect2x2(u, dir, 2, 2);
-  if(second.length>0){
-    await telegraphThenImpact(second);
-    const secondTargets = liratheCollectTargets(second);
-    if(secondTargets.length){ cameraFocusOnCell(secondTargets[0].r, secondTargets[0].c); }
-    for(const target of secondTargets){
-      damageUnit(target.id,15,10,`${u.name} 能者多劳·第二段 横切 ${target.name}`, u.id,{skillFx:'lirathe:能者多劳'});
-      applyResentment(target,1);
-      u.dmgDone += 15;
+  // Stage 1: Forward sweep
+  const area1 = forwardRectCentered(u, dir, 3, 2);
+  await telegraphThenImpact(area1);
+  let hitAny = false;
+  for(const cell of area1){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 20, 0, `${u.name} 剑舞·横扫`, u.id);
+      if(!target._vulnerabilityStacks) target._vulnerabilityStacks = 0;
+      target._vulnerabilityStacks += 1;
+      u.dmgDone += 20;
+      hitAny = true;
     }
-    await stageMark(second);
   }
   
-  // Stage 3: Extended area from same position to map edge (width 2, depth to edge)
-  // Calculate maximum depth based on direction and position
-  // For 2x2 unit at (r,c), occupies rows r,r+1 and columns c,c+1
-  let maxDepth = 2;
-  if(dir === 'down'){
-    maxDepth = ROWS - (u.r + 1); // From bottom edge (r+2) to map bottom (ROWS)
-  } else if(dir === 'up'){
-    maxDepth = u.r - 1; // From top edge (r-1) to map top (1)
-  } else if(dir === 'left'){
-    maxDepth = u.c - 1; // From left edge (c-1) to map left (1)
-  } else if(dir === 'right'){
-    maxDepth = COLS - (u.c + 1); // From right edge (c+2) to map right (COLS)
-  }
+  await stageMark(area1);
   
-  const third = forwardRect2x2(u, dir, 2, maxDepth);
-  if(third.length>0){
-    await telegraphThenImpact(third);
-    const thirdTargets = liratheCollectTargets(third);
-    if(thirdTargets.length){ cameraFocusOnCell(thirdTargets[0].r, thirdTargets[0].c); }
-    for(const target of thirdTargets){
-      damageUnit(target.id,20,20,`${u.name} 能者多劳·终段 重砸 ${target.name}`, u.id,{skillFx:'lirathe:能者多劳'});
-      applyResentment(target,1);
+  // Stage 2: Reverse sweep (simplified)
+  for(const cell of area1){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 20, 0, `${u.name} 剑舞·反向`, u.id);
       u.dmgDone += 20;
     }
   }
-  unitActed(u);
-}
-async function lirathe_AgonyRoar(u){
-  markLiratheSkillUsed(u);
-  const before = u.sp;
-  u.sp = u.maxSp;
-  syncSpBroken(u);
-  showGainFloat(u,0,u.sp-before);
-  appendLog(`${u.name} 痛苦咆哮：SP 全面恢复`);
-  const victims = Object.values(units).filter(t=> t.id!==u.id && t.hp>0 && (t.status?.resentStacks||0)>0);
-  if(victims.length===0){
-    appendLog('痛苦咆哮：场上没有怨念目标');
-    unitActed(u);
-    return;
-  }
-  for(const target of victims){
-    const stacks = target.status.resentStacks || 0;
-    updateStatusStacks(target,'resentStacks',0,{label:'怨念', type:'debuff'});
-    const hpDmg = stacks * 5;
-    const spDmg = stacks * 10;
-    if(hpDmg>0 || spDmg>0){
-      damageUnit(target.id,hpDmg,spDmg,`${u.name} 痛苦咆哮 撕裂 ${target.name}（怨念x${stacks}）`, u.id,{skillFx:'lirathe:痛苦咆哮'});
+  
+  // Stage 3: 3x3 area
+  await stageMark(area1);
+  const area3 = range_square_n(u, 1);
+  for(const cell of area3){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 10, 0, `${u.name} 剑舞·旋转`, u.id);
+      u.dmgDone += 10;
+      hitAny = true;
     }
   }
-  unitActed(u);
-}
-async function lirathe_FinalStruggle(u){
-  markLiratheSkillUsed(u);
-  const area = range_square_n(u,5);
-  if(area.length===0){ unitActed(u); return; }
-  await telegraphThenImpact(area);
-  const targets = liratheCollectTargets(area);
-  if(targets.length){ cameraFocusOnCell(targets[0].r, targets[0].c); }
-  for(const target of targets){
-    damageUnit(target.id,50,70,`${u.name} 过多疲劳患者最终的挣扎 毁灭 ${target.name}`, u.id,{skillFx:'lirathe:过多疲劳患者最终的挣扎'});
-    u.dmgDone += 50;
+  
+  // Stage 4: 5x5 area
+  await stageMark(area3);
+  const area5 = range_square_n(u, 2);
+  for(const cell of area5){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 15, 0, `${u.name} 剑舞·扩散`, u.id);
+      const stacks = bladeLightStacks.get(target.id) || 0;
+      bladeLightStacks.set(target.id, stacks + 1);
+      u.dmgDone += 15;
+    }
   }
+  
+  // If all stages hit at least one enemy, grant buffs
+  if(hitAny){
+    appendLog(`${u.name} 获得戏谑Buff`);
+  }
+  
   unitActed(u);
 }
+
+async function lirathe_SplashBlade(u, dir){
+  // Multi-stage blade projectile attack
+  const line = range_line(u, dir);
+  
+  // Stage 1: First blade
+  await telegraphThenImpact(line);
+  let firstHit = null;
+  for(const cell of line){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 15, 0, `${u.name} 飞溅刀光·一`, u.id);
+      const stacks = bladeLightStacks.get(target.id) || 0;
+      bladeLightStacks.set(target.id, stacks + 1);
+      u.dmgDone += 15;
+      if(!firstHit) firstHit = target;
+      break;
+    }
+  }
+  
+  await stageMark(line);
+  
+  // Stage 2: Second blade (hits all in line)
+  for(const cell of line){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 15, 0, `${u.name} 飞溅刀光·二`, u.id);
+      const stacks = bladeLightStacks.get(target.id) || 0;
+      bladeLightStacks.set(target.id, stacks + 1);
+      u.dmgDone += 15;
+    }
+  }
+  
+  await stageMark(line);
+  
+  // Stage 3: Charge to first hit
+  if(firstHit){
+    damageUnit(firstHit.id, 5, 0, `${u.name} 飞溅刀光·贯穿`, u.id);
+    const stacks = bladeLightStacks.get(firstHit.id) || 0;
+    bladeLightStacks.set(firstHit.id, stacks + 1);
+    u.dmgDone += 5;
+  }
+  
+  unitActed(u);
+}
+
+async function lirathe_DontRun(u, dir){
+  const line = range_line(u, dir);
+  await telegraphThenImpact(line);
+  
+  let firstHit = null;
+  for(const cell of line){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      damageUnit(target.id, 0, 15, `${u.name} 别跑`, u.id);
+      // 50% chance to immobilize
+      if(Math.random() < 0.50){
+        if(!target._immobilized) target._immobilized = 0;
+        target._immobilized = 1;  // Immobilized for 1 turn
+        appendLog(`${target.name} 被蛛网禁锢！`);
+      }
+      firstHit = target;
+      break;
+    }
+  }
+  
+  unitActed(u);
+}
+
+// ========== Lirathe Phase 2 Skill Implementations ==========
+
+async function lirathe_ChargeKill(u, dir){
+  const line = range_line(u, dir);
+  if(line.length===0){ appendLog('冲杀：没有空间'); unitActed(u); return; }
+  
+  await telegraphThenImpact(line);
+  
+  const hitTargets = [];
+  for(const cell of line){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side){
+      hitTargets.push(target);
+    }
+  }
+  
+  for(const target of hitTargets){
+    damageUnit(target.id, 20, 10, `${u.name} 冲杀`, u.id, {skillFx:'lirathe:冲杀'});
+    // Add corrosion
+    const stacks = corrosionStacks.get(target.id) || 0;
+    corrosionStacks.set(target.id, stacks + 1);
+    appendLog(`${target.name} 腐蚀层数: ${stacks + 1}`);
+    u.dmgDone += 20;
+  }
+  
+  unitActed(u);
+}
+
+async function lirathe_WhereAreYou(u){
+  const area = range_square_n(u, 3);  // 6x6 area
+  await telegraphThenImpact(area);
+  
+  const targets = [];
+  for(const cell of area){
+    const target = getUnitAt(cell.r, cell.c);
+    if(target && target.side !== u.side && !targets.includes(target)){
+      targets.push(target);
+    }
+  }
+  
+  for(const target of targets){
+    damageUnit(target.id, 0, 10, `${u.name} 你在哪`, u.id);
+    // Add corrosion
+    const cStacks = corrosionStacks.get(target.id) || 0;
+    corrosionStacks.set(target.id, cStacks + 1);
+    // Add "seen" debuff
+    if(!target._seenTurns) target._seenTurns = 0;
+    target._seenTurns = 1;  // Lasts 1 turn
+    appendLog(`${target.name} 被看见了！`);
+  }
+  
+  unitActed(u);
+}
+
+async function lirathe_TearHeart(u, dir){
+  const area = forwardRect2x2(u, dir, 2, 2);
+  if(area.length===0){ appendLog('掏心掏肺：没有目标'); unitActed(u); return; }
+  
+  let target = null;
+  for(const cell of area){
+    const t = getUnitAt(cell.r, cell.c);
+    if(t && t.side !== u.side){
+      target = t;
+      break;
+    }
+  }
+  
+  if(!target){ appendLog('掏心掏肺：没有目标'); unitActed(u); return; }
+  
+  await telegraphThenImpact(area);
+  
+  // Three stages of tearing
+  for(let i = 1; i <= 3; i++){
+    damageUnit(target.id, 15, 5, `${u.name} 掏心掏肺·${i}`, u.id);
+    const cStacks = corrosionStacks.get(target.id) || 0;
+    corrosionStacks.set(target.id, cStacks + 1);
+    u.dmgDone += 15;
+    
+    if(i < 3) await stageMark(area);
+  }
+  
+  // If target has 5+ corrosion, repeat
+  if(corrosionStacks.get(target.id) >= 5){
+    appendLog(`${target.name} 腐蚀过深！重复攻击！`);
+    await stageMark(area);
+    for(let i = 1; i <= 3; i++){
+      damageUnit(target.id, 15, 5, `${u.name} 掏心掏肺·重复${i}`, u.id);
+      const cStacks = corrosionStacks.get(target.id) || 0;
+      corrosionStacks.set(target.id, cStacks + 1);
+      u.dmgDone += 15;
+      if(i < 3) await stageMark(area);
+    }
+  }
+  
+  unitActed(u);
+}
+
+async function lirathe_CantFindWay(u, dir){
+  // Charge in 4 directions
+  const directions = ['up', 'down', 'left', 'right'];
+  
+  for(let i = 0; i < 4; i++){
+    const d = directions[i];
+    const line = range_line(u, d);
+    
+    if(line.length > 0){
+      await telegraphThenImpact(line);
+      
+      for(const cell of line){
+        const target = getUnitAt(cell.r, cell.c);
+        if(target && target.side !== u.side){
+          damageUnit(target.id, 20, 10, `${u.name} 找不到路·${d}`, u.id);
+          const cStacks = corrosionStacks.get(target.id) || 0;
+          corrosionStacks.set(target.id, cStacks + 1);
+          u.dmgDone += 20;
+        }
+      }
+      
+      if(i < 3) await stageMark(line);
+    }
+  }
+  
+  unitActed(u);
+}
+
+// Helper functions
+function markLiratheSkillUsed(u){
+  if(u && u._designPenaltyTriggered !== undefined){
+    u._usedSkillThisTurn = true;
+  }
+}
+
+function liratheCollectTargets(area){
+  const targets = [];
+  for(const cell of area){
+    const t = getUnitAt(cell.r, cell.c);
+    if(t && t.side === 'player' && !targets.includes(t)){
+      targets.push(t);
+    }
+  }
+  return targets;
+}
+
+function applyResentment(target, stacks){
+  if(!target || !target.status) return;
+  const current = target.status.resentStacks || 0;
+  updateStatusStacks(target, 'resentStacks', current + stacks, {label:'怨念', type:'debuff'});
+}
+
 
 // —— Lirathe 防御姿态兼容（保留旧函数以支持玩家技能） ——
 // —— 技能池/抽牌（含调整：Katz/Nelya/Kyn 技能）；移动卡统一蓝色 —— 
@@ -3140,67 +3379,84 @@ function buildSkillFactoriesForUnit(u){
         {},
         {castMs:700}
       )}
-    );
-  } else if(u.id==='lirathe'){
-    F.push(
-      { key:'血肉之刃', prob:0.70, cond:()=>true, make:()=> skill('血肉之刃',1,'green','前方2x2：15HP+10HP，多段叠怨念',
-        (uu,aimDir)=> { const dir=aimDir||uu.facing; return forwardRect2x2(uu,dir,2,2).map(c=>({...c,dir})); },
-        async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_FleshBlade(uu, dir); },
-        {},
-        {castMs:1100}
-      )},
-      { key:'怨念之爪', prob:0.70, cond:()=>true, make:()=> skill('怨念之爪',1,'green','前方2x2：10HP+15SP并叠怨念',
-        (uu,aimDir)=> { const dir=aimDir||uu.facing; return forwardRect2x2(uu,dir,2,2).map(c=>({...c,dir})); },
-        async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_GrudgeClaw(uu, dir); },
-        {},
-        {castMs:1100}
-      )},
-      { key:'蛮横横扫', prob:0.60, cond:()=>true, make:()=> skill('蛮横横扫',2,'red','前方4x2：20HP并附恐惧',
-        (uu,aimDir)=> { const dir=aimDir||uu.facing; return forwardRect2x2(uu,dir,4,2).map(c=>({...c,dir})); },
-        async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_BrutalSweep(uu, dir); },
-        {aoe:true},
-        {castMs:1400}
-      )},
-      { key:'能者多劳', prob:0.45, cond:()=>true, make:()=> skill('能者多劳',2,'red','多段：前2x2→同区→至边缘，叠怨念并削SP',
-        (uu,aimDir)=> { 
-          const dir=aimDir||uu.facing; 
-          // Show the maximum range (stage 3) for targeting
-          // For 2x2 unit, calculate depth to map edge in attack direction
-          let maxDepth = 2;
-          if(dir === 'down'){ maxDepth = ROWS - (uu.r + 1); }
-          else if(dir === 'up'){ maxDepth = uu.r - 1; }
-          else if(dir === 'left'){ maxDepth = uu.c - 1; }
-          else if(dir === 'right'){ maxDepth = COLS - (uu.c + 1); }
-          return forwardRect2x2(uu,dir,2,maxDepth).map(c=>({...c,dir})); 
-        },
-        async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_Overwork(uu, dir); },
-        {aoe:true},
-        {castMs:1900}
-      )},
-      { key:'痛苦咆哮', prob:0.35, cond:()=>true, make:()=> skill('痛苦咆哮',2,'red','恢复自身SP并清算所有怨念目标',
-        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
-        async (uu)=> await lirathe_AgonyRoar(uu),
-        {},
-        {castMs:1500}
-      )},
-      { key:'过多疲劳患者最终的挣扎', prob:0.15, cond:()=>true, make:()=> skill('过多疲劳患者最终的挣扎',3,'red','以自身为中心大范围：50HP+70SP',
-        (uu)=> range_square_n(uu,5).map(c=>({...c,dir:uu.facing})),
-        async (uu)=> await lirathe_FinalStruggle(uu),
-        {aoe:true},
-        {castMs:2200}
-      )}
-    );
-  }
-  
-  // Filter skills based on selection if character is level 50+
-  const selectedKeys = getSelectedSkillKeysForUnit(u);
-  if (selectedKeys) {
-    const filtered = F.filter(factory => selectedKeys.has(factory.key));
-    // Only apply filter if at least some skills are selected
-    if (filtered.length > 0) {
-      return filtered;
+    );  } else if(u.id==='lirathe'){
+    // Lirathe Phase 1 Skills
+    if(lirathePhase === 1){
+      F.push(
+        { key:'刺斩', prob:0.80, cond:()=>true, make:()=> skill('刺斩',1,'green','冲刺4格 15HP+脆弱',
+          (uu,aimDir)=> { const dir=aimDir||uu.facing; return range_forward_n(uu,4,dir); },
+          async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_StabDash(uu, dir); },
+          {},
+          {castMs:1000}
+        )},
+        { key:'又想逃？', prob:0.40, cond:()=>true, make:()=> skill('又想逃？',2,'blue','移动2格，附近敌人5HP',
+          (uu)=> range_move_radius(uu,2),
+          (uu,payload)=> lirathe_TryToEscape(uu,payload),
+          {},
+          {moveSkill:true, moveRadius:2, castMs:600}
+        )},
+        { key:'刀光吸入', prob:0.40, cond:()=>true, make:()=> skill('刀光吸入',2,'red','前方3x2 20HP+刀光',
+          (uu,aimDir)=> { const dir=aimDir||uu.facing; return forwardRectCentered(uu,dir,3,2).map(c=>({...c,dir})); },
+          async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_BladeAbsorb(uu, dir); },
+          {aoe:true},
+          {castMs:1100}
+        )},
+        { key:'剑舞', prob:0.25, cond:()=>true, make:()=> skill('剑舞',3,'red','多段剑舞攻击',
+          (uu,aimDir)=> { const dir=aimDir||uu.facing; return forwardRectCentered(uu,dir,3,2).map(c=>({...c,dir})); },
+          async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_SwordDance(uu, dir); },
+          {aoe:true},
+          {castMs:1800}
+        )}
+      );
+      // Unlocked at <50% HP
+      if(u.hp / u.maxHp < 0.5){
+        F.push(
+          { key:'飞溅刀光', prob:0.25, cond:()=>true, make:()=> skill('飞溅刀光',3,'red','多段刀光飞溅',
+            (uu,aimDir)=> { const dir=aimDir||uu.facing; return range_line(uu,dir).map(c=>({...c,dir})); },
+            async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_SplashBlade(uu, dir); },
+            {aoe:true},
+            {castMs:1600}
+          )},
+          { key:'别跑', prob:0.40, cond:()=>true, make:()=> skill('别跑',2,'red','蛛网禁锢 15SP',
+            (uu,aimDir)=> { const dir=aimDir||uu.facing; return range_line(uu,dir); },
+            async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_DontRun(uu, dir); },
+            {},
+            {castMs:1100}
+          )}
+        );
+      }
+    }
+    // Lirathe Phase 2 Skills (Transformed)
+    else if(lirathePhase === 2){
+      F.push(
+        { key:'冲杀', prob:0.75, cond:()=>true, make:()=> skill('冲杀',2,'red','冲刺到底 20HP+10SP+腐蚀',
+          (uu,aimDir)=> { const dir=aimDir||uu.facing; return range_line(uu,dir).map(c=>({...c,dir})); },
+          async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_ChargeKill(uu, dir); },
+          {aoe:true},
+          {castMs:1300}
+        )},
+        { key:'你在哪', prob:0.30, cond:()=>true, make:()=> skill('你在哪',2,'red','6x6 AOE 10SP+腐蚀+看见',
+          (uu)=> range_square_n(uu,3).map(c=>({...c,dir:uu.facing})),
+          async (uu)=> await lirathe_WhereAreYou(uu),
+          {aoe:true},
+          {castMs:1400}
+        )},
+        { key:'掏心掏肺', prob:0.25, cond:()=>true, make:()=> skill('掏心掏肺',2,'red','前方2x2反复撕扯',
+          (uu,aimDir)=> { const dir=aimDir||uu.facing; return forwardRect2x2(uu,dir,2,2).map(c=>({...c,dir})); },
+          async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_TearHeart(uu, dir); },
+          {},
+          {castMs:1800}
+        )},
+        { key:'找不到路', prob:0.25, cond:()=>true, make:()=> skill('找不到路',3,'red','4方向冲刺',
+          (uu,aimDir)=> { const dir=aimDir||uu.facing; return range_line(uu,dir).map(c=>({...c,dir})); },
+          async (uu,desc)=> { const dir = desc && desc.dir ? desc.dir : uu.facing; await lirathe_CantFindWay(uu, dir); },
+          {aoe:true},
+          {castMs:2100}
+        )}
+      );
     }
   }
+  
   
   return F;
 }
