@@ -2158,6 +2158,53 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   pulseCell(u.r, u.c);
   if(died){ showDeathFx(u); }
 
+  // Lirathe Transformation: Phase 1 -> Phase 2 when HP reaches 0
+  if(died && u.id === "lirathe" && lirathePhase === 1 && !liratheTransformed){
+    appendLog("=== Lirathe 开始变身！ ===");
+    liratheTransformed = true;
+    lirathePhase = 2;
+    
+    // Transform to Phase 2
+    u.hp = 1200;  // New HP
+    u.maxHp = 1200;
+    u.sp = 0;
+    u.maxSp = 0;
+    u.spFloor = -80;
+    u.size = 4;  // Become 4-cell boss
+    
+    // Clear Phase 1 passives and add Phase 2 passives
+    u.passives = ["climb", "shedMortal", "lostReason", "darkness", "plight"];
+    
+    appendLog(`${u.name} 变身为 4格 Boss！HP: 1200, SP: 0 (floor: -80)`);
+    renderAll();
+    return;  // Do not show death
+  }
+
+
+  // Lirathe Final Sequence: Trigger at 400 HP in Phase 2
+  if(u.id === "lirathe" && lirathePhase === 2 && !finalSequenceTriggered && u.hp > 0 && u.hp <= 400){
+    appendLog("=== 最终序列触发！ ===");
+    finalSequenceTriggered = true;
+    
+    // Heal Lirathe to full
+    u.hp = u.maxHp;
+    appendLog(`${u.name} HP 恢复至满！`);
+    
+    // Set allies to 1 HP + 99 corrosion
+    const allies = ["adora", "dario"];
+    for(const allyId of allies){
+      const ally = units[allyId];
+      if(ally && ally.hp > 0){
+        ally.hp = 1;
+        corrosionStacks.set(allyId, 99);
+        appendLog(`${ally.name} HP降至1，腐蚀层数99！`);
+      }
+    }
+    
+    // TODO: Implement teleport to Karma and 7x attack sequence
+    appendLog("终局序列已启动...");
+    renderAll();
+  }
   // 反伤姿态：反弹部分HP伤害
   if(sourceId && u._stanceType==='retaliate' && u._stanceTurns>0 && u._reflectPct>0 && !opts._reflected){
     const refl = Math.max(0, Math.round(finalHp * u._reflectPct));
@@ -4292,6 +4339,21 @@ function processUnitsTurnStart(side){
         u.status.resentStacks = Math.max(0, u.status.resentStacks - 1);
       } else {
         u.status.resentStacks = Math.max(0, u.status.resentStacks - 1);
+
+    // Process corrosion stacks (Phase 2 mechanic)
+    const corrosion = corrosionStacks.get(u.id) || 0;
+    if(corrosion > 0){
+      // Base damage is 5%, increases by 2% per stack
+      const basePct = 0.05;
+      const stackBonus = (corrosion - 1) * 0.02;
+      const totalPct = basePct + stackBonus;
+      const corrosionDmg = Math.max(1, Math.floor(u.maxHp * totalPct));
+      damageUnit(u.id, corrosionDmg, 0, `${u.name} 受腐蚀侵蚀 (-${corrosion}层)`, null);
+      corrosionStacks.set(u.id, corrosion - 1);
+      if(corrosionStacks.get(u.id) === 0){
+        appendLog(`${u.name} 的腐蚀已清除`);
+      }
+    }
       }
     }
   }
@@ -4341,6 +4403,20 @@ function finishEnemyTurn(){
   processUnitsTurnEnd('enemy');
   roundsPassed += 1;
   applyEndOfRoundPassives();
+
+  // Lirathe Battle: Spawn Adora and Dario phantoms on turn 2
+  if(roundsPassed === 2){
+    appendLog("=== 第2回合：Adora和Dario的虚影出现！ ===");
+    const adora = units["adora"];
+    const dario = units["dario"];
+    if(adora && dario){
+      // Mark them as phantoms (same stats, just narrative difference)
+      adora._isPhantom = true;
+      dario._isPhantom = true;
+      appendLog("Adora（虚影）和 Dario（虚影）加入战斗！");
+      renderAll();
+    }
+  }
 
   updateStepsUI();
   setTimeout(()=>{
