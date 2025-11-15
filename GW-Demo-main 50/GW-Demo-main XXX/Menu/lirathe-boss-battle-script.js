@@ -202,10 +202,11 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// 玩家
-units['adora'] = createUnit('adora','Adora','player',50, 4, 22, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['dario'] = createUnit('dario','Dario','player',50, 2, 22, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+// 玩家 - 旧情未了关卡只有Karma开始
 units['karma'] = createUnit('karma','Karma','player',50, 5, 22, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+
+// Adora和Dario将在第2回合时作为虚影出现
+// units['adora'] and units['dario'] will be created at turn 2
 
 // 疲惫的极限 Boss
 // 旧情未了 Boss - Phase 1
@@ -2100,6 +2101,14 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
       }
     }
   }
+  
+  // Vulnerability debuff - increases damage taken by 15% per stack
+  if(!trueDamage && u._vulnerabilityStacks && u._vulnerabilityStacks > 0){
+    const vulnMultiplier = 1 + (u._vulnerabilityStacks * 0.15);
+    hpDmg = Math.round(hpDmg * vulnMultiplier);
+    spDmg = Math.round(spDmg * vulnMultiplier);
+  }
+  
   if(!trueDamage && u.passives.includes('toughBody') && !opts.ignoreToughBody){
     hpDmg = Math.round(hpDmg * 0.75);
   }
@@ -2170,12 +2179,17 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
     u.sp = 0;
     u.maxSp = 0;
     u.spFloor = -80;
-    u.size = 4;  // Become 4-cell boss
+    u.size = 2;  // Become 2x2 boss (4 cells total)
     
     // Clear Phase 1 passives and add Phase 2 passives
     u.passives = ["climb", "shedMortal", "lostReason", "darkness", "plight"];
     
-    appendLog(`${u.name} 变身为 4格 Boss！HP: 1200, SP: 0 (floor: -80)`);
+    // Clear Phase 1 skills from skill pool
+    u.skillPool = [];
+    u.dealtStart = false;  // Force redeal to get Phase 2 skills
+    
+    appendLog(`${u.name} 变身为 2x2 Boss（占4格）！HP: 1200, SP: 0 (floor: -80)`);
+    appendLog(`${u.name} 的一阶段技能已移除，进入二形态！`);
     renderAll();
     return;  // Do not show death
   }
@@ -2798,14 +2812,49 @@ async function lirathe_StabDash(u, dir){
   
   await telegraphThenImpact(line);
   
-  // Dash logic: move forward until hitting enemy or obstacle
+  // Dash logic: move forward until hitting enemy, cover, or reaching 4 cells
+  let finalPos = null;
   let dashTarget = null;
-  for(const cell of line){
+  let stoppedByCover = false;
+  
+  for(let i = 0; i < line.length; i++){
+    const cell = line[i];
+    
+    // Check for cover
+    if(isCoverCell(cell.r, cell.c)){
+      stoppedByCover = true;
+      // Stop before cover - use previous position or stay put
+      if(i > 0){
+        finalPos = line[i - 1];
+      }
+      break;
+    }
+    
+    // Check for unit
     const target = getUnitAt(cell.r, cell.c);
     if(target && target.side !== u.side){
       dashTarget = target;
+      // Stop at cell adjacent to target (previous cell if exists)
+      if(i > 0){
+        finalPos = line[i - 1];
+      }
       break;
     }
+    
+    // If no obstacle, this is a valid position
+    finalPos = cell;
+  }
+  
+  // Move to final position
+  if(finalPos && (finalPos.r !== u.r || finalPos.c !== u.c)){
+    u.r = finalPos.r;
+    u.c = finalPos.c;
+    setUnitFacing(u, dir);
+    appendLog(`${u.name} 冲刺到 (${finalPos.r},${finalPos.c})`);
+  }
+  
+  if(stoppedByCover){
+    appendLog(`${u.name} 在掩体前停下`);
   }
   
   if(dashTarget){
@@ -2818,6 +2867,7 @@ async function lirathe_StabDash(u, dir){
     u.dmgDone += 15;
   }
   
+  renderAll();
   unitActed(u);
 }
 
@@ -3028,13 +3078,47 @@ async function lirathe_ChargeKill(u, dir){
   await telegraphThenImpact(line);
   
   const hitTargets = [];
+  let finalPos = null;
+  let destroyedCover = false;
+  
+  // Move along the line until hitting edge or cover (which we destroy)
   for(const cell of line){
+    // Check for cover - destroy it and continue
+    if(isCoverCell(cell.r, cell.c)){
+      coverCells.delete(`${cell.r},${cell.c}`);
+      destroyedCover = true;
+      appendLog(`${u.name} 摧毁了掩体 (${cell.r},${cell.c})`);
+    }
+    
+    // Check for enemies
     const target = getUnitAt(cell.r, cell.c);
-    if(target && target.side !== u.side){
+    if(target && target.side !== u.side && !hitTargets.includes(target)){
       hitTargets.push(target);
+    }
+    
+    // Update final position (can still move through enemies in phase 2)
+    if(u.size === 2){
+      // For 2x2 boss, check if all 4 cells fit
+      if(canPlace2x2(u, cell.r, cell.c)){
+        finalPos = cell;
+      }
+    } else {
+      // For 1x1 unit, just need the cell to be valid
+      if(clampCell(cell.r, cell.c) && !getUnitAt(cell.r, cell.c)){
+        finalPos = cell;
+      }
     }
   }
   
+  // Move to final position
+  if(finalPos && (finalPos.r !== u.r || finalPos.c !== u.c)){
+    u.r = finalPos.r;
+    u.c = finalPos.c;
+    setUnitFacing(u, dir);
+    appendLog(`${u.name} 冲刺到 (${finalPos.r},${finalPos.c})`);
+  }
+  
+  // Damage all hit targets
   for(const target of hitTargets){
     damageUnit(target.id, 20, 10, `${u.name} 冲杀`, u.id, {skillFx:'lirathe:冲杀'});
     // Add corrosion
@@ -3044,6 +3128,7 @@ async function lirathe_ChargeKill(u, dir){
     u.dmgDone += 20;
   }
   
+  renderAll();
   unitActed(u);
 }
 
@@ -3507,7 +3592,53 @@ function buildSkillFactoriesForUnit(u){
   
   return F;
 }
+
+// Load selected skills from localStorage (for skill selection system)
+function loadSelectedSkills() {
+  if (typeof localStorage === 'undefined') return null;
+  const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
+  const saved = localStorage.getItem(STORAGE_KEY_SELECTED_SKILLS);
+  return saved ? JSON.parse(saved) : null;
+}
+
 function drawOneSkill(u){
+  // For player units, use selected skills from skill selection system
+  if(u.side === 'player'){
+    const selectedSkills = loadSelectedSkills();
+    if(selectedSkills && selectedSkills[u.id]){
+      const selection = selectedSkills[u.id];
+      const fset = buildSkillFactoriesForUnit(u);
+      const available = fset.filter(f=>f.cond());
+      
+      // Build pool from selected skills
+      const selectedPool = [];
+      
+      // Add single-slot skills (green, blue, pink, white, red)
+      for(const color of ['green', 'blue', 'pink', 'white', 'red']){
+        if(selection[color]){
+          const factory = available.find(f => f.key === selection[color]);
+          if(factory) selectedPool.push(factory);
+        }
+      }
+      
+      // Add orange skills (up to 2)
+      if(selection.orange && Array.isArray(selection.orange)){
+        for(const skillKey of selection.orange){
+          const factory = available.find(f => f.key === skillKey);
+          if(factory) selectedPool.push(factory);
+        }
+      }
+      
+      // If no skills selected, return null (no skills available)
+      if(selectedPool.length === 0) return null;
+      
+      // Draw randomly from selected pool
+      const factory = selectedPool[Math.floor(Math.random() * selectedPool.length)];
+      return factory.make();
+    }
+  }
+  
+  // For enemy units or if no selection, use probability-based system
   const fset = buildSkillFactoriesForUnit(u);
   const viable = fset.filter(f=>f.cond());
   if(viable.length===0) return null;
@@ -3854,6 +3985,14 @@ function summarizeNegatives(u){
   if(u._stanceType && u._stanceTurns>0){
     parts.push(u._stanceType==='defense' ? `防御姿态(${u._stanceTurns})` : `反伤姿态(${u._stanceTurns})`);
   }
+  // Display blade light stacks
+  const bladeLight = bladeLightStacks.get(u.id) || 0;
+  if(bladeLight > 0) parts.push(`刀光x${bladeLight}`);
+  // Display corrosion stacks
+  const corrosion = corrosionStacks.get(u.id) || 0;
+  if(corrosion > 0) parts.push(`腐蚀x${corrosion}`);
+  // Display vulnerability stacks
+  if(u._vulnerabilityStacks && u._vulnerabilityStacks > 0) parts.push(`脆弱x${u._vulnerabilityStacks}`);
   // Display equipped accessory
   if(u.side === 'player'){
     const equipped = loadEquippedAccessories();
@@ -3876,8 +4015,8 @@ function summarizeNegatives(u){
 function renderStatus(){
   if(!partyStatus) return;
   partyStatus.innerHTML='';
-  for(const id of ['adora','dario','karma']){
-    const u=units[id]; if(!u) continue;
+  for(const id of ['karma','adora','dario']){
+    const u=units[id]; if(!u || u.hp<=0) continue;
     const el=document.createElement('div'); el.className='partyRow';
     el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${summarizeNegatives(u)}`;
     partyStatus.appendChild(el);
@@ -4379,6 +4518,15 @@ function processUnitsTurnEnd(side){
       updateStatusStacks(u,'stunned', next, {label:'眩晕', type:'debuff'});
       appendLog(`${u.name} 的眩晕减少 1（剩余 ${u.status.stunned}）`);
     }
+    // Reduce vulnerability stacks at turn end
+    if(u._vulnerabilityStacks && u._vulnerabilityStacks > 0){
+      u._vulnerabilityStacks = Math.max(0, u._vulnerabilityStacks - 1);
+      if(u._vulnerabilityStacks > 0){
+        appendLog(`${u.name} 的脆弱减少 1（剩余 ${u._vulnerabilityStacks}）`);
+      } else {
+        appendLog(`${u.name} 的脆弱已消除`);
+      }
+    }
   }
 }
 function applyEndOfRoundPassives(){
@@ -4407,13 +4555,31 @@ function finishEnemyTurn(){
   // Lirathe Battle: Spawn Adora and Dario phantoms on turn 2
   if(roundsPassed === 2){
     appendLog("=== 第2回合：Adora和Dario的虚影出现！ ===");
-    const adora = units["adora"];
-    const dario = units["dario"];
-    if(adora && dario){
-      // Mark them as phantoms (same stats, just narrative difference)
-      adora._isPhantom = true;
-      dario._isPhantom = true;
-      appendLog("Adora（虚影）和 Dario（虚影）加入战斗！");
+    
+    const karma = units["karma"];
+    if(karma && karma.hp > 0){
+      // Create Adora phantom to the left of Karma (上)
+      const adoraR = karma.r - 1;  // One row above
+      const adoraC = karma.c;
+      if(adoraR >= 1 && !getUnitAt(adoraR, adoraC)){
+        units['adora'] = createUnit('adora','Adora（虚影）','player',50, adoraR, adoraC, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+        units['adora']._isPhantom = true;
+        appendLog(`Adora（虚影）出现在 Karma 上方！`);
+      }
+      
+      // Create Dario phantom to the right of Karma (下)
+      const darioR = karma.r + 1;  // One row below
+      const darioC = karma.c;
+      if(darioR <= ROWS && !getUnitAt(darioR, darioC)){
+        units['dario'] = createUnit('dario','Dario（虚影）','player',50, darioR, darioC, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+        units['dario']._isPhantom = true;
+        appendLog(`Dario（虚影）出现在 Karma 下方！`);
+      }
+      
+      // Give them starting skills
+      if(units['adora']) ensureStartHand(units['adora']);
+      if(units['dario']) ensureStartHand(units['dario']);
+      
       renderAll();
     }
   }
@@ -4880,8 +5046,9 @@ function showAccomplish(){
   if(damageSummary){
     damageSummary.innerHTML='';
     const wrap=document.createElement('div'); wrap.className='acctable';
-    for(const id of ['adora','dario','karma']){
+    for(const id of ['karma','adora','dario']){
       const u=units[id];
+      if(!u) continue;  // Skip if unit doesn't exist
       const row=document.createElement('div'); row.className='row';
       row.innerHTML=`<strong>${u.name}</strong><div class="small">造成伤害: ${u.dmgDone}，受到: ${u.maxHp - u.hp}</div>`;
       wrap.appendChild(row);
