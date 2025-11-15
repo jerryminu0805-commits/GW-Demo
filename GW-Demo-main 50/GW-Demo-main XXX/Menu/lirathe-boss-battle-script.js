@@ -202,10 +202,11 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
-// 玩家
-units['adora'] = createUnit('adora','Adora','player',50, 4, 22, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
-units['dario'] = createUnit('dario','Dario','player',50, 2, 22, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+// 玩家 - 旧情未了关卡只有Karma开始
 units['karma'] = createUnit('karma','Karma','player',50, 5, 22, 200,50, 0.5,20, ['violentAddiction','toughBody','pride']);
+
+// Adora和Dario将在第2回合时作为虚影出现
+// units['adora'] and units['dario'] will be created at turn 2
 
 // 疲惫的极限 Boss
 // 旧情未了 Boss - Phase 1
@@ -3968,8 +3969,8 @@ function summarizeNegatives(u){
 function renderStatus(){
   if(!partyStatus) return;
   partyStatus.innerHTML='';
-  for(const id of ['adora','dario','karma']){
-    const u=units[id]; if(!u) continue;
+  for(const id of ['karma','adora','dario']){
+    const u=units[id]; if(!u || u.hp<=0) continue;
     const el=document.createElement('div'); el.className='partyRow';
     el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${summarizeNegatives(u)}`;
     partyStatus.appendChild(el);
@@ -4508,13 +4509,31 @@ function finishEnemyTurn(){
   // Lirathe Battle: Spawn Adora and Dario phantoms on turn 2
   if(roundsPassed === 2){
     appendLog("=== 第2回合：Adora和Dario的虚影出现！ ===");
-    const adora = units["adora"];
-    const dario = units["dario"];
-    if(adora && dario){
-      // Mark them as phantoms (same stats, just narrative difference)
-      adora._isPhantom = true;
-      dario._isPhantom = true;
-      appendLog("Adora（虚影）和 Dario（虚影）加入战斗！");
+    
+    const karma = units["karma"];
+    if(karma && karma.hp > 0){
+      // Create Adora phantom to the left of Karma (上)
+      const adoraR = karma.r - 1;  // One row above
+      const adoraC = karma.c;
+      if(adoraR >= 1 && !getUnitAt(adoraR, adoraC)){
+        units['adora'] = createUnit('adora','Adora（虚影）','player',50, adoraR, adoraC, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff']);
+        units['adora']._isPhantom = true;
+        appendLog(`Adora（虚影）出现在 Karma 上方！`);
+      }
+      
+      // Create Dario phantom to the right of Karma (下)
+      const darioR = karma.r + 1;  // One row below
+      const darioC = karma.c;
+      if(darioR <= ROWS && !getUnitAt(darioR, darioC)){
+        units['dario'] = createUnit('dario','Dario（虚影）','player',50, darioR, darioC, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost']);
+        units['dario']._isPhantom = true;
+        appendLog(`Dario（虚影）出现在 Karma 下方！`);
+      }
+      
+      // Give them starting skills
+      if(units['adora']) ensureStartHand(units['adora']);
+      if(units['dario']) ensureStartHand(units['dario']);
+      
       renderAll();
     }
   }
@@ -4981,8 +5000,9 @@ function showAccomplish(){
   if(damageSummary){
     damageSummary.innerHTML='';
     const wrap=document.createElement('div'); wrap.className='acctable';
-    for(const id of ['adora','dario','karma']){
+    for(const id of ['karma','adora','dario']){
       const u=units[id];
+      if(!u) continue;  // Skip if unit doesn't exist
       const row=document.createElement('div'); row.className='row';
       row.innerHTML=`<strong>${u.name}</strong><div class="small">造成伤害: ${u.dmgDone}，受到: ${u.maxHp - u.hp}</div>`;
       wrap.appendChild(row);
