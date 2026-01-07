@@ -3378,6 +3378,15 @@ function renderCharacterSection(section, characterId) {
   });
 
   const container = document.querySelector('.detail-content');
+  let skillSelectionScroll = null;
+  if (section === 'skillSelection') {
+    const slots = container.querySelector('.skill-slots-container');
+    const library = container.querySelector('.skill-library-container');
+    skillSelectionScroll = {
+      slots: slots ? slots.scrollTop : 0,
+      library: library ? library.scrollTop : 0,
+    };
+  }
   container.innerHTML = '';
 
   if (section === 'bio') {
@@ -3398,6 +3407,12 @@ function renderCharacterSection(section, characterId) {
     renderAccessoriesSection(container);
   } else if (section === 'skillSelection') {
     renderSkillSelectionSection(container, characterId);
+    if (skillSelectionScroll) {
+      const slots = container.querySelector('.skill-slots-container');
+      const library = container.querySelector('.skill-library-container');
+      if (slots) slots.scrollTop = skillSelectionScroll.slots;
+      if (library) library.scrollTop = skillSelectionScroll.library;
+    }
   } else {
     const header = document.createElement('h3');
     header.textContent = data.name;

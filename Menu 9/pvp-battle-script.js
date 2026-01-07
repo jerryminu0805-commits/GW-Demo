@@ -207,6 +207,8 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
       affirmationStacks: 0,      // "肯定"Buff 层数（免疫一次SP伤害，多阶段攻击全阶段免疫，消耗一层）
     },
     dmgDone: 0,
+    dmgTaken: 0,
+    healDone: 0,
     skillPool: [],
     passives: passives.slice(),
     actionsThisTurn: 0,
@@ -238,6 +240,20 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
+
+function recordDamageTaken(u, amount){
+  if(!u || amount<=0) return;
+  if(typeof u.dmgTaken !== 'number') u.dmgTaken = 0;
+  u.dmgTaken += amount;
+}
+function recordHealing(sourceId, amount){
+  const hpAmount = Math.max(0, Math.round(amount || 0));
+  if(!sourceId || hpAmount<=0) return;
+  const src = units[sourceId];
+  if(!src) return;
+  if(typeof src.healDone !== 'number') src.healDone = 0;
+  src.healDone += hpAmount;
+}
 // 玩家1
 units['adora'] = createUnit('adora','Adora','player',70, 7, 3, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff'], {stunThreshold:2});
 units['dario'] = createUnit('dario','Dario','player',70, 4, 4, 150,100, 0.75,0, ['quickAdjust','counter','moraleBoost'], {stunThreshold:2});
@@ -1999,6 +2015,7 @@ function applySpDamage(targetOrId, amount, {sourceId=null, reason=null}={}){
   u.sp = Math.max(0, u.sp - amount);
   const delta = before - u.sp;
   if(delta>0){
+    recordDamageTaken(u, delta);
     showDamageFloat(u,0,delta);
     if(reason){ appendLog(reason.replace('{delta}', String(delta))); }
     handleSpCrashIfNeeded(u);
@@ -2181,6 +2198,9 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
   const died = prevHp > 0 && u.hp <= 0;
 
   const totalImpact = finalHp + finalSp;
+  if(totalImpact > 0){
+    recordDamageTaken(u, totalImpact);
+  }
   const heavyHit = trueDamage || totalImpact >= 40 || finalHp >= Math.max(18, Math.round(u.maxHp * 0.3));
   appendLog(`${reason} (-${finalHp} HP, -${finalSp} SP)`);
   cameraShake(heavyHit ? 'heavy' : 'normal');
@@ -2586,6 +2606,9 @@ function adoraBloom(u){
       if(gainedHp > 0 || gainedSp > 0){
         showGainFloat(ally, gainedHp, gainedSp);
         showSkillFx('adora:绽放（红色）·治疗', {target: ally});
+        if(gainedHp > 0){
+          recordHealing(u.id, gainedHp);
+        }
         if(ally.id === u.id){
           adoraHpGained += gainedHp;
           adoraSpGained += gainedSp;
@@ -2804,6 +2827,7 @@ function adoraFieldMedic(u, aim){
   appendLog(`${u.name} 对 ${t.name} 使用 略懂的医术！：+20HP +15SP，并赋予“恢复”(${stacks})`);
   showGainFloat(t,t.hp-hpBefore,t.sp-spBefore);
   showSkillFx('adora:略懂的医术！',{target:t});
+  recordHealing(u.id, t.hp - hpBefore);
   unitActed(u);
 }
 // Karma：深呼吸（25级，白色）
@@ -2814,6 +2838,7 @@ function karmaDeepBreath(u){
   appendLog(`${u.name} 使用 深呼吸：SP回满，+10HP（被动+10%仅在手牌中未被使用时生效）`);
   showGainFloat(u,u.hp-hpBefore,u.sp-spBefore);
   showSkillFx('karma:深呼吸',{target:u});
+  recordHealing(u.id, u.hp - hpBefore);
   unitActed(u);
 }
 function karmaAdrenaline(u){
@@ -2827,6 +2852,7 @@ function karmaAdrenaline(u){
   appendLog(`${u.name} 使用 肾上腺素：获得 鸡血+1，恢复 15HP 与 5SP`);
   showGainFloat(u, u.hp-hpBefore, u.sp-spBefore);
   showSkillFx('karma:肾上腺素', {target:u});
+  recordHealing(u.id, u.hp - hpBefore);
 
   const adrenalineSkill = (u.skillPool || []).find(s => s && s.name === '肾上腺素');
   if(adrenalineSkill){ adrenalineSkill._used = true; }
@@ -3024,7 +3050,9 @@ async function katz_MustErase(u, desc){
       }
     }
     if(hits>0){
-      u.hp = Math.max(1, u.hp - 5); showDamageFloat(u,5,0);
+      u.hp = Math.max(1, u.hp - 5);
+      recordDamageTaken(u, 5);
+      showDamageFloat(u,5,0);
       u.sp = Math.min(u.maxSp, u.sp + 5); syncSpBroken(u); showGainFloat(u,0,5);
       await stageMark(cells);
     }
@@ -3209,6 +3237,7 @@ async function neyla_ExecuteHarpoons(u, desc){
       lostHp = before - u.hp;
       if(lostHp>0){
         appendLog(`${u.name} ${stageLabel} 反噬：HP -${lostHp}`);
+        recordDamageTaken(u, lostHp);
         showDamageFloat(u, lostHp, 0);
         pulseCell(u.r, u.c);
         if(before>0 && u.hp<=0){ showDeathFx(u); }
@@ -3990,6 +4019,7 @@ function showGodsWillMenuAtUnit(u){
     const before = u.hp;
     u.hp = 0;
     appendLog(`GOD’S WILL：${u.name} 被直接抹除（-${before} HP）`);
+    recordDamageTaken(u, before);
     cameraShake('heavy');
     showAttackFx({target: u, trueDamage: true, heavy: true});
     showDamageFloat(u,before,0);
@@ -4004,6 +4034,7 @@ function showGodsWillMenuAtUnit(u){
       const delta = u.hp - 1;
       u.hp = 1;
       appendLog(`GOD’S WILL：${u.name} 被压到 1 HP（-${delta} HP）`);
+      recordDamageTaken(u, delta);
       const heavy = delta >= Math.max(18, Math.round(u.maxHp * 0.3));
       cameraShake(heavy ? 'heavy' : 'normal');
       showAttackFx({target: u, heavy, trueDamage: true});
@@ -4608,6 +4639,7 @@ function applyAccessoryEffects(u, side) {
     u.sp = Math.min(u.maxSp, u.sp + 15);
     syncSpBroken(u); showGainFloat(u, u.hp - beforeHp, u.sp - beforeSp);
     appendLog(`${u.name} 的"绷带"：+15HP +15SP`);
+    recordHealing(u.id, u.hp - beforeHp);
     const currentStacks = u.status.recoverStacks || 0;
     updateStatusStacks(u, "recoverStacks", currentStacks + 1, { label: "恢复", type: "buff" });
   }
@@ -4725,6 +4757,7 @@ function processUnitsTurnStart(side){
         const heal = Math.max(1, Math.floor(u.maxHp*0.05));
         u.hp = Math.min(u.maxHp, u.hp + heal);
         appendLog(`Haz 因SP恢复同时回复 ${heal} HP`); showGainFloat(u,heal,0);
+        recordHealing(u.id, heal);
       }
     }
 
@@ -4735,6 +4768,7 @@ function processUnitsTurnStart(side){
       u.status.recoverStacks = Math.max(0, u.status.recoverStacks - 1);
       showGainFloat(u,u.hp-before,0);
       appendLog(`${u.name} 的“恢复”触发：+5HP（剩余 ${u.status.recoverStacks}）`);
+      recordHealing(u.id, u.hp - before);
     }
 
     if(u.status.bleed && u.status.bleed>0){
@@ -4795,6 +4829,7 @@ function applyEndOfRoundPassives(){
         syncSpBroken(v);
         appendLog(`Adora 邻近治疗：为 ${v.name} 恢复 ${heal} HP 和 5 SP`);
         showGainFloat(v,heal,5);
+        recordHealing(adora.id, heal);
       }
     }
   }
@@ -5213,60 +5248,70 @@ async function enemyTurn(){
 function checkWin(){
   const enemiesAlive = Object.values(units).some(u=>u.side==='enemy' && u.hp>0);
   const playersAlive = Object.values(units).some(u=>u.side==='player' && u.hp>0);
-  if(!enemiesAlive){ showAccomplish(); return true; }
-  if(!playersAlive){ 
-    appendLog('全灭，失败');
-    showDefeatScreen();
-    return true; 
+  if(!enemiesAlive){ showDuoResult('player'); return true; }
+  if(!playersAlive){
+    appendLog('玩家1 全灭，玩家2 胜利');
+    showDuoResult('enemy');
+    return true;
   }
   return false;
 }
-function showAccomplish(){
+function buildSummaryColumn(title, list){
+  const column = document.createElement('div');
+  column.className = 'duo-summary-column';
+  const header = document.createElement('div');
+  header.className = 'duo-summary-title';
+  header.textContent = title;
+  column.appendChild(header);
+
+  list.forEach(u=>{
+    const row = document.createElement('div');
+    row.className = 'duo-summary-row';
+    row.innerHTML = `
+      <div class="duo-summary-name">${u.name}</div>
+      <div class="duo-summary-stats">
+        <span>造成伤害: ${u.dmgDone || 0}</span>
+        <span>受到伤害: ${u.dmgTaken || 0}</span>
+        <span>奶量: ${u.healDone || 0}</span>
+      </div>
+    `;
+    column.appendChild(row);
+  });
+
+  return column;
+}
+function showDuoResult(winnerSide){
   if(!accomplish) return;
   // Stop Boss BGM on victory
   stopBossBGM();
   accomplish.classList.remove('hidden');
+  const modalContent = accomplish.querySelector('.modal-content');
+  const titleEl = modalContent ? modalContent.querySelector('h2') : null;
+  if(titleEl){
+    titleEl.textContent = winnerSide === 'player' ? '玩家1胜' : '玩家2胜';
+  }
   if(damageSummary){
     damageSummary.innerHTML='';
-    const wrap=document.createElement('div'); wrap.className='acctable';
-    for(const id of ['adora','dario','karma']){
-      const u=units[id];
-      const row=document.createElement('div'); row.className='row';
-      row.innerHTML=`<strong>${u.name}</strong><div class="small">造成伤害: ${u.dmgDone}，受到: ${u.maxHp - u.hp}</div>`;
-      wrap.appendChild(row);
-    }
+    const wrap=document.createElement('div'); wrap.className='duo-summary';
+    const playerUnits = Object.values(units).filter(u=>u.side==='player');
+    const enemyUnits = Object.values(units).filter(u=>u.side==='enemy');
+    wrap.appendChild(buildSummaryColumn('玩家1', playerUnits));
+    wrap.appendChild(buildSummaryColumn('玩家2', enemyUnits));
     damageSummary.appendChild(wrap);
   }
   const btn=document.getElementById('confirmBtn');
-  if(btn) btn.onclick=()=>{ 
+  if(btn){
+    btn.textContent = '返回关卡';
+    btn.onclick=()=>{ 
     accomplish.classList.add('hidden'); 
-    appendLog('通关!'); 
-    
-    // Award coins for completing sevenSeas stage
-    if (typeof localStorage !== 'undefined') {
-      const STORAGE_KEY_COINS = 'gwdemo_coins';
-      const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
-      
-      // Load current coins and completions
-      const currentCoins = parseInt(localStorage.getItem(STORAGE_KEY_COINS) || '0', 10);
-      const completions = JSON.parse(localStorage.getItem(STORAGE_KEY_STAGE_COMPLETIONS) || '{"intro":0,"abandonedAnimals":0,"fatigue":0,"sevenSeas":0}');
-      
-      // Increment sevenSeas completions
-      completions.sevenSeas = (completions.sevenSeas || 0) + 1;
-      localStorage.setItem(STORAGE_KEY_STAGE_COMPLETIONS, JSON.stringify(completions));
-      
-      // Award 1 coin
-      const newCoins = currentCoins + 1;
-      localStorage.setItem(STORAGE_KEY_COINS, newCoins.toString());
-      
-      appendLog('获得 1 币！（总计: ' + newCoins + ' 币）');
-    }
-    
-    // Return to stage selection after victory
+    appendLog('战斗结束'); 
+
+    // Return to stage selection
     setTimeout(() => {
       requestReturnToMenu();
     }, 500);
   };
+  }
 }
 function showDefeatScreen(){
   // Stop Boss BGM on defeat
