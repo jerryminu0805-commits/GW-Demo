@@ -1878,7 +1878,7 @@ body {
 
 .duo-mode-panel {
   position: relative;
-  background: rgba(7, 9, 16, 0.72);
+  background: rgba(20, 26, 44, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 32px;
@@ -1887,7 +1887,11 @@ body {
 }
 
 .duo-mode-panel h2 {
-  margin: 0 0 20px 0;
+  margin: 0;
+  position: absolute;
+  top: 24px;
+  left: 32px;
+  z-index: 2;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   font-family: var(--font-display);
@@ -1917,9 +1921,12 @@ body {
 
 .duo-stage {
   display: none;
-  position: relative;
+  position: absolute;
+  inset: 0;
+  padding: 76px 24px 24px;
   min-height: 60vh;
   pointer-events: none;
+  overflow-y: auto;
 }
 
 .duo-stage.active {
