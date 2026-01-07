@@ -3602,6 +3602,541 @@ function initTutorialBoard() {
   renderTutorial('basics');
 }
 
+const duoConfig = {
+  cols: 17,
+  rows: 13,
+  covers: [
+    [4, 3], [5, 3], [5, 4], [5, 5],
+    [4, 11], [5, 11], [5, 10], [5, 9],
+    [9, 1], [9, 2],
+    [9, 12], [9, 13],
+    [13, 3], [14, 3], [13, 4], [13, 5],
+    [13, 11], [14, 11], [13, 10], [13, 9],
+  ],
+  coverRect: { xStart: 8, xEnd: 10, yStart: 6, yEnd: 8 },
+  playerUnits: [
+    { id: 'adora', label: 'Adora', side: 'player1', x: 3, y: 7 },
+    { id: 'dario', label: 'Dario', side: 'player1', x: 4, y: 4 },
+    { id: 'karma', label: 'Karma', side: 'player1', x: 4, y: 10 },
+    { id: 'adora', label: 'Adora', side: 'player2', x: 15, y: 7 },
+    { id: 'dario', label: 'Dario', side: 'player2', x: 14, y: 4 },
+    { id: 'karma', label: 'Karma', side: 'player2', x: 14, y: 10 },
+  ],
+};
+
+const duoState = {
+  confirm: { 1: false, 2: false },
+  players: {},
+  roll: { left: null, right: null },
+};
+
+function createEmptyDuoSelection() {
+  return {
+    green: null,
+    blue: null,
+    pink: null,
+    white: null,
+    red: null,
+    orange: [null, null],
+  };
+}
+
+function createDuoPlayerState() {
+  return {
+    activeCharacter: 'adora',
+    selections: {
+      adora: createEmptyDuoSelection(),
+      karma: createEmptyDuoSelection(),
+      dario: createEmptyDuoSelection(),
+    },
+  };
+}
+
+function createDuoSkillCard(skill, isSelected) {
+  const card = createSkillCard(skill, isSelected);
+  card.classList.add('duo-skill-card');
+  return card;
+}
+
+function createDuoAudio(fileName, volume = 0.7) {
+  const src = encodeURI(fileName);
+  const audio = new Audio(src);
+  audio.volume = clampAudioVolume(volume);
+  return audio;
+}
+
+function initDuoMode() {
+  const duoButton = document.querySelector('.duo-mode-btn');
+  const duoScreen = document.querySelector('.screen-duo');
+  if (!duoButton || !duoScreen) return;
+
+  const confirmStage = duoScreen.querySelector('.duo-confirmation');
+  const transitionStage = duoScreen.querySelector('.duo-transition');
+  const transitionText = duoScreen.querySelector('.duo-transition-text');
+  const skillStages = {
+    1: duoScreen.querySelector('.duo-skill-screen[data-player="1"]'),
+    2: duoScreen.querySelector('.duo-skill-screen[data-player="2"]'),
+  };
+  const battleStage = duoScreen.querySelector('.duo-battle-stage');
+  const confirmButtons = duoScreen.querySelectorAll('.duo-confirm-btn');
+  const skillConfirmButtons = duoScreen.querySelectorAll('.duo-skill-confirm');
+  const rollOverlay = duoScreen.querySelector('.duo-roll-overlay');
+  const rollMessage = duoScreen.querySelector('.duo-roll-message');
+  const rollButtons = duoScreen.querySelectorAll('.duo-roll-btn');
+  const rollNumbers = duoScreen.querySelectorAll('.duo-roll-number');
+  const battleGrid = duoScreen.querySelector('.duo-battle-grid');
+
+  let duoPrepAudio = null;
+
+  function setDuoStage(activeStage) {
+    [confirmStage, transitionStage, skillStages[1], skillStages[2], battleStage].forEach((stage) => {
+      if (!stage) return;
+      stage.classList.toggle('active', stage === activeStage);
+      stage.setAttribute('aria-hidden', stage !== activeStage ? 'true' : 'false');
+    });
+  }
+
+  function showTransition(text, onComplete) {
+    if (!transitionStage || !transitionText) return;
+    transitionText.textContent = text;
+    setDuoStage(transitionStage);
+    transitionStage.classList.remove('animate');
+    void transitionStage.offsetWidth;
+    transitionStage.classList.add('animate');
+    window.setTimeout(() => {
+      transitionStage.classList.remove('animate');
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    }, 3100);
+  }
+
+  function playDuoPrepAudio() {
+    if (!duoPrepAudio) {
+      duoPrepAudio = createDuoAudio('DuoPrep.mp3', 0.6);
+    }
+    duoPrepAudio.loop = true;
+    duoPrepAudio.play().catch(() => {});
+  }
+
+  function stopDuoPrepAudio() {
+    if (!duoPrepAudio) return;
+    try {
+      duoPrepAudio.pause();
+      duoPrepAudio.currentTime = 0;
+    } catch (error) {
+      console.warn('Failed to stop duo prep audio:', error);
+    }
+  }
+
+  function resetDuoState() {
+    duoState.confirm = { 1: false, 2: false };
+    duoState.players = {
+      1: createDuoPlayerState(),
+      2: createDuoPlayerState(),
+    };
+    duoState.roll = { left: null, right: null };
+    confirmButtons.forEach((btn) => btn.classList.remove('confirmed'));
+    setDuoStage(confirmStage);
+    renderDuoSkillScreen(1);
+    renderDuoSkillScreen(2);
+    setupDuoBattleGrid();
+    resetRollStage();
+  }
+
+  function spawnExplosion(button, color) {
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    const parentRect = confirmStage.getBoundingClientRect();
+    const explosion = document.createElement('div');
+    explosion.className = `duo-explosion ${color}`;
+    explosion.style.left = `${rect.left - parentRect.left + rect.width / 2 - 60}px`;
+    explosion.style.top = `${rect.top - parentRect.top + rect.height / 2 - 60}px`;
+    confirmStage.appendChild(explosion);
+    window.setTimeout(() => explosion.remove(), 800);
+  }
+
+  function handleConfirmClick(event) {
+    const btn = event.currentTarget;
+    const playerId = btn.dataset.player;
+    if (!playerId || duoState.confirm[playerId]) return;
+    duoState.confirm[playerId] = true;
+    btn.classList.add('confirmed');
+    const color = playerId === '1' ? 'blue' : 'red';
+    spawnExplosion(btn, color);
+    const audioName = playerId === '1' ? '确认1.mp3' : '确认2.mp3';
+    const confirmAudio = createDuoAudio(audioName, 0.8);
+    confirmAudio.play().catch(() => {});
+
+    if (duoState.confirm[1] && duoState.confirm[2]) {
+      showTransition('玩家1选择技能', () => {
+        setDuoStage(skillStages[1]);
+      });
+    }
+  }
+
+  function renderDuoSkillScreen(playerId) {
+    const screen = skillStages[playerId];
+    if (!screen) return;
+    const state = duoState.players[playerId];
+    const tabs = screen.querySelector('.duo-character-tabs');
+    const portraitImg = screen.querySelector('.duo-portrait-image');
+    const slotsContainer = screen.querySelector('.duo-skill-slots');
+    const libraryContainer = screen.querySelector('.duo-skill-library');
+
+    if (!state || !tabs || !slotsContainer || !libraryContainer) return;
+
+    tabs.innerHTML = '';
+    ['adora', 'dario', 'karma'].forEach((characterId) => {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = `duo-character-tab${state.activeCharacter === characterId ? ' active' : ''}`;
+      tab.dataset.character = characterId;
+      tab.textContent = characterData[characterId].name;
+      tab.addEventListener('click', () => {
+        state.activeCharacter = characterId;
+        renderDuoSkillScreen(playerId);
+      });
+      tabs.appendChild(tab);
+    });
+
+    const activeCharacter = state.activeCharacter;
+    if (portraitImg) {
+      applyPortraitImage(portraitImg, characterData[activeCharacter]);
+    }
+
+    slotsContainer.innerHTML = '';
+    libraryContainer.innerHTML = '';
+
+    const selection = state.selections[activeCharacter];
+    const skills = skillLibrary[activeCharacter] || [];
+
+    const slotsWrapper = document.createElement('div');
+    slotsWrapper.className = 'skill-slots-container';
+
+    const slotColors = [
+      { color: 'green', label: '绿色', limit: 1 },
+      { color: 'blue', label: '蓝色', limit: 1 },
+      { color: 'pink', label: '粉色', limit: 1 },
+      { color: 'white', label: '白色', limit: 1 },
+      { color: 'red', label: '红色', limit: 1 },
+      { color: 'orange', label: '橙色', limit: 2 },
+    ];
+
+    slotColors.forEach(({ color, label, limit }) => {
+      const slotGroup = document.createElement('div');
+      slotGroup.className = 'skill-slot-group';
+
+      const slotHeader = document.createElement('div');
+      slotHeader.className = 'skill-slot-header';
+      slotHeader.innerHTML = `<span class="skill-badge skill-${color}">${label}</span> <span class="slot-limit">(最多 ${limit} 个)</span>`;
+      slotGroup.appendChild(slotHeader);
+
+      const slots = document.createElement('div');
+      slots.className = 'skill-slots';
+
+      for (let i = 0; i < limit; i += 1) {
+        const slot = document.createElement('div');
+        slot.className = 'skill-slot';
+        slot.dataset.player = playerId;
+        slot.dataset.color = color;
+        slot.dataset.slotIndex = i;
+
+        const selectedId = color === 'orange' ? selection.orange[i] : selection[color];
+        const selectedSkill = selectedId ? skills.find((skill) => skill.id === selectedId) : null;
+
+        if (selectedSkill) {
+          slot.appendChild(createDuoSkillCard(selectedSkill, true));
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'empty-skill-slot';
+          empty.textContent = '拖放技能到此处';
+          slot.appendChild(empty);
+        }
+        slots.appendChild(slot);
+      }
+
+      slotGroup.appendChild(slots);
+      slotsWrapper.appendChild(slotGroup);
+    });
+
+    slotsContainer.appendChild(slotsWrapper);
+
+    const libraryHeader = document.createElement('h4');
+    libraryHeader.textContent = '技能库';
+    libraryContainer.appendChild(libraryHeader);
+
+    const skillsByColor = {};
+    skills.forEach((skill) => {
+      if (!skillsByColor[skill.color]) {
+        skillsByColor[skill.color] = [];
+      }
+      skillsByColor[skill.color].push(skill);
+    });
+
+    const colorLabels = {
+      green: '绿色',
+      blue: '蓝色',
+      pink: '粉色',
+      white: '白色',
+      red: '红色',
+      orange: '橙色',
+      gray: '灰色',
+    };
+
+    Object.entries(skillsByColor).forEach(([color, list]) => {
+      const group = document.createElement('div');
+      group.className = 'skill-color-group';
+
+      const header = document.createElement('div');
+      header.className = 'skill-color-header';
+      header.innerHTML = `<span class="skill-badge skill-${color}">${colorLabels[color] || color}</span>`;
+      group.appendChild(header);
+
+      const skillsList = document.createElement('div');
+      skillsList.className = 'skills-list';
+      list.forEach((skill) => {
+        skillsList.appendChild(createDuoSkillCard(skill, false));
+      });
+      group.appendChild(skillsList);
+      libraryContainer.appendChild(group);
+    });
+
+    setupDuoSkillInteractions(screen, playerId, activeCharacter);
+  }
+
+  function setupDuoSkillInteractions(container, playerId, characterId) {
+    let draggedSkillId = null;
+    let draggedFromSlot = null;
+    let dropSuccessful = false;
+
+    const state = duoState.players[playerId];
+    const selection = state.selections[characterId];
+
+    const clearSkillFromSelection = (skillId) => {
+      ['green', 'blue', 'pink', 'white', 'red'].forEach((color) => {
+        if (selection[color] === skillId) {
+          selection[color] = null;
+        }
+      });
+      selection.orange = selection.orange.map((id) => (id === skillId ? null : id));
+    };
+
+    const removeFromSlot = (slot) => {
+      if (!slot) return;
+      const color = slot.dataset.color;
+      const slotIndex = Number(slot.dataset.slotIndex);
+      if (color === 'orange') {
+        selection.orange[slotIndex] = null;
+      } else {
+        selection[color] = null;
+      }
+    };
+
+    container.querySelectorAll('.duo-skill-card').forEach((card) => {
+      card.addEventListener('dragstart', () => {
+        draggedSkillId = card.dataset.skillId;
+        draggedFromSlot = card.closest('.skill-slot');
+        dropSuccessful = false;
+        card.classList.add('dragging');
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        if (draggedFromSlot && !dropSuccessful) {
+          removeFromSlot(draggedFromSlot);
+          renderDuoSkillScreen(playerId);
+        }
+        draggedSkillId = null;
+        draggedFromSlot = null;
+        dropSuccessful = false;
+      });
+
+      card.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        const skill = findSkillById(card.dataset.skillId, characterId);
+        if (skill) {
+          showSkillDescription(skill, event.pageX, event.pageY);
+        }
+      });
+    });
+
+    container.querySelectorAll('.skill-slot').forEach((slot) => {
+      slot.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        slot.classList.add('drag-over');
+      });
+
+      slot.addEventListener('dragleave', () => {
+        slot.classList.remove('drag-over');
+      });
+
+      slot.addEventListener('drop', (event) => {
+        event.preventDefault();
+        slot.classList.remove('drag-over');
+        if (!draggedSkillId) return;
+
+        const skill = findSkillById(draggedSkillId, characterId);
+        if (!skill) return;
+        const slotColor = slot.dataset.color;
+        if (skill.color !== slotColor) {
+          showToast('技能颜色不匹配');
+          return;
+        }
+
+        if (draggedFromSlot) {
+          removeFromSlot(draggedFromSlot);
+        }
+
+        clearSkillFromSelection(draggedSkillId);
+        const slotIndex = Number(slot.dataset.slotIndex);
+        if (slotColor === 'orange') {
+          selection.orange[slotIndex] = draggedSkillId;
+        } else {
+          selection[slotColor] = draggedSkillId;
+        }
+
+        dropSuccessful = true;
+        renderDuoSkillScreen(playerId);
+      });
+    });
+  }
+
+  function setupDuoBattleGrid() {
+    if (!battleGrid) return;
+    battleGrid.innerHTML = '';
+
+    const coverSet = new Set(duoConfig.covers.map(([x, y]) => `${x},${y}`));
+    for (let y = duoConfig.coverRect.yStart; y <= duoConfig.coverRect.yEnd; y += 1) {
+      for (let x = duoConfig.coverRect.xStart; x <= duoConfig.coverRect.xEnd; x += 1) {
+        coverSet.add(`${x},${y}`);
+      }
+    }
+
+    const unitMap = new Map();
+    duoConfig.playerUnits.forEach((unit) => {
+      unitMap.set(`${unit.x},${unit.y}`, unit);
+    });
+
+    for (let y = 1; y <= duoConfig.rows; y += 1) {
+      for (let x = 1; x <= duoConfig.cols; x += 1) {
+        const cell = document.createElement('div');
+        cell.className = 'duo-grid-cell';
+        cell.dataset.x = x;
+        cell.dataset.y = y;
+        if (coverSet.has(`${x},${y}`)) {
+          cell.classList.add('cover');
+        }
+        const unit = unitMap.get(`${x},${y}`);
+        if (unit) {
+          cell.classList.add(unit.side === 'player1' ? 'player1' : 'player2');
+          cell.dataset.label = unit.label;
+        }
+        battleGrid.appendChild(cell);
+      }
+    }
+  }
+
+  function resetRollStage() {
+    if (!rollOverlay || !battleGrid) return;
+    duoState.roll = { left: null, right: null };
+    rollOverlay.classList.remove('hidden');
+    rollMessage.textContent = '';
+    battleGrid.classList.add('blurred');
+    rollButtons.forEach((btn) => {
+      btn.disabled = false;
+    });
+    rollNumbers.forEach((node) => {
+      node.textContent = '-';
+    });
+  }
+
+  function animateRollNumber(target) {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      let delay = 40;
+      const spin = () => {
+        const elapsed = Date.now() - start;
+        target.textContent = Math.floor(Math.random() * 11);
+        if (elapsed >= 1000) {
+          const final = Math.floor(Math.random() * 11);
+          target.textContent = final;
+          resolve(final);
+          return;
+        }
+        delay += 18;
+        setTimeout(spin, delay);
+      };
+      spin();
+    });
+  }
+
+  function handleRoll(side) {
+    if (duoState.roll[side] !== null) return;
+    const target = duoScreen.querySelector(`.duo-roll-number[data-side="${side}"]`);
+    const button = duoScreen.querySelector(`.duo-roll-btn[data-side="${side}"]`);
+    if (button) button.disabled = true;
+    animateRollNumber(target).then((result) => {
+      duoState.roll[side] = result;
+      if (duoState.roll.left !== null && duoState.roll.right !== null) {
+        if (duoState.roll.left === duoState.roll.right) {
+          rollMessage.textContent = '点数相同，再来一次';
+          window.setTimeout(() => {
+            resetRollStage();
+          }, 1200);
+        } else {
+          const winner = duoState.roll.left > duoState.roll.right ? '玩家1' : '玩家2';
+          rollMessage.textContent = `${winner}获得先手`;
+          window.setTimeout(() => {
+            rollOverlay.classList.add('hidden');
+            battleGrid.classList.remove('blurred');
+          }, 1500);
+        }
+      }
+    });
+  }
+
+  confirmButtons.forEach((btn) => {
+    btn.addEventListener('click', handleConfirmClick);
+  });
+
+  skillConfirmButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const playerId = Number(btn.dataset.player);
+      if (playerId === 1) {
+        showTransition('玩家2选择技能', () => {
+          setDuoStage(skillStages[2]);
+        });
+      } else {
+        stopDuoPrepAudio();
+        showTransition('', () => {
+          setDuoStage(battleStage);
+          resetRollStage();
+        });
+      }
+    });
+  });
+
+  rollButtons.forEach((btn) => {
+    btn.addEventListener('click', () => handleRoll(btn.dataset.side));
+  });
+
+  duoButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    resetDuoState();
+    playDuoPrepAudio();
+    transitionTo('duo');
+  });
+
+  const duoBackButton = duoScreen.querySelector('.back-btn');
+  if (duoBackButton) {
+    duoBackButton.addEventListener('click', () => {
+      stopDuoPrepAudio();
+    });
+  }
+}
+
 function bindNavigation() {
   document.querySelectorAll('[data-target]').forEach((btn) => {
     if (btn.classList.contains('menu-btn')) return;
@@ -3649,6 +4184,7 @@ function init() {
   initStageBoard();
   initCharacterBoard();
   initTutorialBoard();
+  initDuoMode();
   bindNavigation();
   loadSevenSeasMapFromFile();
   renderStage('intro');
@@ -4073,8 +4609,6 @@ document.addEventListener('keydown', (event) => {
     requestAnimationFrame(breath);
   }
 })();
-
-
 
 
 
