@@ -3856,6 +3856,23 @@ function drawOneSkill(u){
 }
 function drawSkills(u, n){
   let toDraw = Math.max(0, Math.min(n, SKILLPOOL_MAX - u.skillPool.length));
+  const selectedKeys = getSelectedSkillKeysForUnit(u);
+  if(selectedKeys && selectedKeys.size === 0){
+    return;
+  }
+  if(selectedKeys && selectedKeys.size > 0){
+    const selectedFactories = buildSkillFactoriesForUnit(u);
+    if(selectedFactories.length === 0) return;
+    let index = 0;
+    while(toDraw > 0){
+      const sk = selectedFactories[index % selectedFactories.length].make();
+      u.skillPool.push(sk);
+      index += 1;
+      toDraw -= 1;
+    }
+    if(u.skillPool.length > SKILLPOOL_MAX) u.skillPool.length = SKILLPOOL_MAX;
+    return;
+  }
   while(toDraw>0){ const sk=drawOneSkill(u); if(!sk) break; u.skillPool.push(sk); toDraw--; }
   if(u.skillPool.length > SKILLPOOL_MAX) u.skillPool.length = SKILLPOOL_MAX;
 }
@@ -5287,7 +5304,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   startCameraLoop();
 
   // 掩体（不可进入）
-  addCoverCellTL(4, 3);
   addCoverCellTL(5, 3);
   addCoverCellTL(5, 4);
   addCoverCellTL(5, 5);
