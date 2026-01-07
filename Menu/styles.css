@@ -110,6 +110,12 @@ body {
   margin: 0 auto;
 }
 
+.screen-duo {
+  background: radial-gradient(circle at 20% 20%, rgba(90, 122, 255, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(234, 65, 87, 0.16), transparent 50%),
+    #0a0d16;
+}
+
 .screen-bar {
   display: flex;
   align-items: center;
@@ -1878,12 +1884,13 @@ body {
 
 .duo-mode-panel {
   position: relative;
-  background: rgba(20, 26, 44, 0.88);
+  background: rgba(28, 36, 58, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 32px;
   min-height: 72vh;
   overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
 }
 
 .duo-mode-panel h2 {
