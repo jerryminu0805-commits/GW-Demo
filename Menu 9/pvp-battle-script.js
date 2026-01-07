@@ -5439,7 +5439,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   addCoverCellTL(5, 3);
   addCoverCellTL(5, 4);
   addCoverCellTL(5, 5);
-  addCoverCellTL(3, 4);
+  addCoverCellTL(4, 3);
   addCoverCellTL(4, 11);
   addCoverCellTL(5, 11);
   addCoverCellTL(5, 10);
