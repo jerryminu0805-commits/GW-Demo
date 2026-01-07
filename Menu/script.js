@@ -19,9 +19,72 @@ let currentStageId = 'intro';
 let storyState = null;
 let bgmController = null;
 let stageAmbientController = null;
+let duoPrepController = null;
+let duoBattleController = null;
 
 let currentStoryAudio = null;
 let currentStoryAudioSrc = null;
+
+const duoState = {
+  player1: {
+    confirmed: false,
+    currentCharacter: 'adora',
+    selections: null,
+  },
+  player2: {
+    confirmed: false,
+    currentCharacter: 'adora',
+    selections: null,
+  },
+};
+
+const duoPlayerConfigs = {
+  player1: {
+    screenId: 'duo-player1',
+    transitionLabel: '玩家1选择技能',
+  },
+  player2: {
+    screenId: 'duo-player2',
+    transitionLabel: '玩家2选择技能',
+  },
+};
+
+const duoBattleConfig = {
+  width: 17,
+  height: 13,
+  covers: [
+    [4, 3], [5, 3], [5, 4], [5, 5],
+    [4, 11], [5, 11], [5, 10], [5, 9],
+    [9, 1], [9, 2],
+    [9, 12], [9, 13],
+    [13, 3], [14, 3], [13, 4], [13, 5],
+    [13, 11], [14, 11], [13, 10], [13, 9],
+  ],
+  centralCover: { start: [8, 6], end: [10, 8] },
+  players: {
+    player1: [
+      { id: 'adora', label: 'A', position: [3, 7] },
+      { id: 'dario', label: 'D', position: [4, 4] },
+      { id: 'karma', label: 'K', position: [4, 10] },
+    ],
+    player2: [
+      { id: 'adora', label: 'A', position: [15, 7] },
+      { id: 'dario', label: 'D', position: [14, 4] },
+      { id: 'karma', label: 'K', position: [14, 10] },
+    ],
+  },
+};
+
+const duoBattleState = {
+  rollResults: {
+    player1: null,
+    player2: null,
+  },
+  rolling: {
+    player1: false,
+    player2: false,
+  },
+};
 
 function stopStoryAudio({ reset = true } = {}) {
   const audio = currentStoryAudio || (typeof window !== 'undefined' ? window.storyAudioController : null);
@@ -322,6 +385,62 @@ function unselectSkill(characterId, skillId, color) {
   saveSelectedSkills(selected);
 }
 
+function createEmptySkillSelection() {
+  return { green: null, blue: null, pink: null, white: null, red: null, orange: [null, null] };
+}
+
+function createDuoSelections() {
+  return {
+    adora: createEmptySkillSelection(),
+    karma: createEmptySkillSelection(),
+    dario: createEmptySkillSelection(),
+  };
+}
+
+function resetDuoSelections() {
+  duoState.player1.selections = createDuoSelections();
+  duoState.player2.selections = createDuoSelections();
+}
+
+function clearDuoSkill(playerKey, characterId, skillId) {
+  const selected = duoState[playerKey].selections[characterId];
+  Object.keys(selected).forEach((color) => {
+    if (color === 'orange') {
+      selected.orange = selected.orange.map((slot) => (slot === skillId ? null : slot));
+    } else if (selected[color] === skillId) {
+      selected[color] = null;
+    }
+  });
+}
+
+function selectDuoSkill(playerKey, characterId, skillId, color, slotIndex = null) {
+  const selected = duoState[playerKey].selections[characterId];
+  clearDuoSkill(playerKey, characterId, skillId);
+  if (color === 'orange') {
+    const index = typeof slotIndex === 'number' ? slotIndex : selected.orange.findIndex((slot) => !slot);
+    if (index !== -1 && index < 2) {
+      selected.orange[index] = skillId;
+    }
+  } else {
+    selected[color] = skillId;
+  }
+}
+
+function unselectDuoSkill(playerKey, characterId, skillId, color, slotIndex = null) {
+  const selected = duoState[playerKey].selections[characterId];
+  if (color === 'orange') {
+    if (typeof slotIndex === 'number') {
+      if (selected.orange[slotIndex] === skillId) {
+        selected.orange[slotIndex] = null;
+      }
+    } else {
+      selected.orange = selected.orange.map((slot) => (slot === skillId ? null : slot));
+    }
+  } else if (selected[color] === skillId) {
+    selected[color] = null;
+  }
+}
+
 function resetMaskState() {
   if (!mask) return;
   mask.classList.remove('visible', 'covering', 'revealing');
@@ -333,6 +452,7 @@ function setActiveScreen(screenId) {
     node.classList.toggle('active', key === screenId);
   });
   currentScreen = screenId;
+  handleScreenEnter(screenId);
 }
 
 function transitionTo(targetScreen) {
@@ -388,6 +508,473 @@ function transitionTo(targetScreen) {
   }, 2000);
 
   mask.addEventListener('transitionend', handleCover);
+}
+
+function handleScreenEnter(screenId) {
+  if (screenId === 'duo-confirm') {
+    startDuoMode();
+  }
+  if (screenId === 'duo-player1') {
+    renderDuoSkillScreen('player1');
+  }
+  if (screenId === 'duo-player2') {
+    renderDuoSkillScreen('player2');
+  }
+  if (screenId === 'duo-battle') {
+    renderDuoBattleScene();
+    startDuoRollStage();
+  }
+}
+
+function playOneShotAudio(src, volume = 0.8) {
+  if (!src) return;
+  try {
+    const audio = new Audio(src);
+    audio.volume = clampAudioVolume(volume);
+    audio.play().catch((err) => {
+      console.warn('One-shot audio playback failed:', err);
+    });
+  } catch (error) {
+    console.warn('One-shot audio init failed:', error);
+  }
+}
+
+function startDuoMode() {
+  resetDuoSelections();
+  duoState.player1.confirmed = false;
+  duoState.player2.confirmed = false;
+  duoState.player1.currentCharacter = 'adora';
+  duoState.player2.currentCharacter = 'adora';
+
+  document.querySelectorAll('.duo-confirm-btn').forEach((btn) => {
+    btn.classList.remove('is-confirmed');
+    btn.disabled = false;
+  });
+  document.querySelectorAll('.duo-confirm-slot .duo-explosion').forEach((node) => node.remove());
+
+  duoPrepController = playStoryAudio('DuoPrep.mp3', { volume: 0.65, loop: true, resetMenuBGM: true });
+}
+
+function playDuoTransition(text, onComplete) {
+  const overlay = document.querySelector('.duo-transition');
+  const textEl = overlay ? overlay.querySelector('.duo-transition-text') : null;
+  if (!overlay || !textEl) {
+    if (onComplete) onComplete();
+    return;
+  }
+
+  textEl.textContent = text;
+  overlay.classList.add('active');
+  textEl.classList.remove('animate');
+  void textEl.offsetWidth;
+  textEl.classList.add('animate');
+
+  const handleEnd = () => {
+    textEl.removeEventListener('animationend', handleEnd);
+    overlay.classList.remove('active');
+    textEl.classList.remove('animate');
+    if (onComplete) onComplete();
+  };
+
+  textEl.addEventListener('animationend', handleEnd);
+}
+
+function showDuoBlackout({ duration = 800, onComplete } = {}) {
+  const overlay = document.querySelector('.duo-transition');
+  const textEl = overlay ? overlay.querySelector('.duo-transition-text') : null;
+  if (!overlay) {
+    if (onComplete) onComplete();
+    return;
+  }
+
+  if (textEl) {
+    textEl.textContent = '';
+    textEl.classList.remove('animate');
+  }
+
+  overlay.classList.add('active');
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    if (onComplete) onComplete();
+  }, duration);
+}
+
+function buildCoverSet() {
+  const coverSet = new Set();
+  duoBattleConfig.covers.forEach(([x, y]) => {
+    coverSet.add(`${x},${y}`);
+  });
+  const [startX, startY] = duoBattleConfig.centralCover.start;
+  const [endX, endY] = duoBattleConfig.centralCover.end;
+  for (let x = startX; x <= endX; x += 1) {
+    for (let y = startY; y <= endY; y += 1) {
+      coverSet.add(`${x},${y}`);
+    }
+  }
+  return coverSet;
+}
+
+function buildUnitMap() {
+  const unitMap = new Map();
+  Object.entries(duoBattleConfig.players).forEach(([playerKey, units]) => {
+    units.forEach((unit) => {
+      const key = `${unit.position[0]},${unit.position[1]}`;
+      unitMap.set(key, { ...unit, playerKey });
+    });
+  });
+  return unitMap;
+}
+
+function renderDuoBattleScene() {
+  const grid = document.querySelector('.duo-battle-grid');
+  if (!grid) return;
+
+  const coverSet = buildCoverSet();
+  const unitMap = buildUnitMap();
+  grid.innerHTML = '';
+
+  for (let y = 1; y <= duoBattleConfig.height; y += 1) {
+    for (let x = 1; x <= duoBattleConfig.width; x += 1) {
+      const cell = document.createElement('div');
+      cell.className = 'duo-grid-cell';
+      const key = `${x},${y}`;
+      if (coverSet.has(key)) {
+        cell.classList.add('cover');
+      }
+      if (unitMap.has(key)) {
+        const unit = unitMap.get(key);
+        cell.classList.add(unit.playerKey);
+        cell.textContent = unit.label;
+        cell.title = `${unit.playerKey === 'player1' ? '玩家1' : '玩家2'} · ${unit.id}`;
+      }
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function resetDuoRollStage() {
+  duoBattleState.rollResults.player1 = null;
+  duoBattleState.rollResults.player2 = null;
+  duoBattleState.rolling.player1 = false;
+  duoBattleState.rolling.player2 = false;
+
+  document.querySelectorAll('.duo-roll-box').forEach((box) => {
+    box.textContent = '?';
+  });
+  document.querySelectorAll('.duo-roll-btn').forEach((btn) => {
+    btn.disabled = false;
+  });
+}
+
+function startDuoRollStage() {
+  const overlay = document.querySelector('.duo-roll-overlay');
+  const grid = document.querySelector('.duo-battle-grid');
+  if (!overlay || !grid) return;
+  resetDuoRollStage();
+  overlay.classList.remove('hidden');
+  grid.classList.add('is-blurred');
+}
+
+function finalizeDuoRoll() {
+  const { player1, player2 } = duoBattleState.rollResults;
+  if (player1 === null || player2 === null) return;
+
+  if (player1 === player2) {
+    showToast('点数相同，请重新摇');
+    setTimeout(() => {
+      startDuoRollStage();
+    }, 800);
+    return;
+  }
+
+  const winner = player1 > player2 ? '玩家1' : '玩家2';
+  showToast(`${winner} 先手`);
+
+  const overlay = document.querySelector('.duo-roll-overlay');
+  const grid = document.querySelector('.duo-battle-grid');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+  if (grid) {
+    grid.classList.remove('is-blurred');
+  }
+
+  duoBattleController = playStoryAudio('DuoBattle.mp3', { volume: 0.65, loop: true, resetMenuBGM: true });
+}
+
+function animateRollNumber(targetEl, onComplete) {
+  const start = performance.now();
+  let lastUpdate = start;
+  let currentValue = 0;
+
+  const tick = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / 1000, 1);
+    const interval = 50 + progress * 180;
+
+    if (now - lastUpdate >= interval) {
+      currentValue = Math.floor(Math.random() * 11);
+      targetEl.textContent = currentValue;
+      lastUpdate = now;
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      const finalValue = Math.floor(Math.random() * 11);
+      targetEl.textContent = finalValue;
+      onComplete(finalValue);
+    }
+  };
+
+  requestAnimationFrame(tick);
+}
+
+function handleDuoRoll(playerKey) {
+  if (duoBattleState.rolling[playerKey]) return;
+  const box = document.querySelector(`.duo-roll-box[data-player="${playerKey}"]`);
+  const button = document.querySelector(`.duo-roll-btn[data-player="${playerKey}"]`);
+  if (!box || !button) return;
+
+  duoBattleState.rolling[playerKey] = true;
+  button.disabled = true;
+
+  animateRollNumber(box, (value) => {
+    duoBattleState.rollResults[playerKey] = value;
+    duoBattleState.rolling[playerKey] = false;
+    finalizeDuoRoll();
+  });
+}
+
+function renderDuoSkillScreen(playerKey) {
+  const config = duoPlayerConfigs[playerKey];
+  if (!config) return;
+  const screen = document.querySelector(`[data-screen="${config.screenId}"]`);
+  if (!screen) return;
+
+  const content = screen.querySelector('.duo-skill-content');
+  if (!content) return;
+  content.innerHTML = '';
+
+  const characterId = duoState[playerKey].currentCharacter;
+  const character = characterData[characterId];
+
+  const left = document.createElement('div');
+  left.className = 'duo-skill-left';
+
+  const tabs = document.createElement('nav');
+  tabs.className = 'duo-character-tabs';
+  ['adora', 'dario', 'karma'].forEach((charId) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = `duo-character-tab${charId === characterId ? ' active' : ''}`;
+    tab.dataset.character = charId;
+    tab.textContent = characterData[charId]?.name || charId;
+    tab.addEventListener('click', () => {
+      duoState[playerKey].currentCharacter = charId;
+      renderDuoSkillScreen(playerKey);
+    });
+    tabs.appendChild(tab);
+  });
+
+  const portrait = document.createElement('div');
+  portrait.className = 'duo-portrait-card';
+  const img = document.createElement('img');
+  img.src = character?.portrait || '';
+  img.alt = `${character?.name || ''} 立绘`;
+  portrait.appendChild(img);
+
+  const slotsContainer = document.createElement('div');
+  slotsContainer.className = 'skill-slots-container';
+
+  const slotColors = [
+    { color: 'green', label: '绿色', limit: 1 },
+    { color: 'blue', label: '蓝色', limit: 1 },
+    { color: 'pink', label: '粉色', limit: 1 },
+    { color: 'white', label: '白色', limit: 1 },
+    { color: 'red', label: '红色', limit: 1 },
+    { color: 'orange', label: '橙色', limit: 2 },
+  ];
+
+  const selectedSkills = duoState[playerKey].selections[characterId];
+  const characterSkills = skillLibrary[characterId] || [];
+
+  slotColors.forEach(({ color, label, limit }) => {
+    const slotGroup = document.createElement('div');
+    slotGroup.className = 'skill-slot-group';
+
+    const slotHeader = document.createElement('div');
+    slotHeader.className = 'skill-slot-header';
+    slotHeader.innerHTML = `<span class="skill-badge skill-${color}">${label}</span> <span class="slot-limit">(最多 ${limit} 个)</span>`;
+    slotGroup.appendChild(slotHeader);
+
+    const slots = document.createElement('div');
+    slots.className = 'skill-slots';
+
+    for (let i = 0; i < limit; i += 1) {
+      const slot = document.createElement('div');
+      slot.className = 'skill-slot';
+      slot.dataset.character = characterId;
+      slot.dataset.color = color;
+      slot.dataset.slotIndex = i;
+
+      let selectedSkill = null;
+      if (color === 'orange') {
+        const skillId = selectedSkills.orange[i];
+        selectedSkill = skillId ? characterSkills.find((s) => s.id === skillId) : null;
+      } else {
+        const skillId = selectedSkills[color];
+        selectedSkill = skillId ? characterSkills.find((s) => s.id === skillId) : null;
+      }
+
+      if (selectedSkill) {
+        const skillCard = createSkillCard(selectedSkill, true);
+        slot.appendChild(skillCard);
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'empty-skill-slot';
+        empty.textContent = '拖放技能到此处';
+        slot.appendChild(empty);
+      }
+
+      slots.appendChild(slot);
+    }
+
+    slotGroup.appendChild(slots);
+    slotsContainer.appendChild(slotGroup);
+  });
+
+  left.appendChild(tabs);
+  left.appendChild(portrait);
+  left.appendChild(slotsContainer);
+
+  const right = document.createElement('div');
+  right.className = 'duo-skill-right';
+
+  const libraryContainer = document.createElement('div');
+  libraryContainer.className = 'skill-library-container';
+
+  const libraryHeader = document.createElement('h4');
+  libraryHeader.textContent = '技能库';
+  libraryContainer.appendChild(libraryHeader);
+
+  const skillsByColor = {};
+  characterSkills.forEach((skill) => {
+    if (!skillsByColor[skill.color]) {
+      skillsByColor[skill.color] = [];
+    }
+    skillsByColor[skill.color].push(skill);
+  });
+
+  const colorLabels = {
+    green: '绿色', blue: '蓝色', pink: '粉色',
+    white: '白色', red: '红色', orange: '橙色', gray: '灰色',
+  };
+
+  Object.entries(skillsByColor).forEach(([color, skills]) => {
+    const colorGroup = document.createElement('div');
+    colorGroup.className = 'skill-color-group';
+
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'skill-color-header';
+    groupHeader.innerHTML = `<span class="skill-badge skill-${color}">${colorLabels[color] || color}</span>`;
+    colorGroup.appendChild(groupHeader);
+
+    const skillsList = document.createElement('div');
+    skillsList.className = 'skills-list';
+
+    skills.forEach((skill) => {
+      const skillCard = createSkillCard(skill, false);
+      skillsList.appendChild(skillCard);
+    });
+
+    colorGroup.appendChild(skillsList);
+    libraryContainer.appendChild(colorGroup);
+  });
+
+  right.appendChild(libraryContainer);
+
+  content.appendChild(left);
+  content.appendChild(right);
+
+  setupDuoSkillSelectionInteractions(content, playerKey, characterId);
+}
+
+function setupDuoSkillSelectionInteractions(container, playerKey, characterId) {
+  let draggedSkillId = null;
+  let draggedFromSlot = null;
+  let dropSuccessful = false;
+
+  container.querySelectorAll('.skill-card').forEach((card) => {
+    card.addEventListener('dragstart', () => {
+      draggedSkillId = card.dataset.skillId;
+      draggedFromSlot = card.closest('.skill-slot');
+      dropSuccessful = false;
+      card.classList.add('dragging');
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      if (draggedFromSlot && !dropSuccessful) {
+        const fromColor = draggedFromSlot.dataset.color;
+        const slotIndex = parseInt(draggedFromSlot.dataset.slotIndex, 10);
+        unselectDuoSkill(playerKey, characterId, draggedSkillId, fromColor, slotIndex);
+        showToast('技能已取消选择');
+        renderDuoSkillScreen(playerKey);
+      }
+      draggedSkillId = null;
+      draggedFromSlot = null;
+      dropSuccessful = false;
+    });
+
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const skill = findSkillById(card.dataset.skillId, characterId);
+      if (skill) {
+        showSkillDescription(skill, e.pageX, e.pageY);
+      }
+    });
+  });
+
+  container.querySelectorAll('.skill-slot').forEach((slot) => {
+    slot.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      slot.classList.add('drag-over');
+    });
+
+    slot.addEventListener('dragleave', () => {
+      slot.classList.remove('drag-over');
+    });
+
+    slot.addEventListener('drop', (e) => {
+      e.preventDefault();
+      slot.classList.remove('drag-over');
+
+      const slotColor = slot.dataset.color;
+      const slotIndex = parseInt(slot.dataset.slotIndex, 10);
+      const skill = findSkillById(draggedSkillId, characterId);
+      if (!skill) return;
+
+      if (skill.color !== slotColor) {
+        const colorLabels = {
+          green: '绿色', blue: '蓝色', pink: '粉色',
+          white: '白色', red: '红色', orange: '橙色', gray: '灰色',
+        };
+        showToast(`技能颜色不匹配！此槽位只能放置${colorLabels[slotColor] || slotColor}技能`);
+        return;
+      }
+
+      const existing = slot.querySelector('.skill-card');
+      if (existing) {
+        unselectDuoSkill(playerKey, characterId, existing.dataset.skillId, slotColor, slotIndex);
+      }
+
+      selectDuoSkill(playerKey, characterId, draggedSkillId, slotColor, slotIndex);
+      dropSuccessful = true;
+      showToast(`技能已选择: ${skill.name}`);
+      renderDuoSkillScreen(playerKey);
+    });
+  });
 }
 
 function showToast(message) {
@@ -3602,6 +4189,76 @@ function initTutorialBoard() {
   renderTutorial('basics');
 }
 
+function bindDuoMode() {
+  const duoLaunch = document.querySelector('[data-action="duo-mode"]');
+  if (duoLaunch) {
+    duoLaunch.addEventListener('click', () => {
+      transitionTo('duo-confirm');
+    });
+  }
+
+  document.querySelectorAll('.duo-confirm-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const playerKey = btn.dataset.player;
+      if (!duoState[playerKey] || duoState[playerKey].confirmed) return;
+
+      duoState[playerKey].confirmed = true;
+      btn.classList.add('is-confirmed');
+      btn.disabled = true;
+
+      const slot = btn.closest('.duo-confirm-slot');
+      if (slot) {
+        const explosion = document.createElement('div');
+        explosion.className = `duo-explosion ${playerKey === 'player1' ? 'blue' : 'red'}`;
+        explosion.style.left = '50%';
+        explosion.style.top = '50%';
+        explosion.style.transform = 'translate(-50%, -50%)';
+        slot.appendChild(explosion);
+        explosion.addEventListener('animationend', () => explosion.remove());
+      }
+
+      playOneShotAudio(playerKey === 'player1' ? '确认1.mp3' : '确认2.mp3', 0.9);
+
+      if (duoState.player1.confirmed && duoState.player2.confirmed) {
+        playDuoTransition(duoPlayerConfigs.player1.transitionLabel, () => {
+          setActiveScreen(duoPlayerConfigs.player1.screenId);
+        });
+      }
+    });
+  });
+
+  document.querySelectorAll('.duo-player-confirm').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const playerKey = btn.dataset.player;
+      if (playerKey === 'player1') {
+        playDuoTransition(duoPlayerConfigs.player2.transitionLabel, () => {
+          setActiveScreen(duoPlayerConfigs.player2.screenId);
+        });
+        return;
+      }
+
+      if (playerKey === 'player2') {
+        stopStoryAudio({ reset: true });
+        duoPrepController = null;
+        showDuoBlackout({
+          duration: 900,
+          onComplete: () => {
+            setActiveScreen('duo-battle');
+          },
+        });
+      }
+    });
+  });
+}
+
+function bindDuoBattle() {
+  document.querySelectorAll('.duo-roll-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      handleDuoRoll(btn.dataset.player);
+    });
+  });
+}
+
 function bindNavigation() {
   document.querySelectorAll('[data-target]').forEach((btn) => {
     if (btn.classList.contains('menu-btn')) return;
@@ -3649,6 +4306,9 @@ function init() {
   initStageBoard();
   initCharacterBoard();
   initTutorialBoard();
+  resetDuoSelections();
+  bindDuoMode();
+  bindDuoBattle();
   bindNavigation();
   loadSevenSeasMapFromFile();
   renderStage('intro');
@@ -4073,8 +4733,3 @@ document.addEventListener('keydown', (event) => {
     requestAnimationFrame(breath);
   }
 })();
-
-
-
-
-
