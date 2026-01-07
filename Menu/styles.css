@@ -1931,6 +1931,23 @@ body {
   gap: 24px;
 }
 
+.duo-confirm-header {
+  text-align: center;
+}
+
+.duo-confirm-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.duo-confirm-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+}
+
 .duo-confirm-visual {
   width: min(880px, 90%);
   border-radius: 18px;
@@ -1938,12 +1955,29 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   background: rgba(6, 8, 16, 0.6);
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  position: relative;
 }
 
 .duo-confirm-visual img {
   width: 100%;
   display: block;
   opacity: 0.9;
+}
+
+.duo-confirm-placeholder {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.duo-confirm-visual.has-image .duo-confirm-placeholder {
+  display: none;
 }
 
 .duo-confirm-buttons {

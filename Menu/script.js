@@ -3685,8 +3685,11 @@ function initDuoMode() {
   const rollButtons = duoScreen.querySelectorAll('.duo-roll-btn');
   const rollNumbers = duoScreen.querySelectorAll('.duo-roll-number');
   const battleGrid = duoScreen.querySelector('.duo-battle-grid');
+  const confirmVisual = duoScreen.querySelector('.duo-confirm-visual');
+  const confirmVisualImg = confirmVisual ? confirmVisual.querySelector('img') : null;
 
   let duoPrepAudio = null;
+  let duoBattleAudio = null;
 
   function setDuoStage(activeStage) {
     [confirmStage, transitionStage, skillStages[1], skillStages[2], battleStage].forEach((stage) => {
@@ -3694,6 +3697,12 @@ function initDuoMode() {
       stage.classList.toggle('active', stage === activeStage);
       stage.setAttribute('aria-hidden', stage !== activeStage ? 'true' : 'false');
     });
+
+    if (activeStage === battleStage) {
+      playDuoBattleAudio();
+    } else {
+      stopDuoBattleAudio();
+    }
   }
 
   function showTransition(text, onComplete) {
@@ -3726,6 +3735,24 @@ function initDuoMode() {
       duoPrepAudio.currentTime = 0;
     } catch (error) {
       console.warn('Failed to stop duo prep audio:', error);
+    }
+  }
+
+  function playDuoBattleAudio() {
+    if (!duoBattleAudio) {
+      duoBattleAudio = createDuoAudio('DuoBattle.mp3', 0.6);
+    }
+    duoBattleAudio.loop = true;
+    duoBattleAudio.play().catch(() => {});
+  }
+
+  function stopDuoBattleAudio() {
+    if (!duoBattleAudio) return;
+    try {
+      duoBattleAudio.pause();
+      duoBattleAudio.currentTime = 0;
+    } catch (error) {
+      console.warn('Failed to stop duo battle audio:', error);
     }
   }
 
@@ -4051,6 +4078,19 @@ function initDuoMode() {
     });
   }
 
+  if (confirmVisual && confirmVisualImg) {
+    if (confirmVisualImg.complete && confirmVisualImg.naturalWidth > 0) {
+      confirmVisual.classList.add('has-image');
+    } else {
+      confirmVisualImg.addEventListener('load', () => {
+        confirmVisual.classList.add('has-image');
+      });
+      confirmVisualImg.addEventListener('error', () => {
+        confirmVisual.classList.remove('has-image');
+      });
+    }
+  }
+
   function animateRollNumber(target) {
     return new Promise((resolve) => {
       const start = Date.now();
@@ -4133,6 +4173,7 @@ function initDuoMode() {
   if (duoBackButton) {
     duoBackButton.addEventListener('click', () => {
       stopDuoPrepAudio();
+      stopDuoBattleAudio();
     });
   }
 }
@@ -4609,6 +4650,3 @@ document.addEventListener('keydown', (event) => {
     requestAnimationFrame(breath);
   }
 })();
-
-
-
