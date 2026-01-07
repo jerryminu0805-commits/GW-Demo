@@ -4365,7 +4365,6 @@ function onUnitClick(id){
   if(interactionLocked) return;
   const u=units[id]; if(!u) return;
   if(godsWillArmed){ showGodsWillMenuAtUnit(u); return; }
-  if(u.side==='enemy' && ENEMY_IS_AI_CONTROLLED){ appendLog('敌方单位由 AI 控制，无法手动操作'); selectedUnitId=id; showSelected(u); return; }
   if(u.side===currentSide && u.status.stunned) appendLog(`${u.name} 眩晕中，无法行动`);
   selectedUnitId=id; showSelected(u);
 }
@@ -4378,13 +4377,12 @@ function onCellClick(r,c){
   }
   const sel=units[selectedUnitId]; if(!sel || sel.hp<=0) return;
 
-  if(sel.side==='enemy' && ENEMY_IS_AI_CONTROLLED){ appendLog('敌方单位由 AI 控制'); return; }
   if(sel.side!==currentSide){ appendLog('不是该单位的回合'); return; }
   if(sel.status.stunned){ appendLog(`${sel.name} 眩晕中，无法行动`); return; }
   if(!canUnitMove(sel)){ appendLog(`${sel.name} 处于${sel._stanceType==='defense'?'防御姿态':'反伤姿态'}，本回合不能移动`); return; }
 
   const key=`${r},${c}`; if(!highlighted.has(key)) return;
-  if(playerSteps<=0 && sel.side==='player'){ appendLog('剩余步数不足'); return; }
+  if((sel.side==='player' ? playerSteps : enemySteps) <= 0){ appendLog('剩余步数不足'); return; }
   const occ=getUnitAt(r,c); if(occ){ appendLog('格子被占用'); return; }
 
   if(sel.size===2){ if(!canPlace2x2(sel, r, c)){ appendLog('该位置无法容纳 2x2 单位'); return; } }
@@ -4394,7 +4392,7 @@ function onCellClick(r,c){
   sel.r=r; sel.c=c;
   if(sel.side==='player') playerSteps=Math.max(0, playerSteps-1); else enemySteps=Math.max(0, enemySteps-1);
   appendLog(`${sel.name} 移动到 (${r},${c})`);
-  if(sel.side!=='player') cameraFocusOnCell(r,c);
+  if(sel.side!==currentSide) cameraFocusOnCell(r,c);
   pulseCell(r,c);
   if(sel.id==='karma' && sel.consecAttacks>0){ appendLog(`${sel.name} 的连击被打断（移动）`); sel.consecAttacks=0; }
   unitActed(sel);
@@ -4409,14 +4407,14 @@ function showSelected(u){
   if(selectedInfo) selectedInfo.innerHTML = base + extra;
 
   if(skillPool){
-    if(u.side==='enemy'){ skillPool.innerHTML = `<div class="partyRow small">敌方单位（AI 控制），无法操作</div>`; }
-    else if(currentSide!=='player'){ skillPool.innerHTML = `<div class="partyRow small">不是你的回合</div>`; }
-    else {
+    if(u.side!==currentSide){
+      skillPool.innerHTML = `<div class="partyRow small">不是你的回合</div>`;
+    } else {
       skillPool.innerHTML = '';
       if(!u.dealtStart) ensureStartHand(u);
       const pool = u.skillPool || [];
       for(const sk of pool){
-        const stepsOk = playerSteps>=sk.cost;
+        const stepsOk = (u.side==='player' ? playerSteps : enemySteps) >= sk.cost;
         const colorClass = sk.color || ((sk.meta && sk.meta.moveSkill) ? 'blue' : (sk.cost>=3 ? 'red' : 'green'));
 
         const card=document.createElement('div');
@@ -4469,7 +4467,7 @@ function showSelected(u){
   }
 
   clearHighlights();
-  if(u.side===currentSide && !u.status.stunned && u.side==='player' && canUnitMove(u)){
+  if(u.side===currentSide && !u.status.stunned && canUnitMove(u)){
     const moves=range_move_radius(u,1).filter(p=>!getUnitAt(p.r,p.c));
     for(const m of moves){ const key=`${m.r},${m.c}`; highlighted.add(key); markCell(m.r,m.c,'move'); }
   }
@@ -5273,14 +5271,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
   startCameraLoop();
 
   // 掩体（不可进入）
-  addCoverRectTL(4, 3, 5, 5);
-  addCoverRectTL(4, 9, 5, 11);
-  addCoverRectTL(9, 1, 9, 2);
-  addCoverRectTL(9, 12, 9, 13);
-  addCoverRectTL(13, 3, 14, 5);
-  addCoverRectTL(13, 9, 14, 11);
-  addCoverRectTL(8, 6, 10, 8);
-  coverCells.delete('7,9');
+  addCoverCellTL(4, 3);
+  addCoverCellTL(5, 3);
+  addCoverCellTL(5, 4);
+  addCoverCellTL(5, 5);
+  addCoverCellTL(4, 11);
+  addCoverCellTL(5, 11);
+  addCoverCellTL(5, 10);
+  addCoverCellTL(5, 9);
+  addCoverCellTL(9, 1);
+  addCoverCellTL(9, 2);
+  addCoverCellTL(9, 12);
+  addCoverCellTL(9, 13);
+  addCoverCellTL(13, 3);
+  addCoverCellTL(14, 3);
+  addCoverCellTL(13, 4);
+  addCoverCellTL(13, 5);
+  addCoverCellTL(13, 11);
+  addCoverCellTL(14, 11);
+  addCoverCellTL(13, 10);
+  addCoverCellTL(13, 9);
+  addCoverCellTL(8, 6);
+  addCoverCellTL(9, 6);
+  addCoverCellTL(10, 6);
+  addCoverCellTL(8, 7);
+  addCoverCellTL(10, 7);
+  addCoverCellTL(8, 8);
+  addCoverCellTL(9, 8);
+  addCoverCellTL(10, 8);
 
   injectFXStyles();
 
