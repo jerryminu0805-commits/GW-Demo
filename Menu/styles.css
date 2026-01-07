@@ -1871,3 +1871,484 @@ body {
   }
 }
 
+/* Duo Mode */
+.duo-mode {
+  position: relative;
+}
+
+.duo-mode-panel {
+  position: relative;
+  background: rgba(20, 26, 44, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 32px;
+  min-height: 72vh;
+  overflow: hidden;
+}
+
+.duo-mode-panel h2 {
+  margin: 0;
+  position: absolute;
+  top: 24px;
+  left: 32px;
+  z-index: 2;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+
+.duo-mode-btn {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(20, 30, 64, 0.7);
+  color: var(--text-color);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.duo-mode-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 16px rgba(90, 122, 255, 0.45);
+  background: rgba(40, 72, 160, 0.72);
+}
+
+.duo-stage {
+  display: none;
+  position: absolute;
+  inset: 0;
+  padding: 76px 24px 24px;
+  min-height: 60vh;
+  pointer-events: none;
+  overflow-y: auto;
+}
+
+.duo-stage.active {
+  display: block;
+  pointer-events: auto;
+}
+
+.duo-confirmation {
+  display: grid;
+  place-items: center;
+  gap: 24px;
+  z-index: 1;
+}
+
+.duo-confirm-header {
+  text-align: center;
+}
+
+.duo-confirm-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.duo-confirm-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+}
+
+.duo-confirm-visual {
+  width: min(880px, 90%);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  background: rgba(6, 8, 16, 0.6);
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.duo-confirm-visual img {
+  width: 100%;
+  display: block;
+  opacity: 0.9;
+}
+
+.duo-confirm-placeholder {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.duo-confirm-visual.has-image .duo-confirm-placeholder {
+  display: none;
+}
+
+.duo-confirm-buttons {
+  display: flex;
+  gap: 24px;
+}
+
+.duo-confirm-btn {
+  min-width: 180px;
+  padding: 14px 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.duo-confirm-btn.left {
+  background: rgba(72, 132, 255, 0.18);
+  color: #cfe3ff;
+}
+
+.duo-confirm-btn.right {
+  background: rgba(234, 65, 87, 0.18);
+  color: #ffd2d2;
+}
+
+.duo-confirm-btn.confirmed {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.7);
+}
+
+.duo-explosion {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: duoExplosion 0.75s ease-out forwards;
+  pointer-events: none;
+}
+
+.duo-explosion.blue {
+  background: radial-gradient(circle, rgba(80, 150, 255, 0.8) 0%, rgba(80, 150, 255, 0.2) 50%, rgba(80, 150, 255, 0) 70%);
+  box-shadow: 0 0 18px rgba(80, 150, 255, 0.7);
+}
+
+.duo-explosion.red {
+  background: radial-gradient(circle, rgba(255, 90, 90, 0.8) 0%, rgba(255, 90, 90, 0.2) 50%, rgba(255, 90, 90, 0) 70%);
+  box-shadow: 0 0 18px rgba(255, 90, 90, 0.7);
+}
+
+@keyframes duoExplosion {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.duo-transition {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 5;
+}
+
+.duo-transition-text {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 6vw, 72px);
+  letter-spacing: 0.3em;
+  transform: skew(-10deg);
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+}
+
+.duo-transition.animate .duo-transition-text {
+  animation: duoSlideText 3.1s ease-in-out forwards;
+}
+
+@keyframes duoSlideText {
+  0% {
+    transform: translateX(120%) skew(-12deg);
+    opacity: 0;
+  }
+  35% {
+    transform: translateX(0) skew(-12deg);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(0) skew(-12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-120%) skew(-12deg);
+    opacity: 0;
+  }
+}
+
+.duo-skill-screen {
+  display: none;
+}
+
+.duo-skill-screen.active {
+  display: block;
+}
+
+.duo-skill-screen.duo-player-1 {
+  background: linear-gradient(120deg, rgba(35, 55, 110, 0.35), rgba(8, 10, 18, 0.9));
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.duo-skill-screen.duo-player-2 {
+  background: linear-gradient(120deg, rgba(110, 35, 45, 0.35), rgba(12, 8, 10, 0.9));
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.duo-skill-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 40%) minmax(320px, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.duo-character-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.duo-character-tab {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-color);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.duo-character-tab.active {
+  background: rgba(234, 65, 87, 0.25);
+  border-color: rgba(234, 65, 87, 0.6);
+}
+
+.duo-portrait {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.duo-portrait-image {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+}
+
+.duo-skill-slots,
+.duo-skill-library {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.duo-skill-library {
+  background: rgba(12, 14, 24, 0.45);
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.duo-skill-slots .skill-slots-container {
+  padding: 16px;
+}
+
+.duo-skill-confirm {
+  margin-top: 20px;
+  margin-left: auto;
+  display: block;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-color);
+  letter-spacing: 0.2em;
+  cursor: pointer;
+}
+
+.duo-battle-stage {
+  display: none;
+}
+
+.duo-battle-stage.active {
+  display: block;
+}
+
+.duo-battle-board {
+  background: rgba(10, 12, 20, 0.7);
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.duo-battle-header h3 {
+  margin: 0 0 8px 0;
+}
+
+.duo-battle-header p {
+  margin: 0 0 16px 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.duo-battle-area {
+  position: relative;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.duo-battle-grid {
+  display: grid;
+  grid-template-columns: repeat(17, 32px);
+  grid-template-rows: repeat(13, 32px);
+  gap: 6px;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(5, 7, 12, 0.9);
+  transition: filter 0.3s ease;
+}
+
+.duo-battle-grid.blurred {
+  filter: blur(3px);
+}
+
+.duo-grid-cell {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.duo-grid-cell.cover {
+  background: rgba(160, 160, 160, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.duo-grid-cell.player1 {
+  background: rgba(70, 130, 255, 0.6);
+}
+
+.duo-grid-cell.player2 {
+  background: rgba(255, 90, 90, 0.6);
+}
+
+.duo-grid-cell[data-label]::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+.duo-roll-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 12px;
+  z-index: 2;
+}
+
+.duo-roll-overlay.hidden {
+  display: none;
+}
+
+.duo-roll-panel {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 16px 24px;
+  background: rgba(8, 10, 18, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.duo-roll-side {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.duo-roll-label {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.duo-roll-number {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-family: var(--font-display);
+}
+
+.duo-roll-btn {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-color);
+  cursor: pointer;
+  letter-spacing: 0.2em;
+}
+
+.duo-roll-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.duo-roll-divider {
+  width: 1px;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.duo-roll-message {
+  min-height: 20px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
+}
