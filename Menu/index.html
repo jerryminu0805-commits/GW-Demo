@@ -85,6 +85,7 @@
           </div>
         </section>
       </div>
+      <button class="duo-mode-btn" type="button" data-action="duo-mode">双人模式</button>
     </main>
 
     <main class="screen screen-stages" data-screen="stages" aria-labelledby="stage-title">
@@ -193,6 +194,74 @@
       </div>
     </main>
 
+    <main class="screen screen-duo-confirm" data-screen="duo-confirm" aria-labelledby="duo-confirm-title">
+      <div class="duo-confirm-background" role="presentation"></div>
+      <div class="duo-confirm-content">
+        <h2 class="duo-confirm-title" id="duo-confirm-title">双人模式确认</h2>
+        <div class="duo-confirm-buttons" role="group" aria-label="双人确认">
+          <div class="duo-confirm-slot">
+            <button class="duo-confirm-btn duo-confirm-btn-left" type="button" data-player="player1">
+              1号玩家确认
+            </button>
+          </div>
+          <div class="duo-confirm-slot">
+            <button class="duo-confirm-btn duo-confirm-btn-right" type="button" data-player="player2">
+              2号玩家确认
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <main class="screen screen-duo-player screen-duo-player1" data-screen="duo-player1" aria-labelledby="duo-player1-title">
+      <div class="screen-inner">
+        <section class="duo-skill-board" data-player="player1">
+          <header class="duo-skill-header">
+            <div class="duo-player-title" id="duo-player1-title">玩家1 · 技能选择</div>
+          </header>
+          <div class="duo-skill-content"></div>
+          <button class="duo-player-confirm" type="button" data-player="player1">确认</button>
+        </section>
+      </div>
+    </main>
+
+    <main class="screen screen-duo-player screen-duo-player2" data-screen="duo-player2" aria-labelledby="duo-player2-title">
+      <div class="screen-inner">
+        <section class="duo-skill-board" data-player="player2">
+          <header class="duo-skill-header">
+            <div class="duo-player-title" id="duo-player2-title">玩家2 · 技能选择</div>
+          </header>
+          <div class="duo-skill-content"></div>
+          <button class="duo-player-confirm" type="button" data-player="player2">确认</button>
+        </section>
+      </div>
+    </main>
+
+    <main class="screen screen-duo-battle" data-screen="duo-battle" aria-labelledby="duo-battle-title">
+      <div class="screen-inner">
+        <section class="duo-battle-board">
+          <header class="duo-battle-header">
+            <h2 id="duo-battle-title">双人战斗</h2>
+          </header>
+          <div class="duo-battle-stage">
+            <div class="duo-battle-grid" role="img" aria-label="双人战斗地图"></div>
+            <div class="duo-roll-overlay" aria-live="polite">
+              <div class="duo-roll-panel duo-roll-panel-left">
+                <div class="duo-roll-title">玩家1 摇数字</div>
+                <div class="duo-roll-box" data-player="player1">?</div>
+                <button class="duo-roll-btn" type="button" data-player="player1">摇</button>
+              </div>
+              <div class="duo-roll-panel duo-roll-panel-right">
+                <div class="duo-roll-title">玩家2 摇数字</div>
+                <div class="duo-roll-box" data-player="player2">?</div>
+                <button class="duo-roll-btn" type="button" data-player="player2">摇</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
     <section class="story-overlay" aria-hidden="true" role="dialog" aria-modal="true">
       <div class="story-backdrop"></div>
       <div class="story-characters"></div>
@@ -207,6 +276,9 @@
     </section>
 
     <div class="toast" role="status" aria-live="polite"></div>
+    <div class="duo-transition" aria-hidden="true">
+      <div class="duo-transition-text"></div>
+    </div>
   </div>
 
   <script src="portraits.js"></script>
