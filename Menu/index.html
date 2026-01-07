@@ -83,6 +83,102 @@
               <span class="chapter-status">锁定</span>
             </button>
           </div>
+          <button class="duo-mode-btn" type="button">双人模式</button>
+        </section>
+      </div>
+    </main>
+
+    <main class="screen screen-duo" data-screen="duo" aria-labelledby="duo-title">
+      <div class="screen-inner duo-mode">
+        <header class="screen-bar">
+          <button class="back-btn" data-target="chapters" aria-label="返回章节">返回章节</button>
+        </header>
+        <section class="duo-mode-panel">
+          <h2 id="duo-title">双人模式</h2>
+          <div class="duo-stage duo-confirmation active" data-step="confirm">
+            <div class="duo-confirm-header">
+              <h3>双人模式确认界面</h3>
+              <p>请两位玩家确认后进入技能选择。</p>
+            </div>
+            <div class="duo-confirm-visual">
+              <img src="DuoMode.PNG" alt="双人模式确认界面" />
+              <span class="duo-confirm-placeholder">DuoMode.PNG</span>
+            </div>
+            <div class="duo-confirm-buttons">
+              <button class="duo-confirm-btn left" type="button" data-player="1">玩家1确认</button>
+              <button class="duo-confirm-btn right" type="button" data-player="2">玩家2确认</button>
+            </div>
+          </div>
+
+          <div class="duo-stage duo-transition" data-step="transition" aria-hidden="true">
+            <div class="duo-transition-text">玩家1选择技能</div>
+          </div>
+
+          <div class="duo-stage duo-skill-screen duo-player-1" data-player="1" aria-hidden="true">
+            <div class="duo-skill-header">
+              <h3>玩家1选择技能</h3>
+            </div>
+            <div class="duo-skill-layout">
+              <div class="duo-skill-left">
+                <nav class="duo-character-tabs" aria-label="玩家1角色选择"></nav>
+                <div class="duo-portrait">
+                  <img class="duo-portrait-image" src="" alt="玩家1角色立绘" />
+                </div>
+                <div class="duo-skill-slots"></div>
+              </div>
+              <div class="duo-skill-right">
+                <div class="duo-skill-library"></div>
+              </div>
+            </div>
+            <button class="duo-skill-confirm" type="button" data-player="1">确认</button>
+          </div>
+
+          <div class="duo-stage duo-skill-screen duo-player-2" data-player="2" aria-hidden="true">
+            <div class="duo-skill-header">
+              <h3>玩家2选择技能</h3>
+            </div>
+            <div class="duo-skill-layout">
+              <div class="duo-skill-left">
+                <nav class="duo-character-tabs" aria-label="玩家2角色选择"></nav>
+                <div class="duo-portrait">
+                  <img class="duo-portrait-image" src="" alt="玩家2角色立绘" />
+                </div>
+                <div class="duo-skill-slots"></div>
+              </div>
+              <div class="duo-skill-right">
+                <div class="duo-skill-library"></div>
+              </div>
+            </div>
+            <button class="duo-skill-confirm" type="button" data-player="2">确认</button>
+          </div>
+
+          <div class="duo-stage duo-battle-stage" data-step="battle" aria-hidden="true">
+            <div class="duo-battle-board">
+              <div class="duo-battle-header">
+                <h3>双人对战</h3>
+                <p>地图 17 × 13 · 单位等级 70 · 眩晕需累计 2 层触发</p>
+              </div>
+              <div class="duo-battle-area">
+                <div class="duo-roll-overlay">
+                  <div class="duo-roll-panel">
+                    <div class="duo-roll-side">
+                      <div class="duo-roll-label">玩家1</div>
+                      <div class="duo-roll-number" data-side="left">-</div>
+                      <button class="duo-roll-btn" type="button" data-side="left">摇</button>
+                    </div>
+                    <div class="duo-roll-divider"></div>
+                    <div class="duo-roll-side">
+                      <div class="duo-roll-label">玩家2</div>
+                      <div class="duo-roll-number" data-side="right">-</div>
+                      <button class="duo-roll-btn" type="button" data-side="right">摇</button>
+                    </div>
+                  </div>
+                  <div class="duo-roll-message"></div>
+                </div>
+                <div class="duo-battle-grid"></div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
