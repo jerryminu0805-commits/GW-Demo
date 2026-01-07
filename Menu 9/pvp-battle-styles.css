@@ -473,6 +473,50 @@ body {
 }
 .modal-actions button:hover { filter: brightness(1.06); }
 
+.duo-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.duo-summary-column {
+  background: #0f1320;
+  border: 1px solid #1f2840;
+  border-radius: 10px;
+  padding: 10px;
+}
+.duo-summary-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: #cbd7ff;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.duo-summary-row {
+  padding: 8px 6px;
+}
+.duo-summary-row + .duo-summary-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.duo-summary-name {
+  font-weight: 600;
+  color: #eef2ff;
+}
+.duo-summary-stats {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #a3a7b3;
+}
+@media (max-width: 720px) {
+  .duo-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 滚动条微样式（WebKit） */
 .skillPool::-webkit-scrollbar,
 .log::-webkit-scrollbar { width: 8px; }
