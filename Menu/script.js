@@ -563,8 +563,8 @@ function showDuoBlackout({ duration = 800, onComplete } = {}) {
 function loadDuoBattleFrame() {
   const frame = document.querySelector('.duo-battle-frame');
   if (!frame) return;
-  if (!frame.src || !frame.src.includes('boss-battle.html')) {
-    frame.src = 'boss-battle.html';
+  if (!frame.src || !frame.src.includes('pvp-battle.html')) {
+    frame.src = 'pvp-battle.html';
   }
 }
 
