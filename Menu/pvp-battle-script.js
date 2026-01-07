@@ -30,7 +30,7 @@ const BASE_START_STEPS = 3;
 const SKILLPOOL_MAX = 13;
 const START_HAND_COUNT = 3;
 
-const ENEMY_IS_AI_CONTROLLED = true;
+const ENEMY_IS_AI_CONTROLLED = false;
 const ENEMY_WINDUP_MS = 850;
 
 // Telegraph/Impact Durations
@@ -1878,6 +1878,8 @@ function finalizeRoll(){
     currentSide = 'enemy';
     if(ENEMY_IS_AI_CONTROLLED){
       setTimeout(()=> enemyTurn(), 300);
+    } else {
+      renderAll();
     }
   }
 }
@@ -3394,31 +3396,29 @@ function getSelectedSkillKeysForUnit(u) {
 
   const baseId = u.id.replace('_p2', '');
   const selectedSkills = loadSelectedSkillsForBattle();
-  if (!selectedSkills || !selectedSkills[baseId]) return null;
+  if (!selectedSkills || !selectedSkills[baseId]) return new Set();
 
   const charSelection = selectedSkills[baseId];
   const mapping = skillKeyMapping[baseId];
-  if (!mapping) return null;
-  
+  if (!mapping) return new Set();
+
   const selectedKeys = new Set();
-  
-  // Add skills from each color slot
+
   for (const color of ['green', 'blue', 'pink', 'white', 'red']) {
     if (charSelection[color]) {
       const battleKey = mapping[charSelection[color]];
       if (battleKey) selectedKeys.add(battleKey);
     }
   }
-  
-  // Add orange skills (can have multiple)
+
   if (Array.isArray(charSelection.orange)) {
     for (const skillId of charSelection.orange) {
       const battleKey = mapping[skillId];
       if (battleKey) selectedKeys.add(battleKey);
     }
   }
-  
-  return selectedKeys.size > 0 ? selectedKeys : null;
+
+  return selectedKeys;
 }
 
 function buildSkillFactoriesForUnit(u){
@@ -3822,11 +3822,14 @@ function buildSkillFactoriesForUnit(u){
   // Filter skills based on selection if character is level 50+
   const selectedKeys = getSelectedSkillKeysForUnit(u);
   if (selectedKeys) {
+    if (selectedKeys.size === 0) {
+      return [];
+    }
     const filtered = F.filter(factory => selectedKeys.has(factory.key));
-    // Only apply filter if at least some skills are selected
     if (filtered.length > 0) {
       return filtered;
     }
+    return [];
   }
   
   return F;
@@ -3844,7 +3847,17 @@ function drawSkills(u, n){
   while(toDraw>0){ const sk=drawOneSkill(u); if(!sk) break; u.skillPool.push(sk); toDraw--; }
   if(u.skillPool.length > SKILLPOOL_MAX) u.skillPool.length = SKILLPOOL_MAX;
 }
-function ensureStartHand(u){ if(u.dealtStart) return; u.skillPool.length = 0; drawSkills(u, START_HAND_COUNT); u.dealtStart = true; appendLog(`${u.name} 起手手牌：${u.skillPool.map(s=>s.name).join(' / ')}`); }
+function ensureStartHand(u){
+  if(u.dealtStart) return;
+  u.skillPool.length = 0;
+  drawSkills(u, START_HAND_COUNT);
+  u.dealtStart = true;
+  if(u.skillPool.length){
+    appendLog(`${u.name} 起手手牌：${u.skillPool.map(s=>s.name).join(' / ')}`);
+  } else {
+    appendLog(`${u.name} 起手手牌为空`);
+  }
+}
 
 // —— GOD’S WILL —— 
 function disarmGodsWill(){
@@ -5201,8 +5214,11 @@ function checkEndOfTurn(){
     applyLevelSuppression();
     applyParalysisAtTurnStart('enemy');
     processUnitsTurnStart('enemy');
-    // 敌方回合：保证用尽步数
-    setTimeout(()=>{ enemyTurn(); }, 200);
+    if(ENEMY_IS_AI_CONTROLLED){
+      setTimeout(()=>{ enemyTurn(); }, 200);
+    } else {
+      renderAll();
+    }
     return;
   }
   if(currentSide==='enemy' && enemySteps<=0){
