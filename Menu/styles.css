@@ -339,18 +339,147 @@ body {
 }
 
 .screen-duo-battle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
   background: #020202;
 }
 
-.duo-battle-placeholder {
-  background: rgba(12, 14, 24, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 48px 64px;
+.duo-battle-board {
+  background: rgba(6, 10, 18, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 32px);
+  min-height: calc(100vh - 200px);
+}
+
+.duo-battle-header h2 {
+  margin: 0 0 16px 0;
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.duo-battle-stage {
+  position: relative;
+}
+
+.duo-battle-grid {
+  display: grid;
+  grid-template-columns: repeat(17, minmax(28px, 1fr));
+  grid-template-rows: repeat(13, minmax(28px, 1fr));
+  gap: 4px;
+  background: rgba(4, 6, 12, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
+  padding: 16px;
+  min-height: min(70vh, 720px);
+  transition: filter 0.4s ease;
+}
+
+.duo-battle-grid.is-blurred {
+  filter: blur(6px) brightness(0.6);
+}
+
+.duo-grid-cell {
+  position: relative;
+  border-radius: 6px;
+  background: rgba(15, 18, 30, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.duo-grid-cell.cover {
+  background: rgba(180, 180, 180, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.08);
+}
+
+.duo-grid-cell.player1 {
+  background: rgba(76, 195, 255, 0.25);
+  border-color: rgba(76, 195, 255, 0.5);
+  color: #d7f1ff;
+}
+
+.duo-grid-cell.player2 {
+  background: rgba(255, 92, 92, 0.22);
+  border-color: rgba(255, 92, 92, 0.55);
+  color: #ffe1e1;
+}
+
+.duo-roll-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(24px, 6vw, 60px);
+  gap: 24px;
+  pointer-events: auto;
+}
+
+.duo-roll-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.duo-roll-panel {
+  background: rgba(8, 10, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 20px 24px;
+  width: min(240px, 42vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.duo-roll-panel-left {
+  box-shadow: 0 0 18px rgba(76, 195, 255, 0.25);
+}
+
+.duo-roll-panel-right {
+  box-shadow: 0 0 18px rgba(255, 92, 92, 0.25);
+}
+
+.duo-roll-title {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.duo-roll-box {
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.duo-roll-btn {
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 14, 24, 0.7);
+  color: var(--text-color);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.duo-roll-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .duo-transition {
@@ -416,6 +545,14 @@ body {
   
   .duo-confirm-buttons {
     flex-direction: column;
+  }
+
+  .duo-roll-overlay {
+    flex-direction: column;
+  }
+  
+  .duo-roll-panel {
+    width: 100%;
   }
 }
 

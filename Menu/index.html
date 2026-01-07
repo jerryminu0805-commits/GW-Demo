@@ -239,9 +239,25 @@
 
     <main class="screen screen-duo-battle" data-screen="duo-battle" aria-labelledby="duo-battle-title">
       <div class="screen-inner">
-        <section class="duo-battle-placeholder">
-          <h2 id="duo-battle-title">战斗筹备中</h2>
-          <p>双人战斗正在设计中，请期待后续版本。</p>
+        <section class="duo-battle-board">
+          <header class="duo-battle-header">
+            <h2 id="duo-battle-title">双人战斗</h2>
+          </header>
+          <div class="duo-battle-stage">
+            <div class="duo-battle-grid" role="img" aria-label="双人战斗地图"></div>
+            <div class="duo-roll-overlay" aria-live="polite">
+              <div class="duo-roll-panel duo-roll-panel-left">
+                <div class="duo-roll-title">玩家1 摇数字</div>
+                <div class="duo-roll-box" data-player="player1">?</div>
+                <button class="duo-roll-btn" type="button" data-player="player1">摇</button>
+              </div>
+              <div class="duo-roll-panel duo-roll-panel-right">
+                <div class="duo-roll-title">玩家2 摇数字</div>
+                <div class="duo-roll-box" data-player="player2">?</div>
+                <button class="duo-roll-btn" type="button" data-player="player2">摇</button>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>

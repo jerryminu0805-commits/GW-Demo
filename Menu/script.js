@@ -20,6 +20,7 @@ let storyState = null;
 let bgmController = null;
 let stageAmbientController = null;
 let duoPrepController = null;
+let duoBattleController = null;
 
 let currentStoryAudio = null;
 let currentStoryAudioSrc = null;
@@ -45,6 +46,43 @@ const duoPlayerConfigs = {
   player2: {
     screenId: 'duo-player2',
     transitionLabel: '玩家2选择技能',
+  },
+};
+
+const duoBattleConfig = {
+  width: 17,
+  height: 13,
+  covers: [
+    [4, 3], [5, 3], [5, 4], [5, 5],
+    [4, 11], [5, 11], [5, 10], [5, 9],
+    [9, 1], [9, 2],
+    [9, 12], [9, 13],
+    [13, 3], [14, 3], [13, 4], [13, 5],
+    [13, 11], [14, 11], [13, 10], [13, 9],
+  ],
+  centralCover: { start: [8, 6], end: [10, 8] },
+  players: {
+    player1: [
+      { id: 'adora', label: 'A', position: [3, 7] },
+      { id: 'dario', label: 'D', position: [4, 4] },
+      { id: 'karma', label: 'K', position: [4, 10] },
+    ],
+    player2: [
+      { id: 'adora', label: 'A', position: [15, 7] },
+      { id: 'dario', label: 'D', position: [14, 4] },
+      { id: 'karma', label: 'K', position: [14, 10] },
+    ],
+  },
+};
+
+const duoBattleState = {
+  rollResults: {
+    player1: null,
+    player2: null,
+  },
+  rolling: {
+    player1: false,
+    player2: false,
   },
 };
 
@@ -482,6 +520,10 @@ function handleScreenEnter(screenId) {
   if (screenId === 'duo-player2') {
     renderDuoSkillScreen('player2');
   }
+  if (screenId === 'duo-battle') {
+    renderDuoBattleScene();
+    startDuoRollStage();
+  }
 }
 
 function playOneShotAudio(src, volume = 0.8) {
@@ -555,6 +597,153 @@ function showDuoBlackout({ duration = 800, onComplete } = {}) {
     overlay.classList.remove('active');
     if (onComplete) onComplete();
   }, duration);
+}
+
+function buildCoverSet() {
+  const coverSet = new Set();
+  duoBattleConfig.covers.forEach(([x, y]) => {
+    coverSet.add(`${x},${y}`);
+  });
+  const [startX, startY] = duoBattleConfig.centralCover.start;
+  const [endX, endY] = duoBattleConfig.centralCover.end;
+  for (let x = startX; x <= endX; x += 1) {
+    for (let y = startY; y <= endY; y += 1) {
+      coverSet.add(`${x},${y}`);
+    }
+  }
+  return coverSet;
+}
+
+function buildUnitMap() {
+  const unitMap = new Map();
+  Object.entries(duoBattleConfig.players).forEach(([playerKey, units]) => {
+    units.forEach((unit) => {
+      const key = `${unit.position[0]},${unit.position[1]}`;
+      unitMap.set(key, { ...unit, playerKey });
+    });
+  });
+  return unitMap;
+}
+
+function renderDuoBattleScene() {
+  const grid = document.querySelector('.duo-battle-grid');
+  if (!grid) return;
+
+  const coverSet = buildCoverSet();
+  const unitMap = buildUnitMap();
+  grid.innerHTML = '';
+
+  for (let y = 1; y <= duoBattleConfig.height; y += 1) {
+    for (let x = 1; x <= duoBattleConfig.width; x += 1) {
+      const cell = document.createElement('div');
+      cell.className = 'duo-grid-cell';
+      const key = `${x},${y}`;
+      if (coverSet.has(key)) {
+        cell.classList.add('cover');
+      }
+      if (unitMap.has(key)) {
+        const unit = unitMap.get(key);
+        cell.classList.add(unit.playerKey);
+        cell.textContent = unit.label;
+        cell.title = `${unit.playerKey === 'player1' ? '玩家1' : '玩家2'} · ${unit.id}`;
+      }
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function resetDuoRollStage() {
+  duoBattleState.rollResults.player1 = null;
+  duoBattleState.rollResults.player2 = null;
+  duoBattleState.rolling.player1 = false;
+  duoBattleState.rolling.player2 = false;
+
+  document.querySelectorAll('.duo-roll-box').forEach((box) => {
+    box.textContent = '?';
+  });
+  document.querySelectorAll('.duo-roll-btn').forEach((btn) => {
+    btn.disabled = false;
+  });
+}
+
+function startDuoRollStage() {
+  const overlay = document.querySelector('.duo-roll-overlay');
+  const grid = document.querySelector('.duo-battle-grid');
+  if (!overlay || !grid) return;
+  resetDuoRollStage();
+  overlay.classList.remove('hidden');
+  grid.classList.add('is-blurred');
+}
+
+function finalizeDuoRoll() {
+  const { player1, player2 } = duoBattleState.rollResults;
+  if (player1 === null || player2 === null) return;
+
+  if (player1 === player2) {
+    showToast('点数相同，请重新摇');
+    setTimeout(() => {
+      startDuoRollStage();
+    }, 800);
+    return;
+  }
+
+  const winner = player1 > player2 ? '玩家1' : '玩家2';
+  showToast(`${winner} 先手`);
+
+  const overlay = document.querySelector('.duo-roll-overlay');
+  const grid = document.querySelector('.duo-battle-grid');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+  if (grid) {
+    grid.classList.remove('is-blurred');
+  }
+
+  duoBattleController = playStoryAudio('DuoBattle.mp3', { volume: 0.65, loop: true, resetMenuBGM: true });
+}
+
+function animateRollNumber(targetEl, onComplete) {
+  const start = performance.now();
+  let lastUpdate = start;
+  let currentValue = 0;
+
+  const tick = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / 1000, 1);
+    const interval = 50 + progress * 180;
+
+    if (now - lastUpdate >= interval) {
+      currentValue = Math.floor(Math.random() * 11);
+      targetEl.textContent = currentValue;
+      lastUpdate = now;
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      const finalValue = Math.floor(Math.random() * 11);
+      targetEl.textContent = finalValue;
+      onComplete(finalValue);
+    }
+  };
+
+  requestAnimationFrame(tick);
+}
+
+function handleDuoRoll(playerKey) {
+  if (duoBattleState.rolling[playerKey]) return;
+  const box = document.querySelector(`.duo-roll-box[data-player="${playerKey}"]`);
+  const button = document.querySelector(`.duo-roll-btn[data-player="${playerKey}"]`);
+  if (!box || !button) return;
+
+  duoBattleState.rolling[playerKey] = true;
+  button.disabled = true;
+
+  animateRollNumber(box, (value) => {
+    duoBattleState.rollResults[playerKey] = value;
+    duoBattleState.rolling[playerKey] = false;
+    finalizeDuoRoll();
+  });
 }
 
 function renderDuoSkillScreen(playerKey) {
@@ -4062,6 +4251,14 @@ function bindDuoMode() {
   });
 }
 
+function bindDuoBattle() {
+  document.querySelectorAll('.duo-roll-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      handleDuoRoll(btn.dataset.player);
+    });
+  });
+}
+
 function bindNavigation() {
   document.querySelectorAll('[data-target]').forEach((btn) => {
     if (btn.classList.contains('menu-btn')) return;
@@ -4111,6 +4308,7 @@ function init() {
   initTutorialBoard();
   resetDuoSelections();
   bindDuoMode();
+  bindDuoBattle();
   bindNavigation();
   loadSevenSeasMapFromFile();
   renderStage('intro');
