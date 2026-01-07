@@ -115,6 +115,10 @@ body {
   padding: 0;
 }
 
+.screen-duo-player {
+  overflow-y: auto;
+}
+
 .duo-confirm-background {
   position: absolute;
   inset: 0;
