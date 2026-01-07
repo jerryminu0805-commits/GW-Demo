@@ -171,6 +171,7 @@ const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
 const STORAGE_KEY_UNLOCKED_ACCESSORIES = 'gwdemo_unlocked_accessories';
 const STORAGE_KEY_EQUIPPED_ACCESSORIES = 'gwdemo_equipped_accessories';
 const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
+const STORAGE_KEY_DUO_SELECTED_SKILLS = 'gwdemo_duo_selected_skills';
 
 function loadCoins() {
   const saved = localStorage.getItem(STORAGE_KEY_COINS);
@@ -320,6 +321,10 @@ function loadSelectedSkills() {
 
 function saveSelectedSkills(skills) {
   localStorage.setItem(STORAGE_KEY_SELECTED_SKILLS, JSON.stringify(skills));
+}
+
+function saveDuoSelectedSkills(duoSelections) {
+  localStorage.setItem(STORAGE_KEY_DUO_SELECTED_SKILLS, JSON.stringify(duoSelections));
 }
 
 function selectSkill(characterId, skillId, color) {
@@ -4062,6 +4067,10 @@ function bindDuoMode() {
       if (playerKey === 'player2') {
         stopStoryAudio({ reset: true });
         duoPrepController = null;
+        saveDuoSelectedSkills({
+          player1: duoState.player1.selections,
+          player2: duoState.player2.selections,
+        });
         showDuoBlackout({
           duration: 900,
           onComplete: () => {

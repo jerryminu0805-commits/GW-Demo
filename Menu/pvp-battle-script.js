@@ -3346,8 +3346,12 @@ function skill(name,cost,color,desc,rangeFn,execFn,estimate={},meta={}){ return 
 // Helper function to load selected skills from localStorage
 function loadSelectedSkillsForBattle() {
   try {
+    const duoSaved = localStorage.getItem('gwdemo_duo_selected_skills');
+    if (duoSaved) {
+      return { mode: 'duo', data: JSON.parse(duoSaved) };
+    }
     const saved = localStorage.getItem('gwdemo_selected_skills');
-    return saved ? JSON.parse(saved) : null;
+    return saved ? { mode: 'single', data: JSON.parse(saved) } : null;
   } catch (e) {
     return null;
   }
@@ -3396,9 +3400,17 @@ function getSelectedSkillKeysForUnit(u) {
 
   const baseId = u.id.replace('_p2', '');
   const selectedSkills = loadSelectedSkillsForBattle();
-  if (!selectedSkills || !selectedSkills[baseId]) return new Set();
+  if (!selectedSkills) return new Set();
 
-  const charSelection = selectedSkills[baseId];
+  let charSelection = null;
+  if (selectedSkills.mode === 'duo') {
+    const playerKey = u.id.endsWith('_p2') ? 'player2' : 'player1';
+    charSelection = selectedSkills.data?.[playerKey]?.[baseId];
+  } else {
+    charSelection = selectedSkills.data?.[baseId];
+  }
+  if (!charSelection) return new Set();
+
   const mapping = skillKeyMapping[baseId];
   if (!mapping) return new Set();
 
@@ -4204,13 +4216,17 @@ function summarizeNegatives(u){
 function renderStatus(){
   if(!partyStatus) return;
   partyStatus.innerHTML='';
+  const playerHeader = document.createElement('div');
+  playerHeader.className = 'partyRow';
+  playerHeader.innerHTML = '<strong>玩家1</strong>';
+  partyStatus.appendChild(playerHeader);
   for(const id of ['adora','dario','karma']){
     const u=units[id]; if(!u) continue;
     const el=document.createElement('div'); el.className='partyRow';
     el.innerHTML=`<strong>${u.name}</strong> HP:${u.hp}/${u.maxHp} SP:${u.sp}/${u.maxSp} ${summarizeNegatives(u)}`;
     partyStatus.appendChild(el);
   }
-  const enemyWrap=document.createElement('div'); enemyWrap.style.marginTop='10px'; enemyWrap.innerHTML='<strong>敌方（七海作战队）</strong>';
+  const enemyWrap=document.createElement('div'); enemyWrap.style.marginTop='10px'; enemyWrap.innerHTML='<strong>玩家2</strong>';
   const enemyUnits = Object.values(units).filter(u=>u.side==='enemy' && u.hp>0);
   for(const u of enemyUnits){
     const el=document.createElement('div'); el.className='partyRow small';
