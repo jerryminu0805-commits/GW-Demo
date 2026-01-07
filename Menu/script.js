@@ -4165,8 +4165,10 @@ function initDuoMode() {
     event.preventDefault();
     event.stopImmediatePropagation();
     resetDuoState();
+    ensureMenuBGMStopped();
     playDuoPrepAudio();
-    transitionTo('duo');
+    resetMaskState();
+    setActiveScreen('duo');
   });
 
   const duoBackButton = duoScreen.querySelector('.back-btn');
