@@ -1919,16 +1919,19 @@ body {
   display: none;
   position: relative;
   min-height: 60vh;
+  pointer-events: none;
 }
 
 .duo-stage.active {
   display: block;
+  pointer-events: auto;
 }
 
 .duo-confirmation {
   display: grid;
   place-items: center;
   gap: 24px;
+  z-index: 1;
 }
 
 .duo-confirm-header {
