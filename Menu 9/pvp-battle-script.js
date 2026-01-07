@@ -247,11 +247,12 @@ function recordDamageTaken(u, amount){
   u.dmgTaken += amount;
 }
 function recordHealing(sourceId, amount){
-  if(!sourceId || amount<=0) return;
+  const hpAmount = Math.max(0, Math.round(amount || 0));
+  if(!sourceId || hpAmount<=0) return;
   const src = units[sourceId];
   if(!src) return;
   if(typeof src.healDone !== 'number') src.healDone = 0;
-  src.healDone += amount;
+  src.healDone += hpAmount;
 }
 // 玩家1
 units['adora'] = createUnit('adora','Adora','player',70, 7, 3, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff'], {stunThreshold:2});
