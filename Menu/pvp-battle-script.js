@@ -3435,7 +3435,8 @@ function getSelectedSkillKeysForUnit(u) {
 
 function buildSkillFactoriesForUnit(u){
   const F=[];
-  if(u.id==='adora'){
+  const baseId = u.id.replace('_p2', '');
+  if(baseId==='adora'){
     F.push(
       { key:'短匕轻挥', prob:0.85, cond:()=>true, make:()=> skill('短匕轻挥',1,'green','邻格 10HP +5SP（背刺x1.5）',
         (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
@@ -3498,7 +3499,7 @@ function buildSkillFactoriesForUnit(u){
         {castMs:1200}
       )}
     );
-  } else if(u.id==='dario'){
+  } else if(baseId==='dario'){
     F.push(
       { key:'机械爪击', prob:0.90, cond:()=>true, make:()=> skill('机械爪击',1,'green','前方1-2格 15HP',
         (uu,aimDir)=> aimDir? range_forward_n(uu,2,aimDir) : (()=>{const a=[]; for(const d in DIRS) range_forward_n(uu,2,d).forEach(x=>a.push(x)); return a;})(),
@@ -3561,7 +3562,7 @@ function buildSkillFactoriesForUnit(u){
         {cellTargeting:true, castMs:900}
       )}
     );
-  } else if(u.id==='karma'){
+  } else if(baseId==='karma'){
     F.push(
       { key:'沙包大的拳头', prob:0.90, cond:()=>true, make:()=> skill('沙包大的拳头',1,'green','邻格 15HP（连击递增）',
         (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
@@ -3608,7 +3609,7 @@ function buildSkillFactoriesForUnit(u){
         {castMs:700}
       )}
     );
-  } else if(u.id==='haz'){
+  } else if(baseId==='haz'){
     if(!u._comeback){
       F.push(
         { key:'鱼叉穿刺', prob:0.70, cond:()=>true, make:()=> skill('鱼叉穿刺',1,'green','前方1格 20伤害 自身+10SP',
@@ -3675,7 +3676,7 @@ function buildSkillFactoriesForUnit(u){
         )}
       );
     }
-  } else if(u.id==='katz'){
+  } else if(baseId==='katz'){
     if(!u.oppression){
       F.push(
         { key:'矛刺', prob:0.60, cond:()=>true, make:()=> skill('矛刺',1,'green','前方1格 20伤 自身+5SP',
@@ -3719,7 +3720,7 @@ function buildSkillFactoriesForUnit(u){
         )}
       );
     }
-  } else if(u.id==='tusk'){
+  } else if(baseId==='tusk'){
     if(!u.oppression){
       F.push(
         { key:'骨盾猛击', prob:0.70, cond:()=>true, make:()=> skill('骨盾猛击',1,'green','邻格 10伤 击退1格',
@@ -3757,7 +3758,7 @@ function buildSkillFactoriesForUnit(u){
         )}
       );
     }
-  } else if(u.id==='neyla'){
+  } else if(baseId==='neyla'){
     if(!u.oppression){
       F.push(
         { key:'迅捷射击', prob:0.70, cond:()=>true, make:()=> skill('迅捷射击',1,'green','4格内单体 15HP +5SP',
@@ -3791,7 +3792,7 @@ function buildSkillFactoriesForUnit(u){
         )}
       );
     }
-  } else if(u.id==='kyn'){
+  } else if(baseId==='kyn'){
     if(!u.oppression){
       F.push(
         { key:'迅影突刺', prob:0.60, cond:()=>true, make:()=> skill('迅影突刺',1,'green','5x5内任一敌人身边 20HP（≤25%处决，处决后返身）',
