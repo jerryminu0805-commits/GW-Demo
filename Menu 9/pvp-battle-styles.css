@@ -201,6 +201,11 @@ body {
   box-shadow: 0 0 0 2px rgba(90,120,180,0.18) inset;
   pointer-events: none; /* 掩体不可进入 */
 }
+.cell.ink-shard {
+  background: radial-gradient(circle at 30% 30%, rgba(168, 117, 255, 0.6), rgba(54, 20, 92, 0.9));
+  border-color: rgba(190, 140, 255, 0.7);
+  box-shadow: 0 0 12px rgba(140, 90, 255, 0.4) inset;
+}
 
 /* 1x1 单位：放在 cell 内，绝对定位铺满 cell */
 .unit {
@@ -404,6 +409,7 @@ body {
 .skillCard.red { border-left-color: #ff7875; }
 .skillCard.blue { border-left: 6px solid #1890ff !important; }
 .skillCard.orange { border-left-color: #fa8c16; }
+.skillCard.purple { border-left-color: #9254de; }
 .skillCard:hover { transform: translateY(-1px); background: #141c2b; }
 .skillCard.disabled { opacity: .6; filter: grayscale(0.1); cursor: not-allowed; }
 
@@ -472,6 +478,50 @@ body {
   cursor: pointer;
 }
 .modal-actions button:hover { filter: brightness(1.06); }
+
+.duo-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.duo-summary-column {
+  background: #0f1320;
+  border: 1px solid #1f2840;
+  border-radius: 10px;
+  padding: 10px;
+}
+.duo-summary-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: #cbd7ff;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.duo-summary-row {
+  padding: 8px 6px;
+}
+.duo-summary-row + .duo-summary-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.duo-summary-name {
+  font-weight: 600;
+  color: #eef2ff;
+}
+.duo-summary-stats {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #a3a7b3;
+}
+@media (max-width: 720px) {
+  .duo-summary {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* 滚动条微样式（WebKit） */
 .skillPool::-webkit-scrollbar,

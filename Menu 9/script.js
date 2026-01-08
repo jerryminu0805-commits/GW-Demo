@@ -313,9 +313,9 @@ function isSkillSelectionUnlocked() {
 function loadSelectedSkills() {
   const saved = localStorage.getItem(STORAGE_KEY_SELECTED_SKILLS);
   return saved ? JSON.parse(saved) : {
-    adora: { green: null, blue: null, pink: null, white: null, red: null, orange: [] },
-    karma: { green: null, blue: null, pink: null, white: null, red: null, orange: [] },
-    dario: { green: null, blue: null, pink: null, white: null, red: null, orange: [] }
+    adora: { green: null, blue: null, pink: null, white: null, red: null, purple: null, orange: [] },
+    karma: { green: null, blue: null, pink: null, white: null, red: null, purple: null, orange: [] },
+    dario: { green: null, blue: null, pink: null, white: null, red: null, purple: null, orange: [] }
   };
 }
 
@@ -353,7 +353,7 @@ function unselectSkill(characterId, skillId, color) {
 }
 
 function createEmptySkillSelection() {
-  return { green: null, blue: null, pink: null, white: null, red: null, orange: [null, null] };
+  return { green: null, blue: null, pink: null, white: null, red: null, purple: null, orange: [null, null] };
 }
 
 function createDuoSelections() {
@@ -659,6 +659,7 @@ function renderDuoSkillScreen(playerKey) {
     { color: 'pink', label: '粉色', limit: 1 },
     { color: 'white', label: '白色', limit: 1 },
     { color: 'red', label: '红色', limit: 1 },
+    { color: 'purple', label: '紫色', limit: 1 },
     { color: 'orange', label: '橙色', limit: 2 },
   ];
 
@@ -734,7 +735,7 @@ function renderDuoSkillScreen(playerKey) {
 
   const colorLabels = {
     green: '绿色', blue: '蓝色', pink: '粉色',
-    white: '白色', red: '红色', orange: '橙色', gray: '灰色',
+    white: '白色', red: '红色', purple: '紫色', orange: '橙色', gray: '灰色',
   };
 
   Object.entries(skillsByColor).forEach(([color, skills]) => {
@@ -824,7 +825,7 @@ function setupDuoSkillSelectionInteractions(container, playerKey, characterId) {
       if (skill.color !== slotColor) {
         const colorLabels = {
           green: '绿色', blue: '蓝色', pink: '粉色',
-          white: '白色', red: '红色', orange: '橙色', gray: '灰色',
+          white: '白色', red: '红色', purple: '紫色', orange: '橙色', gray: '灰色',
         };
         showToast(`技能颜色不匹配！此槽位只能放置${colorLabels[slotColor] || slotColor}技能`);
         return;
@@ -3006,7 +3007,8 @@ const skillLibrary = {
     { id: 'adora_cheer', name: '加油哇！', color: 'orange', cost: '4步', description: '以自身为中心5×5选择1名友方，授予1层"鸡血"Buff（下次攻击伤害×2，最多1层）。', probability: '20%', minLevel: 25 },
     { id: 'adora_rely', name: '只能靠你了。。', color: 'orange', cost: '4步', description: '牺牲自身25HP，为四周任意5格内1名友方施加"依赖"Buff（下次攻击造成真实伤害并将其SP降至0，最多1层）。', probability: '15%', minLevel: 35 },
     { id: 'adora_bloom', name: '绽放', color: 'red', cost: '3步', description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层10HP与5SP）并根据引爆层数来吸取HP与SP（每绽放一层血色花蕾：恢复Adora 5HP与5SP）。', probability: '20%', minLevel: 50 },
-    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '80%', minLevel: 50 }
+    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '80%', minLevel: 50 },
+    { id: 'adora_blackflash_charge', name: '黑瞬「充能」', color: 'purple', cost: '2步', description: '使用后地图上随机3格空格子出现墨片，友方踩上墨片会消失；全部消失后获得额外技能「黑瞬「释放」」。', probability: '20%', minLevel: 50 }
   ],
   karma: [
     { id: 'karma_punch', name: '沙包大的拳头', color: 'green', cost: '1步', description: '造成15点伤害。', probability: '80%', minLevel: 20 },
@@ -3014,7 +3016,8 @@ const skillLibrary = {
     { id: 'karma_listen', name: '都听你的', color: 'blue', cost: '2步', description: '可选四周任意3格并回复5SP（可少选）。', probability: '40%', minLevel: 20 },
     { id: 'karma_blood_grip', name: '嗜血之握', color: 'red', cost: '3步', description: '连续使用四次"沙包大的拳头"后可释放，对非Boss造成75伤害、小Boss 80、精英100，并立即处决对应目标。', probability: '30%', minLevel: 20 },
     { id: 'karma_deep_breath', name: '深呼吸', color: 'white', cost: '2步', description: '主动恢复全部SP与10HP；若当前技能卡池未使用该技能，则获得10%伤害加成（同一时间仅可存在1张）。', probability: '20%', minLevel: 25 },
-    { id: 'karma_adrenaline', name: '肾上腺素', color: 'white', cost: '2步', description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"（技能池里一次性只能有一个肾上腺素技能）。', probability: '20%', minLevel: 50 }
+    { id: 'karma_adrenaline', name: '肾上腺素', color: 'white', cost: '2步', description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"（技能池里一次性只能有一个肾上腺素技能）。', probability: '20%', minLevel: 50 },
+    { id: 'karma_cataclysm', name: '天崩地裂', color: 'red', cost: '3步', description: '对周围5格内所有单位造成伤害：友方 10HP+5SP，敌方 25HP+10SP（距离≤4再+5HP）。', probability: '15%', minLevel: 50 }
   ],
   dario: [
     { id: 'dario_claw', name: '机械爪击', color: 'green', cost: '1步', description: '前方两格15点伤害。（15%能对普通敌人单位叠一层眩晕）', probability: '80%', minLevel: 20 },
@@ -3023,7 +3026,8 @@ const skillLibrary = {
     { id: 'dario_pull', name: '拿来吧你！', color: 'red', cost: '3步', description: '整排首个非Boss单位造成20点伤害并拉至身前，附1回合眩晕与-15SP；对Boss仍附眩晕与SP伤害但无法拉动。', probability: '30%', minLevel: 20 },
     { id: 'dario_bitter_sweet', name: '先苦后甜', color: 'orange', cost: '4步', description: '下一回合额外+4步（技能池一次仅能存在1张）。', probability: '15%', minLevel: 25 },
     { id: 'dario_tear_wound', name: '撕裂伤口', color: 'green', cost: '1步', description: '前方3格爪击造成15点伤害后叠一层流血（如果对方不是满血伤害增加50%以及再叠一层流血），随后抽出利爪造成5HP。', probability: '80%', minLevel: 50 },
-    { id: 'dario_status_recovery', name: '状态恢复', color: 'orange', cost: '2步', description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。', probability: '15%', minLevel: 50 }
+    { id: 'dario_status_recovery', name: '状态恢复', color: 'orange', cost: '4步', description: '选中全图任何友方单位，并把该单位的眩晕效果全部移除，并增加该单位15SP。', probability: '30%', minLevel: 50 },
+    { id: 'dario_life_drain', name: '生命夺取', color: 'pink', cost: '1步', description: '给自己上一层“小生命夺取”Buff，下一次攻击恢复场上血量最少的友方单位15HP。', probability: '35%', minLevel: 50 }
   ]
 };
 
@@ -3145,7 +3149,15 @@ const characterData = {
               colorLabel: '绿色',
               cost: '1 步',
               description: '能选择四周任何 2 格并瞬移到对方后侧并用匕首插进对方身体里造成 10 HP 5 SP，随后再拔出来造成 5 HP 5 SP以及给对方叠一层流血。',
-              note: '多阶段攻击，出现概率 20%。',
+              note: '多阶段攻击，出现概率 80%。',
+            },
+            {
+              name: '黑瞬「充能」',
+              color: 'purple',
+              colorLabel: '紫色',
+              cost: '2 步',
+              description: '使用后地图上随机 3 格空格子出现墨片；友方踩上墨片会消失，全部消失后获得额外技能「黑瞬「释放」」。',
+              note: '出现概率 20%。',
             },
           ],
         },
@@ -3240,6 +3252,14 @@ const characterData = {
               cost: '2 步',
               description: '主动使用 - 给自己上一层鸡血并恢复自己15HP以及5SP，如果在目前所拥有技能池里没使用 - 每连续2次使用"沙包大的拳头"打到任意敌人则自动再次对最后打到的敌方单位使用两次"沙包大的拳头"。',
               note: '技能池里一次性只能有一个肾上腺素技能，出现概率 20%。',
+            },
+            {
+              name: '天崩地裂',
+              color: 'red',
+              colorLabel: '红色',
+              cost: '3 步',
+              description: '对周围 5 格内所有单位造成伤害：友方 10HP+5SP，敌方 25HP+10SP（距离 ≤4 再 +5HP）。',
+              note: '出现概率 15%。',
             },
           ],
         },
@@ -3338,9 +3358,17 @@ const characterData = {
               name: '状态恢复',
               color: 'orange',
               colorLabel: '橘色',
-              cost: '2 步',
-              description: '选中全图任何友方单位，并把该单位的所有负面效果全部移除，并增加该单位15SP。',
-              note: '出现概率 15%。',
+              cost: '4 步',
+              description: '选中全图任何友方单位，并把该单位的眩晕效果全部移除，并增加该单位15SP。',
+              note: '出现概率 30%。',
+            },
+            {
+              name: '生命夺取',
+              color: 'pink',
+              colorLabel: '粉色',
+              cost: '1 步',
+              description: '使用后给自己上一层“小生命夺取”Buff（下一次攻击恢复场上血量最少的友方单位 15 HP）。',
+              note: '出现概率 35%。',
             },
           ],
         },
@@ -3378,6 +3406,15 @@ function renderCharacterSection(section, characterId) {
   });
 
   const container = document.querySelector('.detail-content');
+  let skillSelectionScroll = null;
+  if (section === 'skillSelection') {
+    const slots = container.querySelector('.skill-slots-container');
+    const library = container.querySelector('.skill-library-container');
+    skillSelectionScroll = {
+      slots: slots ? slots.scrollTop : 0,
+      library: library ? library.scrollTop : 0,
+    };
+  }
   container.innerHTML = '';
 
   if (section === 'bio') {
@@ -3398,6 +3435,12 @@ function renderCharacterSection(section, characterId) {
     renderAccessoriesSection(container);
   } else if (section === 'skillSelection') {
     renderSkillSelectionSection(container, characterId);
+    if (skillSelectionScroll) {
+      const slots = container.querySelector('.skill-slots-container');
+      const library = container.querySelector('.skill-library-container');
+      if (slots) slots.scrollTop = skillSelectionScroll.slots;
+      if (library) library.scrollTop = skillSelectionScroll.library;
+    }
   } else {
     const header = document.createElement('h3');
     header.textContent = data.name;
@@ -3674,6 +3717,7 @@ function renderSkillSelectionSection(container, characterId) {
     { color: 'pink', label: '粉色', limit: 1 },
     { color: 'white', label: '白色', limit: 1 },
     { color: 'red', label: '红色', limit: 1 },
+    { color: 'purple', label: '紫色', limit: 1 },
     { color: 'orange', label: '橙色', limit: 2 }
   ];
   
@@ -3747,8 +3791,8 @@ function renderSkillSelectionSection(container, characterId) {
     colorGroup.className = 'skill-color-group';
     
     const colorLabels = {
-      green: '绿色', blue: '蓝色', pink: '粉色', 
-      white: '白色', red: '红色', orange: '橙色', gray: '灰色'
+      green: '绿色', blue: '蓝色', pink: '粉色',
+      white: '白色', red: '红色', purple: '紫色', orange: '橙色', gray: '灰色'
     };
     
     const groupHeader = document.createElement('div');
@@ -3864,8 +3908,8 @@ function setupSkillSelectionInteractions(container, characterId) {
       // Check if skill color matches slot color
       if (skill.color !== slotColor) {
         const colorLabels = {
-          green: '绿色', blue: '蓝色', pink: '粉色', 
-          white: '白色', red: '红色', orange: '橙色', gray: '灰色'
+          green: '绿色', blue: '蓝色', pink: '粉色',
+          white: '白色', red: '红色', purple: '紫色', orange: '橙色', gray: '灰色'
         };
         showToast(`技能颜色不匹配！此槽位只能放置${colorLabels[slotColor] || slotColor}技能`);
         return;
