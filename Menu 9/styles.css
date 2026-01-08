@@ -1297,6 +1297,11 @@ body {
   color: #461022;
 }
 
+.skill-badge.skill-purple {
+  background: linear-gradient(135deg, #c3a6ff, #6b3fa0);
+  color: #2a0f45;
+}
+
 .skill-badge.skill-orange {
   background: linear-gradient(135deg, #ffcf8a, #c46a1a);
   color: #4a1e00;
@@ -2127,6 +2132,12 @@ body {
   border: 1px solid rgba(233, 30, 99, 0.4);
 }
 
+.skill-badge.skill-purple {
+  background: rgba(152, 88, 255, 0.2);
+  color: #b083ff;
+  border: 1px solid rgba(152, 88, 255, 0.4);
+}
+
 .skill-badge.skill-white {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
@@ -2162,6 +2173,10 @@ body {
 
 .skill-card-pink {
   border-left: 3px solid #e91e63;
+}
+
+.skill-card-purple {
+  border-left: 3px solid #8e5aff;
 }
 
 .skill-card-white {
