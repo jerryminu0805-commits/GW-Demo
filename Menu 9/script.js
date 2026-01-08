@@ -24,6 +24,19 @@ let duoPrepController = null;
 let currentStoryAudio = null;
 let currentStoryAudioSrc = null;
 
+// Accessories/System - LocalStorage Management
+const STORAGE_KEY_COINS = 'gwdemo_coins';
+const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
+const STORAGE_KEY_UNLOCKED_ACCESSORIES = 'gwdemo_unlocked_accessories';
+const STORAGE_KEY_EQUIPPED_ACCESSORIES = 'gwdemo_equipped_accessories';
+const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
+const STORAGE_KEY_DUO_SELECTED_SKILLS = 'gwdemo_duo_selected_skills';
+const STORAGE_KEY_FARPVP_SELECTED_SKILLS = 'gwdemo_farpvp_selected_skills';
+const STORAGE_KEY_FARPVP_ROOMS = 'gwdemo_farpvp_rooms';
+const STORAGE_KEY_FARPVP_ROLE = 'gwdemo_farpvp_role';
+const STORAGE_KEY_FARPVP_ROOM = 'gwdemo_farpvp_room';
+const STORAGE_KEY_FARPVP_HOST = 'gwdemo_farpvp_host';
+
 const duoState = {
   player1: {
     confirmed: false,
@@ -180,19 +193,6 @@ const stageProgress = {
   sevenSeas: false,
   oldLove: false,
 };
-
-// Accessories System - LocalStorage Management
-const STORAGE_KEY_COINS = 'gwdemo_coins';
-const STORAGE_KEY_STAGE_COMPLETIONS = 'gwdemo_stage_completions';
-const STORAGE_KEY_UNLOCKED_ACCESSORIES = 'gwdemo_unlocked_accessories';
-const STORAGE_KEY_EQUIPPED_ACCESSORIES = 'gwdemo_equipped_accessories';
-const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
-const STORAGE_KEY_DUO_SELECTED_SKILLS = 'gwdemo_duo_selected_skills';
-const STORAGE_KEY_FARPVP_SELECTED_SKILLS = 'gwdemo_farpvp_selected_skills';
-const STORAGE_KEY_FARPVP_ROOMS = 'gwdemo_farpvp_rooms';
-const STORAGE_KEY_FARPVP_ROLE = 'gwdemo_farpvp_role';
-const STORAGE_KEY_FARPVP_ROOM = 'gwdemo_farpvp_room';
-const STORAGE_KEY_FARPVP_HOST = 'gwdemo_farpvp_host';
 
 function loadCoins() {
   const saved = localStorage.getItem(STORAGE_KEY_COINS);
