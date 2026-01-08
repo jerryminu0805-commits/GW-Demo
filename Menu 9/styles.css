@@ -2249,3 +2249,266 @@ body {
     max-width: 90vw;
   }
 }
+
+.screen-farpvp-lobby,
+.screen-farpvp-room,
+.screen-farpvp-player,
+.screen-farpvp-battle {
+  color: #f7f7fb;
+}
+
+.farpvp-lobby-board,
+.farpvp-room-board,
+.farpvp-battle-board {
+  background: rgba(12, 12, 24, 0.8);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.farpvp-lobby-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.farpvp-room-list,
+.farpvp-room-create {
+  background: rgba(15, 20, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.farpvp-room-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.farpvp-room-items {
+  display: grid;
+  gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.farpvp-room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 26, 52, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.farpvp-room-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.farpvp-room-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.farpvp-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.farpvp-input {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 12px;
+  background: rgba(10, 14, 30, 0.85);
+  color: #fff;
+}
+
+.farpvp-create-btn,
+.farpvp-refresh,
+.farpvp-join-confirm,
+.farpvp-join-cancel,
+.farpvp-ready-btn,
+.farpvp-start-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #5a7cff, #8d5bff);
+  color: #fff;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.farpvp-refresh,
+.farpvp-join-cancel {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.farpvp-start-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.farpvp-create-btn:hover,
+.farpvp-refresh:hover,
+.farpvp-join-confirm:hover,
+.farpvp-join-cancel:hover,
+.farpvp-ready-btn:hover,
+.farpvp-start-btn:hover {
+  transform: translateY(-1px);
+}
+
+.farpvp-join-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 80;
+}
+
+.farpvp-join-modal.hidden {
+  display: none;
+}
+
+.farpvp-join-card {
+  background: rgba(16, 20, 38, 0.95);
+  border-radius: 18px;
+  padding: 22px;
+  min-width: 320px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+}
+
+.farpvp-join-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.farpvp-room-board {
+  text-align: center;
+}
+
+.farpvp-room-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.farpvp-room-slots {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.farpvp-slot {
+  background: rgba(16, 22, 40, 0.8);
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.farpvp-slot.is-ready {
+  border-color: rgba(78, 220, 146, 0.75);
+  box-shadow: 0 0 18px rgba(78, 220, 146, 0.2);
+}
+
+.farpvp-slot-body {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.farpvp-room-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.farpvp-room-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.farpvp-skill-board {
+  background: rgba(10, 12, 24, 0.88);
+  border-radius: 18px;
+  padding: 24px;
+  min-height: 520px;
+}
+
+.farpvp-skill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.farpvp-skill-content {
+  min-height: 360px;
+}
+
+.farpvp-player-confirm {
+  margin-top: 16px;
+  background: linear-gradient(135deg, #4edc92, #2b9f76);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  color: #0b121d;
+  cursor: pointer;
+}
+
+.farpvp-wait-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: none;
+  place-items: center;
+  color: #fff;
+  font-size: 20px;
+  z-index: 70;
+}
+
+.farpvp-wait-overlay.active {
+  display: grid;
+}
+
+.farpvp-battle-stage,
+.farpvp-battle-stage iframe {
+  width: 100%;
+  height: 70vh;
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+@media (max-width: 960px) {
+  .farpvp-lobby-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .farpvp-room-slots {
+    grid-template-columns: 1fr;
+  }
+}

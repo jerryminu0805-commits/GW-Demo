@@ -29,6 +29,7 @@
           <button class="menu-btn" data-action="settings">设置</button>
           <button class="menu-btn" data-action="exit">离开</button>
           <button class="menu-btn" data-target="tutorial">教学</button>
+          <button class="menu-btn" data-action="farpvp">联机模式</button>
         </nav>
       </div>
       <aside class="settings-panel" aria-hidden="true">
@@ -190,6 +191,121 @@
             <button class="tutorial-tab" data-topic="enemies">敌人</button>
           </nav>
           <article class="tutorial-content"></article>
+        </section>
+      </div>
+    </main>
+
+    <main class="screen screen-farpvp-lobby" data-screen="farpvp-lobby" aria-labelledby="farpvp-lobby-title">
+      <div class="screen-inner">
+        <header class="screen-bar">
+          <button class="back-btn" data-target="menu" aria-label="返回菜单">返回菜单</button>
+        </header>
+        <section class="farpvp-lobby-board" id="farpvp-lobby-title">
+          <h2>联机大厅</h2>
+          <div class="farpvp-lobby-layout">
+            <div class="farpvp-room-list">
+              <div class="farpvp-room-list-header">
+                <h3>房间列表</h3>
+                <button class="farpvp-refresh" type="button">刷新</button>
+              </div>
+              <div class="farpvp-room-items" id="farpvp-room-items"></div>
+            </div>
+            <div class="farpvp-room-create">
+              <h3>创建房间</h3>
+              <label class="farpvp-label">房间名字：
+                <input class="farpvp-input" type="text" id="farpvp-room-name" maxlength="20" placeholder="请输入房间名" />
+              </label>
+              <label class="farpvp-label">房间密码：
+                <input class="farpvp-input" type="password" id="farpvp-room-pass" maxlength="12" placeholder="可留空" />
+              </label>
+              <button class="farpvp-create-btn" type="button">创建房间</button>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="farpvp-join-modal hidden" id="farpvp-join-modal" aria-hidden="true">
+        <div class="farpvp-join-card">
+          <h3>进入房间</h3>
+          <p class="farpvp-join-name"></p>
+          <label class="farpvp-label">房间密码：
+            <input class="farpvp-input" type="password" id="farpvp-join-pass" maxlength="12" />
+          </label>
+          <div class="farpvp-join-actions">
+            <button class="farpvp-join-cancel" type="button">取消</button>
+            <button class="farpvp-join-confirm" type="button">确定</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <main class="screen screen-farpvp-room" data-screen="farpvp-room" aria-labelledby="farpvp-room-title">
+      <div class="screen-inner">
+        <header class="screen-bar">
+          <button class="back-btn" data-target="farpvp-lobby" aria-label="返回大厅">返回大厅</button>
+        </header>
+        <section class="farpvp-room-board" id="farpvp-room-title">
+          <h2>房间</h2>
+          <p class="farpvp-room-subtitle" id="farpvp-room-subtitle"></p>
+          <div class="farpvp-room-slots">
+            <div class="farpvp-slot" data-slot="player1">
+              <div class="farpvp-slot-title">玩家1</div>
+              <div class="farpvp-slot-body"></div>
+              <button class="farpvp-ready-btn" type="button" data-player="player1">准备</button>
+            </div>
+            <div class="farpvp-room-center">
+              <button class="farpvp-start-btn" type="button" disabled>开始</button>
+            </div>
+            <div class="farpvp-slot" data-slot="player2">
+              <div class="farpvp-slot-title">玩家2</div>
+              <div class="farpvp-slot-body"></div>
+              <button class="farpvp-ready-btn" type="button" data-player="player2">准备</button>
+            </div>
+          </div>
+          <p class="farpvp-room-hint">点击空格子可切换自己所在位置。</p>
+        </section>
+      </div>
+    </main>
+
+    <main class="screen screen-farpvp-player screen-farpvp-player1" data-screen="farpvp-player1" aria-labelledby="farpvp-player1-title">
+      <div class="screen-inner">
+        <section class="farpvp-skill-board" data-player="player1">
+          <header class="farpvp-skill-header">
+            <div class="farpvp-player-title" id="farpvp-player1-title">玩家1 · 技能选择</div>
+          </header>
+          <div class="farpvp-skill-content"></div>
+          <button class="farpvp-player-confirm" type="button" data-player="player1">确认</button>
+        </section>
+      </div>
+      <div class="farpvp-wait-overlay" aria-hidden="true">
+        <span>等待对方选择...</span>
+      </div>
+    </main>
+
+    <main class="screen screen-farpvp-player screen-farpvp-player2" data-screen="farpvp-player2" aria-labelledby="farpvp-player2-title">
+      <div class="screen-inner">
+        <section class="farpvp-skill-board" data-player="player2">
+          <header class="farpvp-skill-header">
+            <div class="farpvp-player-title" id="farpvp-player2-title">玩家2 · 技能选择</div>
+          </header>
+          <div class="farpvp-skill-content"></div>
+          <button class="farpvp-player-confirm" type="button" data-player="player2">确认</button>
+        </section>
+      </div>
+      <div class="farpvp-wait-overlay" aria-hidden="true">
+        <span>等待对方选择...</span>
+      </div>
+    </main>
+
+    <main class="screen screen-farpvp-battle" data-screen="farpvp-battle" aria-labelledby="farpvp-battle-title">
+      <div class="screen-inner">
+        <section class="farpvp-battle-board">
+          <header class="farpvp-battle-header">
+            <h2 id="farpvp-battle-title">远程联机战斗</h2>
+            <button class="back-btn" data-target="farpvp-lobby" type="button">退出联机</button>
+          </header>
+          <div class="farpvp-battle-stage">
+            <iframe class="farpvp-battle-frame" title="远程联机战斗" src="" loading="lazy"></iframe>
+          </div>
         </section>
       </div>
     </main>

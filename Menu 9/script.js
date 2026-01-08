@@ -37,6 +37,22 @@ const duoState = {
   },
 };
 
+const farPvpState = {
+  roomId: null,
+  room: null,
+  role: localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || null,
+  player1: {
+    confirmed: false,
+    currentCharacter: 'adora',
+    selections: null,
+  },
+  player2: {
+    confirmed: false,
+    currentCharacter: 'adora',
+    selections: null,
+  },
+};
+
 const duoPlayerConfigs = {
   player1: {
     screenId: 'duo-player1',
@@ -172,6 +188,11 @@ const STORAGE_KEY_UNLOCKED_ACCESSORIES = 'gwdemo_unlocked_accessories';
 const STORAGE_KEY_EQUIPPED_ACCESSORIES = 'gwdemo_equipped_accessories';
 const STORAGE_KEY_SELECTED_SKILLS = 'gwdemo_selected_skills';
 const STORAGE_KEY_DUO_SELECTED_SKILLS = 'gwdemo_duo_selected_skills';
+const STORAGE_KEY_FARPVP_SELECTED_SKILLS = 'gwdemo_farpvp_selected_skills';
+const STORAGE_KEY_FARPVP_ROOMS = 'gwdemo_farpvp_rooms';
+const STORAGE_KEY_FARPVP_ROLE = 'gwdemo_farpvp_role';
+const STORAGE_KEY_FARPVP_ROOM = 'gwdemo_farpvp_room';
+const STORAGE_KEY_FARPVP_HOST = 'gwdemo_farpvp_host';
 
 function loadCoins() {
   const saved = localStorage.getItem(STORAGE_KEY_COINS);
@@ -369,6 +390,54 @@ function resetDuoSelections() {
   duoState.player2.selections = createDuoSelections();
 }
 
+function resetFarPvpSelections() {
+  farPvpState.player1.selections = createDuoSelections();
+  farPvpState.player2.selections = createDuoSelections();
+}
+
+function saveFarPvpSelectedSkills(selections) {
+  localStorage.setItem(STORAGE_KEY_FARPVP_SELECTED_SKILLS, JSON.stringify(selections));
+}
+
+function clearFarPvpSkill(playerKey, characterId, skillId) {
+  const selected = farPvpState[playerKey].selections[characterId];
+  Object.keys(selected).forEach((color) => {
+    if (color === 'orange') {
+      selected.orange = selected.orange.map((slot) => (slot === skillId ? null : slot));
+    } else if (selected[color] === skillId) {
+      selected[color] = null;
+    }
+  });
+}
+
+function selectFarPvpSkill(playerKey, characterId, skillId, color, slotIndex = null) {
+  const selected = farPvpState[playerKey].selections[characterId];
+  clearFarPvpSkill(playerKey, characterId, skillId);
+  if (color === 'orange') {
+    const index = typeof slotIndex === 'number' ? slotIndex : selected.orange.findIndex((slot) => !slot);
+    if (index !== -1 && index < 2) {
+      selected.orange[index] = skillId;
+    }
+  } else {
+    selected[color] = skillId;
+  }
+}
+
+function unselectFarPvpSkill(playerKey, characterId, skillId, color, slotIndex = null) {
+  const selected = farPvpState[playerKey].selections[characterId];
+  if (color === 'orange') {
+    if (typeof slotIndex === 'number') {
+      if (selected.orange[slotIndex] === skillId) {
+        selected.orange[slotIndex] = null;
+      }
+    } else {
+      selected.orange = selected.orange.map((slot) => (slot === skillId ? null : slot));
+    }
+  } else if (selected[color] === skillId) {
+    selected[color] = null;
+  }
+}
+
 function clearDuoSkill(playerKey, characterId, skillId) {
   const selected = duoState[playerKey].selections[characterId];
   Object.keys(selected).forEach((color) => {
@@ -478,6 +547,14 @@ function transitionTo(targetScreen) {
 }
 
 function handleScreenEnter(screenId) {
+  if (screenId !== 'farpvp-lobby' && farPvpLobbyTimer) {
+    clearInterval(farPvpLobbyTimer);
+    farPvpLobbyTimer = null;
+  }
+  if (screenId !== 'farpvp-room' && farPvpRoomTimer) {
+    clearInterval(farPvpRoomTimer);
+    farPvpRoomTimer = null;
+  }
   if (screenId === 'duo-confirm') {
     startDuoMode();
   }
@@ -489,6 +566,25 @@ function handleScreenEnter(screenId) {
   }
   if (screenId === 'duo-battle') {
     loadDuoBattleFrame();
+  }
+  if (screenId === 'farpvp-lobby') {
+    updateFarPvpLobbyList();
+    if (farPvpLobbyTimer) clearInterval(farPvpLobbyTimer);
+    farPvpLobbyTimer = setInterval(updateFarPvpLobbyList, 2000);
+  }
+  if (screenId === 'farpvp-room') {
+    updateFarPvpRoomView();
+    if (farPvpRoomTimer) clearInterval(farPvpRoomTimer);
+    farPvpRoomTimer = setInterval(updateFarPvpRoomView, 2000);
+  }
+  if (screenId === 'farpvp-player1') {
+    renderFarPvpSkillScreen('player1');
+  }
+  if (screenId === 'farpvp-player2') {
+    renderFarPvpSkillScreen('player2');
+  }
+  if (screenId === 'farpvp-battle') {
+    loadFarPvpBattleFrame();
   }
 }
 
@@ -608,6 +704,438 @@ function loadDuoBattleFrame() {
     frame.src = desiredSrc;
   } else {
     // If already loaded, try sending immediately
+    sendSelections();
+  }
+}
+
+let farPvpLobbyTimer = null;
+let farPvpRoomTimer = null;
+let farPvpJoinRoomId = null;
+
+function loadFarPvpRooms() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_FARPVP_ROOMS);
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveFarPvpRooms(rooms) {
+  localStorage.setItem(STORAGE_KEY_FARPVP_ROOMS, JSON.stringify(rooms));
+}
+
+function setFarPvpRole(role) {
+  farPvpState.role = role;
+  localStorage.setItem(STORAGE_KEY_FARPVP_ROLE, role);
+}
+
+function setFarPvpRoomId(roomId) {
+  farPvpState.roomId = roomId;
+  localStorage.setItem(STORAGE_KEY_FARPVP_ROOM, roomId || '');
+}
+
+function getFarPvpRoom() {
+  const roomId = farPvpState.roomId || localStorage.getItem(STORAGE_KEY_FARPVP_ROOM);
+  if (!roomId) return null;
+  const rooms = loadFarPvpRooms();
+  return rooms.find((room) => room.id === roomId) || null;
+}
+
+function updateFarPvpLobbyList() {
+  const list = document.getElementById('farpvp-room-items');
+  if (!list) return;
+  const rooms = loadFarPvpRooms();
+  list.innerHTML = '';
+  if (!rooms.length) {
+    const empty = document.createElement('div');
+    empty.className = 'farpvp-room-meta';
+    empty.textContent = '暂无房间，先创建一个吧。';
+    list.appendChild(empty);
+    return;
+  }
+  rooms.forEach((room) => {
+    const item = document.createElement('div');
+    item.className = 'farpvp-room-item';
+    item.dataset.roomId = room.id;
+
+    const title = document.createElement('div');
+    const count = (room.players?.player1 ? 1 : 0) + (room.players?.player2 ? 1 : 0);
+    title.innerHTML = `<strong>${room.name}</strong><div class="farpvp-room-meta">人数 ${count}/2</div>`;
+
+    const meta = document.createElement('div');
+    meta.className = 'farpvp-room-meta';
+    meta.textContent = room.password ? '🔒 有密码' : '开放';
+
+    item.appendChild(title);
+    item.appendChild(meta);
+
+    item.addEventListener('click', () => {
+      openFarPvpJoinModal(room);
+    });
+    list.appendChild(item);
+  });
+}
+
+function openFarPvpJoinModal(room) {
+  const modal = document.getElementById('farpvp-join-modal');
+  if (!modal || !room) return;
+  farPvpJoinRoomId = room.id;
+  const name = modal.querySelector('.farpvp-join-name');
+  const input = modal.querySelector('#farpvp-join-pass');
+  if (name) name.textContent = `房间：${room.name}`;
+  if (input) input.value = '';
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeFarPvpJoinModal() {
+  const modal = document.getElementById('farpvp-join-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function updateFarPvpRoomView() {
+  const room = getFarPvpRoom();
+  farPvpState.room = room;
+  const subtitle = document.getElementById('farpvp-room-subtitle');
+  const slots = document.querySelectorAll('.farpvp-slot');
+  const startBtn = document.querySelector('.farpvp-start-btn');
+  if (!room) {
+    if (subtitle) subtitle.textContent = '';
+    slots.forEach((slot) => {
+      const body = slot.querySelector('.farpvp-slot-body');
+      if (body) body.textContent = '空位';
+    });
+    if (startBtn) startBtn.disabled = true;
+    return;
+  }
+
+  if (subtitle) subtitle.textContent = `房间：${room.name}`;
+  slots.forEach((slot) => {
+    const key = slot.dataset.slot;
+    const body = slot.querySelector('.farpvp-slot-body');
+    if (!body) return;
+    body.textContent = room.players?.[key] || '空位';
+    slot.classList.toggle('is-ready', !!room.ready?.[key]);
+  });
+
+  const allReady = room.ready?.player1 && room.ready?.player2;
+  const isHost = localStorage.getItem(STORAGE_KEY_FARPVP_HOST) === 'true';
+  if (startBtn) startBtn.disabled = !(allReady && isHost);
+}
+
+function saveFarPvpRoom(room) {
+  const rooms = loadFarPvpRooms();
+  const index = rooms.findIndex((item) => item.id === room.id);
+  if (index >= 0) {
+    rooms[index] = room;
+  } else {
+    rooms.push(room);
+  }
+  saveFarPvpRooms(rooms);
+}
+
+function createFarPvpRoom(name, password) {
+  const roomName = name?.trim() || `房间-${Math.floor(Math.random() * 9999)}`;
+  const room = {
+    id: `room-${Date.now()}`,
+    name: roomName,
+    password: password || '',
+    players: {
+      player1: '玩家1',
+      player2: null,
+    },
+    ready: {
+      player1: false,
+      player2: false,
+    },
+  };
+  saveFarPvpRoom(room);
+  setFarPvpRole('player1');
+  setFarPvpRoomId(room.id);
+  localStorage.setItem(STORAGE_KEY_FARPVP_HOST, 'true');
+  transitionTo('farpvp-room');
+}
+
+function joinFarPvpRoom(roomId, password) {
+  const rooms = loadFarPvpRooms();
+  const room = rooms.find((item) => item.id === roomId);
+  if (!room) {
+    showToast('房间已不存在。');
+    return;
+  }
+  if (room.password && room.password !== password) {
+    showToast('密码不正确。');
+    return;
+  }
+  if (room.players?.player2) {
+    showToast('房间已满。');
+    return;
+  }
+  room.players.player2 = '玩家2';
+  room.ready.player2 = false;
+  saveFarPvpRoom(room);
+  setFarPvpRole('player2');
+  setFarPvpRoomId(room.id);
+  localStorage.setItem(STORAGE_KEY_FARPVP_HOST, 'false');
+  transitionTo('farpvp-room');
+}
+
+function toggleFarPvpReady(playerKey) {
+  const room = getFarPvpRoom();
+  if (!room) return;
+  room.ready[playerKey] = !room.ready[playerKey];
+  saveFarPvpRoom(room);
+  updateFarPvpRoomView();
+}
+
+function moveFarPvpPlayerSlot(targetSlot) {
+  const room = getFarPvpRoom();
+  if (!room) return;
+  const currentRole = localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || 'player1';
+  if (currentRole === targetSlot) return;
+  if (room.players?.[targetSlot]) {
+    showToast('该位置已有玩家。');
+    return;
+  }
+  room.players[targetSlot] = targetSlot === 'player1' ? '玩家1' : '玩家2';
+  room.players[currentRole] = null;
+  room.ready[targetSlot] = room.ready[currentRole];
+  room.ready[currentRole] = false;
+  saveFarPvpRoom(room);
+  setFarPvpRole(targetSlot);
+  updateFarPvpRoomView();
+}
+
+function startFarPvpMatch() {
+  const room = getFarPvpRoom();
+  if (!room) return;
+  const isHost = localStorage.getItem(STORAGE_KEY_FARPVP_HOST) === 'true';
+  if (!isHost) {
+    showToast('只有房主可以开始。');
+    return;
+  }
+  if (!(room.ready?.player1 && room.ready?.player2)) {
+    showToast('双方都准备后才能开始。');
+    return;
+  }
+  resetFarPvpSelections();
+  farPvpState.player1.confirmed = false;
+  farPvpState.player2.confirmed = false;
+  farPvpState.player1.currentCharacter = 'adora';
+  farPvpState.player2.currentCharacter = 'adora';
+  transitionTo('farpvp-player1');
+}
+
+function renderFarPvpSkillScreen(playerKey) {
+  const screen = document.querySelector(`[data-screen="farpvp-${playerKey}"]`);
+  if (!screen) return;
+  const content = screen.querySelector('.farpvp-skill-content');
+  if (!content) return;
+  content.innerHTML = '';
+
+  if (!farPvpState[playerKey].selections) {
+    resetFarPvpSelections();
+  }
+
+  const characterId = farPvpState[playerKey].currentCharacter;
+  const character = characterData[characterId];
+
+  const left = document.createElement('div');
+  left.className = 'duo-skill-left';
+
+  const tabs = document.createElement('nav');
+  tabs.className = 'duo-character-tabs';
+  ['adora', 'dario', 'karma'].forEach((charId) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = `duo-character-tab${charId === characterId ? ' active' : ''}`;
+    tab.dataset.character = charId;
+    tab.textContent = characterData[charId]?.name || charId;
+    tab.addEventListener('click', () => {
+      farPvpState[playerKey].currentCharacter = charId;
+      renderFarPvpSkillScreen(playerKey);
+    });
+    tabs.appendChild(tab);
+  });
+
+  const portrait = document.createElement('div');
+  portrait.className = 'duo-portrait-card';
+  const img = document.createElement('img');
+  img.src = character?.portrait || '';
+  img.alt = `${character?.name || ''} 立绘`;
+  portrait.appendChild(img);
+
+  const slotsContainer = document.createElement('div');
+  slotsContainer.className = 'skill-slots-container';
+
+  const slotColors = [
+    { color: 'green', label: '绿色', limit: 1 },
+    { color: 'blue', label: '蓝色', limit: 1 },
+    { color: 'pink', label: '粉色', limit: 1 },
+    { color: 'white', label: '白色', limit: 1 },
+    { color: 'red', label: '红色', limit: 1 },
+    { color: 'purple', label: '紫色', limit: 1 },
+    { color: 'orange', label: '橙色', limit: 2 },
+  ];
+
+  slotColors.forEach(({ color, label, limit }) => {
+    const section = document.createElement('div');
+    section.className = 'skill-selection-section';
+    section.innerHTML = `<h4>${label}技能</h4>`;
+
+    const slots = document.createElement('div');
+    slots.className = 'skill-slots';
+    for (let i = 0; i < limit; i += 1) {
+      const slot = document.createElement('div');
+      slot.className = `skill-slot ${color}`;
+      slot.dataset.color = color;
+      slot.dataset.index = i.toString();
+      const selected = farPvpState[playerKey].selections[characterId][color];
+      const skillId = color === 'orange' ? selected[i] : selected;
+      if (skillId) {
+        const skill = character?.skills?.find((item) => item.id === skillId);
+        if (skill) {
+          const card = document.createElement('div');
+          card.className = 'skill-card';
+          card.dataset.skillId = skill.id;
+          card.innerHTML = `<strong>${skill.name}</strong><span>${skill.cost}</span>`;
+          slot.appendChild(card);
+        }
+      }
+      slots.appendChild(slot);
+    }
+
+    section.appendChild(slots);
+    slotsContainer.appendChild(section);
+  });
+
+  left.appendChild(tabs);
+  left.appendChild(portrait);
+
+  const right = document.createElement('div');
+  right.className = 'duo-skill-right';
+
+  const skillList = document.createElement('div');
+  skillList.className = 'skill-selection-list';
+  (character?.skills || []).forEach((skill) => {
+    const card = document.createElement('div');
+    card.className = `skill-card draggable ${skill.color}`;
+    card.setAttribute('draggable', 'true');
+    card.dataset.skillId = skill.id;
+    card.dataset.color = skill.color;
+    card.innerHTML = `<strong>${skill.name}</strong><span>${skill.cost}</span><p>${skill.description || ''}</p>`;
+    skillList.appendChild(card);
+  });
+
+  right.appendChild(skillList);
+
+  content.appendChild(left);
+  content.appendChild(slotsContainer);
+  content.appendChild(right);
+
+  enableFarPvpSkillDrag(playerKey);
+  updateFarPvpWaitOverlay(playerKey);
+}
+
+function updateFarPvpWaitOverlay(playerKey) {
+  const screen = document.querySelector(`[data-screen="farpvp-${playerKey}"]`);
+  if (!screen) return;
+  const overlay = screen.querySelector('.farpvp-wait-overlay');
+  const role = localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || 'player1';
+  const shouldWait = role !== playerKey;
+  if (overlay) overlay.classList.toggle('active', shouldWait);
+}
+
+function enableFarPvpSkillDrag(playerKey) {
+  const screen = document.querySelector(`[data-screen="farpvp-${playerKey}"]`);
+  if (!screen) return;
+  const slots = screen.querySelectorAll('.skill-slot');
+  const draggableCards = screen.querySelectorAll('.skill-card.draggable');
+
+  draggableCards.forEach((card) => {
+    card.addEventListener('dragstart', (event) => {
+      const role = localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || 'player1';
+      if (role !== playerKey) {
+        event.preventDefault();
+        return;
+      }
+      event.dataTransfer?.setData('text/plain', card.dataset.skillId || '');
+    });
+  });
+
+  slots.forEach((slot) => {
+    slot.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
+    slot.addEventListener('drop', (event) => {
+      event.preventDefault();
+      const role = localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || 'player1';
+      if (role !== playerKey) return;
+      const draggedSkillId = event.dataTransfer?.getData('text/plain');
+      if (!draggedSkillId) return;
+      const characterId = farPvpState[playerKey].currentCharacter;
+      const skill = characterData[characterId]?.skills?.find((item) => item.id === draggedSkillId);
+      if (!skill) return;
+      const slotColor = slot.dataset.color;
+      if (!slotColor) return;
+      const slotIndex = parseInt(slot.dataset.index || '0', 10);
+
+      if (slotColor !== skill.color && !(slotColor === 'orange' && skill.color === 'orange')) {
+        showToast(`技能颜色不匹配！此槽位只能放置${slotColor}技能`);
+        return;
+      }
+
+      const existing = slot.querySelector('.skill-card');
+      if (existing) {
+        unselectFarPvpSkill(playerKey, characterId, existing.dataset.skillId, slotColor, slotIndex);
+      }
+
+      selectFarPvpSkill(playerKey, characterId, draggedSkillId, slotColor, slotIndex);
+      showToast(`技能已选择: ${skill.name}`);
+      renderFarPvpSkillScreen(playerKey);
+    });
+  });
+}
+
+function loadFarPvpBattleFrame() {
+  const frame = document.querySelector('.farpvp-battle-frame');
+  if (!frame) return;
+
+  const payload = {
+    type: 'GW_FARPVP_SELECTED_SKILLS',
+    selections: {
+      player1: farPvpState.player1?.selections || createDuoSelections(),
+      player2: farPvpState.player2?.selections || createDuoSelections(),
+    },
+  };
+
+  const sendSelections = () => {
+    try {
+      frame.contentWindow && frame.contentWindow.postMessage(payload, '*');
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  frame.addEventListener('load', sendSelections, { once: true });
+
+  let farSelParam = '';
+  try {
+    const json = JSON.stringify(payload.selections || {});
+    farSelParam = encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+  } catch (e) {
+    farSelParam = '';
+  }
+
+  const desiredSrc = farSelParam
+    ? `farpvp-battle.html?mode=farpvp&farpvpsel=${farSelParam}`
+    : 'farpvp-battle.html?mode=farpvp';
+  if (!frame.src || !frame.src.includes('farpvp-battle.html')) {
+    frame.src = desiredSrc;
+  } else {
     sendSelections();
   }
 }
@@ -861,7 +1389,20 @@ function showToast(message) {
 // the main menu inside the iframe.
 window.addEventListener('message', (event) => {
   const data = event && event.data;
-  if (!data || data.type !== 'GW_DUO_BATTLE_FINISHED') return;
+  if (!data) return;
+  if (data.type === 'GW_FARPVP_BATTLE_FINISHED') {
+    const frame = document.querySelector('.farpvp-battle-frame');
+    if (frame) {
+      try { frame.src = 'about:blank'; } catch (e) { /* ignore */ }
+    }
+    stopStoryAudio({ reset: true });
+    if (bgmController && typeof bgmController.fadeIn === 'function') {
+      bgmController.fadeIn(900);
+    }
+    transitionTo('farpvp-lobby');
+    return;
+  }
+  if (data.type !== 'GW_DUO_BATTLE_FINISHED') return;
 
   // Clear battle iframe so it doesn't keep showing/playing anything.
   const frame = document.querySelector('.duo-battle-frame');
@@ -4208,6 +4749,94 @@ function bindDuoMode() {
   });
 }
 
+function bindFarPvpMode() {
+  const farpvpLaunch = document.querySelector('[data-action="farpvp"]');
+  if (farpvpLaunch) {
+    farpvpLaunch.addEventListener('click', () => {
+      transitionTo('farpvp-lobby');
+    });
+  }
+
+  const createBtn = document.querySelector('.farpvp-create-btn');
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      const nameInput = document.getElementById('farpvp-room-name');
+      const passInput = document.getElementById('farpvp-room-pass');
+      createFarPvpRoom(nameInput?.value || '', passInput?.value || '');
+      if (nameInput) nameInput.value = '';
+      if (passInput) passInput.value = '';
+    });
+  }
+
+  const refreshBtn = document.querySelector('.farpvp-refresh');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', updateFarPvpLobbyList);
+  }
+
+  const joinCancel = document.querySelector('.farpvp-join-cancel');
+  if (joinCancel) {
+    joinCancel.addEventListener('click', closeFarPvpJoinModal);
+  }
+
+  const joinConfirm = document.querySelector('.farpvp-join-confirm');
+  if (joinConfirm) {
+    joinConfirm.addEventListener('click', () => {
+      const input = document.getElementById('farpvp-join-pass');
+      joinFarPvpRoom(farPvpJoinRoomId, input?.value || '');
+      closeFarPvpJoinModal();
+    });
+  }
+
+  document.querySelectorAll('.farpvp-slot').forEach((slot) => {
+    slot.addEventListener('click', () => {
+      if (slot.dataset.slot) {
+        moveFarPvpPlayerSlot(slot.dataset.slot);
+      }
+    });
+  });
+
+  document.querySelectorAll('.farpvp-ready-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const playerKey = btn.dataset.player;
+      const role = localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || 'player1';
+      if (playerKey !== role) {
+        showToast('只能准备自己的位置。');
+        return;
+      }
+      toggleFarPvpReady(playerKey);
+    });
+  });
+
+  const startBtn = document.querySelector('.farpvp-start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', startFarPvpMatch);
+  }
+
+  document.querySelectorAll('.farpvp-player-confirm').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const playerKey = btn.dataset.player;
+      const role = localStorage.getItem(STORAGE_KEY_FARPVP_ROLE) || 'player1';
+      if (playerKey !== role) {
+        showToast('等待对方确认。');
+        return;
+      }
+      if (playerKey === 'player1') {
+        farPvpState.player1.confirmed = true;
+        transitionTo('farpvp-player2');
+        return;
+      }
+      if (playerKey === 'player2') {
+        farPvpState.player2.confirmed = true;
+        saveFarPvpSelectedSkills({
+          player1: farPvpState.player1.selections,
+          player2: farPvpState.player2.selections,
+        });
+        transitionTo('farpvp-battle');
+      }
+    });
+  });
+}
+
 function bindNavigation() {
   document.querySelectorAll('[data-target]').forEach((btn) => {
     if (btn.classList.contains('menu-btn')) return;
@@ -4257,6 +4886,7 @@ function init() {
   initTutorialBoard();
   resetDuoSelections();
   bindDuoMode();
+  bindFarPvpMode();
   bindNavigation();
   loadSevenSeasMapFromFile();
   renderStage('intro');
