@@ -201,6 +201,11 @@ body {
   box-shadow: 0 0 0 2px rgba(90,120,180,0.18) inset;
   pointer-events: none; /* 掩体不可进入 */
 }
+.cell.ink-shard {
+  background: radial-gradient(circle at 30% 30%, rgba(168, 117, 255, 0.6), rgba(54, 20, 92, 0.9));
+  border-color: rgba(190, 140, 255, 0.7);
+  box-shadow: 0 0 12px rgba(140, 90, 255, 0.4) inset;
+}
 
 /* 1x1 单位：放在 cell 内，绝对定位铺满 cell */
 .unit {
@@ -404,6 +409,7 @@ body {
 .skillCard.red { border-left-color: #ff7875; }
 .skillCard.blue { border-left: 6px solid #1890ff !important; }
 .skillCard.orange { border-left-color: #fa8c16; }
+.skillCard.purple { border-left-color: #9254de; }
 .skillCard:hover { transform: translateY(-1px); background: #141c2b; }
 .skillCard.disabled { opacity: .6; filter: grayscale(0.1); cursor: not-allowed; }
 

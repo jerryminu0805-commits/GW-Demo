@@ -205,6 +205,7 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
       dependStacks: 0,           // “依赖”Buff 层数（下一次攻击真实伤害，结算后清空自身SP）
       agileStacks: 0,            // "灵活"Buff 层数（让敌方30%几率miss，miss消耗一层）
       affirmationStacks: 0,      // "肯定"Buff 层数（免疫一次SP伤害，多阶段攻击全阶段免疫，消耗一层）
+      lifeDrainStacks: 0,        // “小生命夺取”Buff 层数（下一次攻击触发治疗）
     },
     dmgDone: 0,
     dmgTaken: 0,
@@ -240,6 +241,7 @@ function createUnit(id, name, side, level, r, c, maxHp, maxSp, restoreOnZeroPct,
   };
 }
 const units = {};
+const inkShards = new Map();
 
 function recordDamageTaken(u, amount){
   if(!u || amount<=0) return;
@@ -253,6 +255,111 @@ function recordHealing(sourceId, amount){
   if(!src) return;
   if(typeof src.healDone !== 'number') src.healDone = 0;
   src.healDone += hpAmount;
+}
+
+function inkShardKey(r,c){ return `${r},${c}`; }
+function countInkShards(side){
+  let count = 0;
+  for(const shardSide of inkShards.values()){
+    if(shardSide === side) count += 1;
+  }
+  return count;
+}
+function spawnInkShards(side, count=3){
+  const candidates = [];
+  for(let r=1;r<=ROWS;r++){
+    for(let c=1;c<=COLS;c++){
+      if(!clampCell(r,c)) continue;
+      if(getUnitAt(r,c)) continue;
+      const key = inkShardKey(r,c);
+      if(inkShards.has(key)) continue;
+      candidates.push({r,c});
+    }
+  }
+  if(candidates.length === 0){
+    appendLog('黑瞬「充能」：场上没有可放置墨片的空格');
+    return [];
+  }
+  const created = [];
+  const total = Math.min(count, candidates.length);
+  for(let i=0;i<total;i++){
+    const idx = Math.floor(Math.random() * candidates.length);
+    const pick = candidates.splice(idx,1)[0];
+    inkShards.set(inkShardKey(pick.r,pick.c), side);
+    created.push(pick);
+  }
+  return created;
+}
+function consumeInkShardsUnderUnits(){
+  if(inkShards.size === 0) return;
+  const beforeCounts = {
+    player: countInkShards('player'),
+    enemy: countInkShards('enemy'),
+  };
+  let removed = false;
+  for(const id in units){
+    const u = units[id];
+    if(!u || u.hp<=0) continue;
+    const key = inkShardKey(u.r, u.c);
+    if(inkShards.get(key) === u.side){
+      inkShards.delete(key);
+      appendLog(`${u.name} 拾取了墨片`);
+      pulseCell(u.r, u.c);
+      removed = true;
+    }
+  }
+  if(!removed) return;
+  for(const side of ['player','enemy']){
+    if(beforeCounts[side] > 0 && countInkShards(side) === 0){
+      grantBlackFlashRelease(side);
+    }
+  }
+}
+function grantBlackFlashRelease(side){
+  const adoraId = side === 'player' ? 'adora' : 'adora_p2';
+  const u = units[adoraId];
+  if(!u || u.hp<=0) return;
+  if((u.skillPool || []).some(sk=>sk && sk.name === '黑瞬「释放」')) return;
+  if(countInkShards(side) > 0) return;
+  const release = skill(
+    '黑瞬「释放」',
+    3,
+    'purple',
+    '释放所有墨片能量：敌方单位受到其最大 SP 的 50% + 30 SP 伤害',
+    (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+    (uu)=> adoraBlackFlashRelease(uu),
+    {},
+    {castMs:1200}
+  );
+  release.meta = Object.assign({}, release.meta || {}, {extraSkill:true});
+  if(!u.skillPool) u.skillPool = [];
+  u.skillPool.push(release);
+  appendLog(`${u.name} 获得额外技能：黑瞬「释放」`);
+}
+function findLowestHpAlly(side){
+  const allies = Object.values(units).filter(u=>u.side===side && u.hp>0);
+  if(!allies.length) return null;
+  let target = allies[0];
+  for(const ally of allies){
+    if(ally.hp < target.hp) target = ally;
+  }
+  return target;
+}
+function triggerLifeDrain(source){
+  if(!source || !source.status || source.status.lifeDrainStacks <= 0) return;
+  const target = findLowestHpAlly(source.side);
+  if(!target) return;
+  const before = target.hp;
+  target.hp = Math.min(target.maxHp, target.hp + 15);
+  const healed = target.hp - before;
+  updateStatusStacks(source, 'lifeDrainStacks', Math.max(0, source.status.lifeDrainStacks - 1), {label:'小生命夺取', type:'buff'});
+  if(healed > 0){
+    showGainFloat(target, healed, 0);
+    recordHealing(source.id, healed);
+    appendLog(`${source.name} 的“小生命夺取”触发：${target.name} 恢复 ${healed} HP`);
+  } else {
+    appendLog(`${source.name} 的“小生命夺取”触发：${target.name} 已满血`);
+  }
 }
 // 玩家1
 units['adora'] = createUnit('adora','Adora','player',70, 7, 3, 100,100, 0.5,0, ['backstab','calmAnalysis','proximityHeal','fearBuff'], {stunThreshold:2});
@@ -2225,6 +2332,13 @@ function damageUnit(id, hpDmg, spDmg, reason, sourceId=null, opts={}){
     handleUnitDeath(u, source);
   }
 
+  if(sourceId){
+    const src = units[sourceId];
+    if(src && src.side !== u.side && totalImpact > 0 && !opts.ignoreLifeDrain){
+      triggerLifeDrain(src);
+    }
+  }
+
   // 锁链缠绕 反击（Haz）
   if(sourceId){
     const src = units[sourceId];
@@ -2476,10 +2590,10 @@ function darioStatusRecovery(u, aim){
   if(!t || t.side!==u.side){ appendLog('状态恢复 目标无效'); return; }
 
   const clearedEffects = [];
-  if(t.status.stunned > 0){ clearedEffects.push('眩晕'); t.status.stunned = 0; }
-  if(t.status.paralyzed > 0){ clearedEffects.push('恐惧'); t.status.paralyzed = 0; }
-  if(t.status.bleed > 0){ clearedEffects.push('流血'); t.status.bleed = 0; }
-  if(t.status.hazBleedTurns > 0){ clearedEffects.push('Haz流血'); t.status.hazBleedTurns = 0; }
+  if(t.status.stunned > 0){
+    clearedEffects.push('眩晕');
+    updateStatusStacks(t,'stunned',0,{label:'眩晕', type:'debuff'});
+  }
 
   const spBefore = t.sp;
   t.sp = Math.min(t.maxSp, t.sp + 15);
@@ -2495,6 +2609,11 @@ function darioStatusRecovery(u, aim){
   }
   showGainFloat(t, 0, t.sp - spBefore);
 
+  unitActed(u);
+}
+function darioLifeDrain(u){
+  const next = addStatusStacks(u, 'lifeDrainStacks', 1, {label:'小生命夺取', type:'buff'});
+  appendLog(`${u.name} 使用 生命夺取：获得 小生命夺取（${next}）`);
   unitActed(u);
 }
 async function adoraAssassination(u, target){
@@ -2628,6 +2747,29 @@ function adoraBloom(u){
     appendLog(`${u.name} 使用 绽放（红色），引爆了 ${totalBloomedTargets} 个敌人的血色花蕾（共 ${totalLayersDetonated} 层），自身恢复 ${adoraHpGained} HP 和 ${adoraSpGained} SP${alliesDetail}`);
   }
 
+  unitActed(u);
+}
+function adoraBlackFlashCharge(u){
+  const created = spawnInkShards(u.side, 3);
+  if(created.length){
+    created.forEach(cell=>pulseCell(cell.r, cell.c));
+    appendLog(`${u.name} 使用 黑瞬「充能」：生成 ${created.length} 个墨片`);
+  }
+  renderAll();
+  unitActed(u);
+}
+function adoraBlackFlashRelease(u){
+  const enemies = Object.values(units).filter(t=>t.side!==u.side && t.hp>0);
+  if(enemies.length === 0){
+    appendLog('黑瞬「释放」：场上没有敌方单位');
+    unitActed(u);
+    return;
+  }
+  for(const target of enemies){
+    const spDmg = Math.round(target.maxSp * 0.5) + 30;
+    damageUnit(target.id, 0, spDmg, `${u.name} 黑瞬「释放」命中 ${target.name}`, u.id, {ignoreCover:true});
+  }
+  appendLog(`${u.name} 使用 黑瞬「释放」：敌方单位 SP 受损`);
   unitActed(u);
 }
 function adoraDepend(u, aim){
@@ -2857,6 +2999,26 @@ function karmaAdrenaline(u){
   const adrenalineSkill = (u.skillPool || []).find(s => s && s.name === '肾上腺素');
   if(adrenalineSkill){ adrenalineSkill._used = true; }
 
+  unitActed(u);
+}
+function karmaCataclysm(u){
+  const targets = Object.values(units).filter(t=>t && t.hp>0 && mdist(u,t) <= 5);
+  if(targets.length === 0){
+    appendLog('天崩地裂：范围内没有目标');
+    unitActed(u);
+    return;
+  }
+  appendLog(`${u.name} 使用 天崩地裂`);
+  for(const t of targets){
+    if(t.side === u.side){
+      damageUnit(t.id, 10, 5, `${u.name} 天崩地裂 波及 ${t.name}`, u.id);
+    } else {
+      let hpDmg = 25;
+      if(mdist(u,t) <= 4) hpDmg += 5;
+      damageUnit(t.id, hpDmg, 10, `${u.name} 天崩地裂 命中 ${t.name}`, u.id);
+      u.dmgDone += hpDmg;
+    }
+  }
   unitActed(u);
 }
 
@@ -3474,7 +3636,8 @@ const skillKeyMapping = {
     'adora_cheer': '加油哇！',
     'adora_rely': '只能靠你了。。',
     'adora_bloom': '绽放（红色）',
-    'adora_assassination_1': '课本知识：刺杀一'
+    'adora_assassination_1': '课本知识：刺杀一',
+    'adora_blackflash_charge': '黑瞬「充能」'
   },
   karma: {
     'karma_punch': '沙包大的拳头',
@@ -3482,7 +3645,8 @@ const skillKeyMapping = {
     'karma_listen': '都听你的',
     'karma_blood_grip': '嗜血之握',
     'karma_deep_breath': '深呼吸',
-    'karma_adrenaline': '肾上腺素'
+    'karma_adrenaline': '肾上腺素',
+    'karma_cataclysm': '天崩地裂'
   },
   dario: {
     'dario_claw': '机械爪击',
@@ -3491,7 +3655,8 @@ const skillKeyMapping = {
     'dario_pull': '拿来吧你！',
     'dario_bitter_sweet': '先苦后甜',
     'dario_tear_wound': '撕裂伤口',
-    'dario_status_recovery': '状态恢复'
+    'dario_status_recovery': '状态恢复',
+    'dario_life_drain': '生命夺取'
   }
 };
 
@@ -3517,7 +3682,7 @@ function getSelectedSkillKeysForUnit(u) {
 
   const selectedKeys = new Set();
 
-  for (const color of ['green', 'blue', 'pink', 'white', 'red']) {
+  for (const color of ['green', 'blue', 'pink', 'white', 'red', 'purple']) {
     if (charSelection[color]) {
       const battleKey = mapping[charSelection[color]];
       if (battleKey) selectedKeys.add(battleKey);
@@ -3591,6 +3756,12 @@ function buildSkillFactoriesForUnit(u){
         {},
         {castMs:1200}
       )},
+      { key:'黑瞬「充能」', prob:0.20, cond:()=>u.level>=50, make:()=> skill('黑瞬「充能」',2,'purple','随机生成 3 个墨片；友方踩到后消失，全部消失时获得额外技能「黑瞬「释放」」',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> adoraBlackFlashCharge(uu),
+        {},
+        {castMs:900}
+      )},
     );
     F.push(
       { key:'绽放（红色）', prob:0.20, cond:()=>u.level>=50 && !(u.skillPool||[]).some(s=>s.name==='绽放（红色）') && !hasBloomInSidePool(u.side), make:()=> skill('绽放（红色）',3,'red','被动：在技能池时，队友攻击敌人叠加血色花蕾（每个敌人最多7层）；主动：引爆所有血色花蕾，造成真实伤害（每层 10HP+5SP），并让 Adora 自身恢复（每层 +5HP/+5SP）同时治疗 5 格内友方（含自身，每层 +3HP/+3SP）',
@@ -3656,11 +3827,17 @@ function buildSkillFactoriesForUnit(u){
         {},
         {castMs:1100}
       )},
-      { key:'状态恢复', prob:0.15, cond:()=>u.level>=50, make:()=> skill('状态恢复',2,'orange','选中全图友方单位，移除所有负面效果，增加15SP',
+      { key:'状态恢复', prob:0.30, cond:()=>u.level>=50, make:()=> skill('状态恢复',4,'orange','选中全图友方单位，移除眩晕并增加15SP',
         (uu)=> inRadiusCells(uu,999,{allowOccupied:true}).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
         (uu,aim)=> darioStatusRecovery(uu,aim),
         {aoe:false},
         {cellTargeting:true, castMs:900}
+      )},
+      { key:'生命夺取', prob:0.35, cond:()=>u.level>=50, make:()=> skill('生命夺取',1,'pink','获得 1 层“小生命夺取”：下一次攻击治疗血量最少的友方 15HP',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> darioLifeDrain(uu),
+        {},
+        {castMs:800}
       )}
     );
   } else if(baseId==='karma'){
@@ -3708,6 +3885,12 @@ function buildSkillFactoriesForUnit(u){
         (uu)=> karmaAdrenaline(uu),
         {},
         {castMs:700}
+      )},
+      { key:'天崩地裂', prob:0.15, cond:()=>u.level>=50, make:()=> skill('天崩地裂',3,'red','周围5格内所有单位受击：友方 10HP+5SP，敌方 25HP+10SP（距离≤4再+5HP）',
+        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> karmaCataclysm(uu),
+        {},
+        {castMs:1100}
       )}
     );
   } else if(baseId==='haz'){
@@ -3972,11 +4155,11 @@ function drawSkills(u, n){
       index += 1;
       toDraw -= 1;
     }
-    if(u.skillPool.length > SKILLPOOL_MAX) u.skillPool.length = SKILLPOOL_MAX;
+    trimSkillPool(u);
     return;
   }
   while(toDraw>0){ const sk=drawOneSkill(u); if(!sk) break; u.skillPool.push(sk); toDraw--; }
-  if(u.skillPool.length > SKILLPOOL_MAX) u.skillPool.length = SKILLPOOL_MAX;
+  trimSkillPool(u);
 }
 function ensureStartHand(u){
   if(u.dealtStart) return;
@@ -3987,6 +4170,17 @@ function ensureStartHand(u){
     appendLog(`${u.name} 起手手牌：${u.skillPool.map(s=>s.name).join(' / ')}`);
   } else {
     appendLog(`${u.name} 起手手牌为空`);
+  }
+}
+function trimSkillPool(u){
+  if(!u || !u.skillPool) return;
+  let nonExtra = u.skillPool.filter(sk=>!(sk && sk.meta && sk.meta.extraSkill)).length;
+  if(nonExtra <= SKILLPOOL_MAX) return;
+  for(let i=u.skillPool.length - 1; i>=0 && nonExtra > SKILLPOOL_MAX; i--){
+    const sk = u.skillPool[i];
+    if(sk && sk.meta && sk.meta.extraSkill) continue;
+    u.skillPool.splice(i, 1);
+    nonExtra -= 1;
   }
 }
 
@@ -4112,6 +4306,7 @@ function buildGrid(){
       cell.className = 'cell';
       if(isVoidCell(r,c)) cell.classList.add('void');
       if(isCoverCell(r,c)) cell.classList.add('cover');
+      if(inkShards.has(inkShardKey(r,c))) cell.classList.add('ink-shard');
       cell.dataset.r=r; cell.dataset.c=c;
       const coord=document.createElement('div'); coord.className='coord'; coord.textContent=`${r},${c}`; cell.appendChild(coord);
 
@@ -5347,6 +5542,7 @@ function showDefeatScreen(){
   }
 }
 function renderAll(){
+  consumeInkShardsUnderUnits();
   buildGrid();
   placeUnits();
   renderStatus();
