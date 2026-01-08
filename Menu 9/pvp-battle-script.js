@@ -2030,19 +2030,21 @@ function finalizeRoll(){
   const player1Starts = player1 > player2;
   const winnerLabel = player1Starts ? '玩家1' : '玩家2';
   appendLog(`${winnerLabel} 获得先手`);
-  hideRollOverlay();
-  startBattleBGM();
-  setInteractionLocked(false);
-  showRoundBanner('回合一', 1800);
+  setTimeout(() => {
+    hideRollOverlay();
+    startBattleBGM();
+    setInteractionLocked(false);
+    showRoundBanner('回合一', 1800);
 
-  if(!player1Starts){
-    currentSide = 'enemy';
-    if(ENEMY_IS_AI_CONTROLLED){
-      setTimeout(()=> enemyTurn(), 300);
-    } else {
-      renderAll();
+    if(!player1Starts){
+      currentSide = 'enemy';
+      if(ENEMY_IS_AI_CONTROLLED){
+        setTimeout(()=> enemyTurn(), 300);
+      } else {
+        renderAll();
+      }
     }
-  }
+  }, 1500);
 }
 
 function handleRoll(playerKey){
@@ -3010,8 +3012,8 @@ function karmaAdrenaline(u){
   unitActed(u);
 }
 async function karmaCataclysm(u){
-  const cells = range_square_n(u, 5);
-  const targets = Object.values(units).filter(t=>t && t.hp>0 && mdist(u,t) <= 5);
+  const cells = range_square_n(u, 2);
+  const targets = Object.values(units).filter(t=>t && t.hp>0 && mdist(u,t) <= 2);
   if(targets.length === 0){
     appendLog('天崩地裂：范围内没有目标');
     unitActed(u);
@@ -3024,7 +3026,7 @@ async function karmaCataclysm(u){
       damageUnit(t.id, 10, 5, `${u.name} 天崩地裂 波及 ${t.name}`, u.id);
     } else {
       let hpDmg = 25;
-      if(mdist(u,t) <= 4) hpDmg += 5;
+      if(mdist(u,t) === 1) hpDmg += 5;
       damageUnit(t.id, hpDmg, 10, `${u.name} 天崩地裂 命中 ${t.name}`, u.id);
       u.dmgDone += hpDmg;
     }
@@ -3898,8 +3900,8 @@ function buildSkillFactoriesForUnit(u){
         {},
         {castMs:700}
       )},
-      { key:'天崩地裂', prob:0.15, cond:()=>u.level>=50, make:()=> skill('天崩地裂',3,'red','周围5格内所有单位受击：友方 10HP+5SP，敌方 25HP+10SP（距离≤4再+5HP）',
-        (uu)=> range_square_n(uu,5),
+      { key:'天崩地裂', prob:0.15, cond:()=>u.level>=50, make:()=> skill('天崩地裂',3,'red','周围2格内所有单位受击：友方 10HP+5SP，敌方 25HP+10SP（相邻再+5HP）',
+        (uu)=> range_square_n(uu,2),
         (uu)=> karmaCataclysm(uu),
         {aoe:true},
         {castMs:1100}
