@@ -1157,6 +1157,11 @@ function showAttackFx({attacker=null, target=null, cell=null, point=null, trueDa
   onAnimEndRemove(node, heavy ? 700 : 560);
   return node;
 }
+function flashBoardRed(ms=300){
+  if(!battleAreaEl) return;
+  battleAreaEl.classList.add('red-flash');
+  setTimeout(()=>{ if(battleAreaEl) battleAreaEl.classList.remove('red-flash'); }, ms);
+}
 function showHitFX(r,c, opts={}){ return showAttackFx({cell:{r,c}, ...opts}); }
 function resolveSkillFxAnchor({target=null, cell=null, point=null}){
   let anchor = null;
@@ -3001,7 +3006,8 @@ function karmaAdrenaline(u){
 
   unitActed(u);
 }
-function karmaCataclysm(u){
+async function karmaCataclysm(u){
+  const cells = range_square_n(u, 5);
   const targets = Object.values(units).filter(t=>t && t.hp>0 && mdist(u,t) <= 5);
   if(targets.length === 0){
     appendLog('天崩地裂：范围内没有目标');
@@ -3009,6 +3015,7 @@ function karmaCataclysm(u){
     return;
   }
   appendLog(`${u.name} 使用 天崩地裂`);
+  await telegraphThenImpact(cells);
   for(const t of targets){
     if(t.side === u.side){
       damageUnit(t.id, 10, 5, `${u.name} 天崩地裂 波及 ${t.name}`, u.id);
@@ -3019,6 +3026,8 @@ function karmaCataclysm(u){
       u.dmgDone += hpDmg;
     }
   }
+  cameraShake('heavy');
+  flashBoardRed(300);
   unitActed(u);
 }
 
@@ -3704,7 +3713,7 @@ function buildSkillFactoriesForUnit(u){
   const baseId = u.id.replace('_p2', '');
   if(baseId==='adora'){
     F.push(
-      { key:'短匕轻挥', prob:0.85, cond:()=>true, make:()=> skill('短匕轻挥',1,'green','邻格 10HP +5SP（背刺x1.5）',
+      { key:'短匕轻挥', prob:0.80, cond:()=>true, make:()=> skill('短匕轻挥',1,'green','邻格 10HP +5SP（背刺x1.5）',
         (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
         (uu,target)=> adoraDagger(uu,target),
         {},
@@ -3730,7 +3739,7 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'略懂的医术！', prob:0.25, cond:()=>u.level>=25, make:()=> skill('略懂的医术！',2,'pink','以自身为中心5x5内选择友方：+20HP/+15SP，并赋予一层“恢复”Buff',
+      { key:'略懂的医术！', prob:0.30, cond:()=>u.level>=25, make:()=> skill('略懂的医术！',2,'pink','以自身为中心5x5内选择友方：+20HP/+15SP，并赋予一层“恢复”Buff',
         (uu)=> range_square_n(uu,2).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side===uu.side; }),
         (uu,aim)=> adoraFieldMedic(uu,aim),
         {aoe:false},
@@ -3750,7 +3759,7 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'课本知识：刺杀一', prob:0.80, cond:()=>u.level>=50, make:()=> skill('课本知识：刺杀一',1,'green','四周2格瞬移到敌人后侧，插入10HP+5SP，拔出5HP+5SP+1层流血',
+      { key:'课本知识：刺杀一', prob:0.20, cond:()=>u.level>=50, make:()=> skill('课本知识：刺杀一',1,'green','四周2格瞬移到敌人后侧，插入10HP+5SP，拔出5HP+5SP+1层流血',
         (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)<=2? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_move_radius(uu,2).filter(p=>{ const tu=getUnitAt(p.r,p.c); return tu && tu.side!==uu.side; }),
         (uu,target)=> adoraAssassination(uu,target),
         {},
@@ -3773,7 +3782,7 @@ function buildSkillFactoriesForUnit(u){
     );
   } else if(baseId==='dario'){
     F.push(
-      { key:'机械爪击', prob:0.90, cond:()=>true, make:()=> skill('机械爪击',1,'green','前方1-2格 15HP',
+      { key:'机械爪击', prob:0.80, cond:()=>true, make:()=> skill('机械爪击',1,'green','前方1-2格 15HP',
         (uu,aimDir)=> aimDir? range_forward_n(uu,2,aimDir) : (()=>{const a=[]; for(const d in DIRS) range_forward_n(uu,2,d).forEach(x=>a.push(x)); return a;})(),
         (uu,targetOrDesc)=> {
           if(targetOrDesc && targetOrDesc.id) darioClaw(uu,targetOrDesc);
@@ -3842,7 +3851,7 @@ function buildSkillFactoriesForUnit(u){
     );
   } else if(baseId==='karma'){
     F.push(
-      { key:'沙包大的拳头', prob:0.90, cond:()=>true, make:()=> skill('沙包大的拳头',1,'green','邻格 15HP（连击递增）',
+      { key:'沙包大的拳头', prob:0.80, cond:()=>true, make:()=> skill('沙包大的拳头',1,'green','邻格 15HP（连击递增）',
         (uu,aimDir,aimCell)=> aimCell && mdist(uu,aimCell)===1? [{r:aimCell.r,c:aimCell.c,dir:cardinalDirFromDelta(aimCell.r-uu.r,aimCell.c-uu.c)}] : range_adjacent(uu),
         (uu,target)=> karmaPunch(uu,target),
         {},
@@ -3887,9 +3896,9 @@ function buildSkillFactoriesForUnit(u){
         {castMs:700}
       )},
       { key:'天崩地裂', prob:0.15, cond:()=>u.level>=50, make:()=> skill('天崩地裂',3,'red','周围5格内所有单位受击：友方 10HP+5SP，敌方 25HP+10SP（距离≤4再+5HP）',
-        (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
+        (uu)=> range_square_n(uu,5),
         (uu)=> karmaCataclysm(uu),
-        {},
+        {aoe:true},
         {castMs:1100}
       )}
     );

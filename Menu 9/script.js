@@ -3004,10 +3004,10 @@ const skillLibrary = {
     { id: 'adora_dont_approach', name: '呀！你不要靠近我呀！！', color: 'blue', cost: '2步', description: '可选四周任意5格瞬移（可少选）；若目标HP低于50%，追击一次"短匕轻挥！"。', probability: '40%', minLevel: 20 },
     { id: 'adora_stun_device', name: '自制粉色迷你电击装置！', color: 'red', cost: '3步', description: '前方2格造成10点伤害与15点精神伤害，并令目标麻痹（下回合-步数）。', probability: '30%', minLevel: 20 },
     { id: 'adora_medical', name: '略懂的医术！', color: 'pink', cost: '2步', description: '以自身为中心5×5选择1名友方，恢复20HP与15SP，并赋予1层"恢复"Buff（下一个大回合开始恢复5HP，仅消耗1层）。', probability: '30%', minLevel: 25 },
-    { id: 'adora_cheer', name: '加油哇！', color: 'orange', cost: '4步', description: '以自身为中心5×5选择1名友方，授予1层"鸡血"Buff（下次攻击伤害×2，最多1层）。', probability: '20%', minLevel: 25 },
+    { id: 'adora_cheer', name: '加油哇！', color: 'orange', cost: '2步', description: '以自身为中心5×5选择1名友方，授予1层"鸡血"Buff（下次攻击伤害×2，最多1层）。', probability: '20%', minLevel: 25 },
     { id: 'adora_rely', name: '只能靠你了。。', color: 'orange', cost: '4步', description: '牺牲自身25HP，为四周任意5格内1名友方施加"依赖"Buff（下次攻击造成真实伤害并将其SP降至0，最多1层）。', probability: '15%', minLevel: 35 },
     { id: 'adora_bloom', name: '绽放', color: 'red', cost: '3步', description: '如果在目前所拥有技能池里没使用：场上所有队友对敌方单位造成伤害后会给敌方叠一层血色花蕾（每个敌方单位最多叠7层）。主动使用：绽放所有在场的血色花蕾，让每个有血色花蕾的敌人受到根据层数的真实伤害（每一层10HP与5SP）并根据引爆层数来吸取HP与SP（每绽放一层血色花蕾：恢复Adora 5HP与5SP）。', probability: '20%', minLevel: 50 },
-    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '80%', minLevel: 50 },
+    { id: 'adora_assassination_1', name: '课本知识：刺杀一', color: 'green', cost: '1步', description: '能选择四周任何2格并瞬移到对方后侧并用匕首插进对方身体里造成10HP 5SP，随后再拔出来造成5HP 5SP以及给对方叠一层流血。', probability: '20%', minLevel: 50 },
     { id: 'adora_blackflash_charge', name: '黑瞬「充能」', color: 'purple', cost: '2步', description: '使用后地图上随机3格空格子出现墨片，友方踩上墨片会消失；全部消失后获得额外技能「黑瞬「释放」」。', probability: '20%', minLevel: 50 }
   ],
   karma: [
@@ -3113,7 +3113,7 @@ const characterData = {
               name: '加油哇！',
               color: 'orange',
               colorLabel: '橘色',
-              cost: '4 步',
+              cost: '2 步',
               description: '以自身为中心 5×5 选择 1 名友方，授予 1 层“鸡血”Buff（下次攻击伤害 ×2，最多 1 层）。',
               note: '出现概率 20%。',
             },

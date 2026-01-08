@@ -156,6 +156,9 @@ body {
 .board.shake {
   animation: boardShake 0.22s ease-in-out;
 }
+.board.red-flash {
+  box-shadow: 0 0 0 9999px rgba(255, 77, 79, 0.25) inset;
+}
 
 @keyframes boardShake {
   0% { transform: scale(var(--cam-scale, 1)) translate3d(calc(var(--cam-tx, 0px) + 2px), calc(var(--cam-ty, 0px) + 0px), 0); }
