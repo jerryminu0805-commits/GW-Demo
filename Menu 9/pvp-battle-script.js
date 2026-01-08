@@ -256,6 +256,9 @@ function recordHealing(sourceId, amount){
   if(typeof src.healDone !== 'number') src.healDone = 0;
   src.healDone += hpAmount;
 }
+function hasSkillInPool(u, name){
+  return !!(u && u.skillPool && u.skillPool.some(sk=>sk && sk.name === name));
+}
 
 function inkShardKey(r,c){ return `${r},${c}`; }
 function countInkShards(side){
@@ -3765,7 +3768,7 @@ function buildSkillFactoriesForUnit(u){
         {},
         {castMs:1200}
       )},
-      { key:'黑瞬「充能」', prob:0.20, cond:()=>u.level>=50, make:()=> skill('黑瞬「充能」',2,'purple','随机生成 3 个墨片；友方踩到后消失，全部消失时获得额外技能「黑瞬「释放」」',
+      { key:'黑瞬「充能」', prob:0.20, cond:()=>u.level>=50 && !hasSkillInPool(u,'黑瞬「释放」') && countInkShards(u.side)===0, make:()=> skill('黑瞬「充能」',2,'purple','随机生成 3 个墨片；友方踩到后消失，全部消失时获得额外技能「黑瞬「释放」」',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> adoraBlackFlashCharge(uu),
         {},
@@ -3815,7 +3818,7 @@ function buildSkillFactoriesForUnit(u){
       )}
     );
     F.push(
-      { key:'先苦后甜', prob:0.15, cond:()=>u.level>=25 && ((u.skillPool||[]).filter(s=>s && s.name==='先苦后甜').length < 2), make:()=> skill('先苦后甜',4,'orange','自我激励：下个玩家回合额外 +4 步（技能池最多保留2张）',
+      { key:'先苦后甜', prob:0.15, cond:()=>u.level>=25 && !hasSkillInPool(u,'先苦后甜'), make:()=> skill('先苦后甜',4,'orange','自我激励：下个玩家回合额外 +4 步（技能池最多保留2张）',
         (uu)=>[{r:uu.r,c:uu.c,dir:uu.facing}],
         (uu)=> darioSweetAfterBitter(uu),
         {},
@@ -4140,13 +4143,25 @@ function buildSkillFactoriesForUnit(u){
   
   return F;
 }
+function drawOneSkillFromFactories(factories){
+  if(!factories || factories.length === 0) return null;
+  const viable = factories.filter(f=>f && f.cond());
+  if(viable.length===0) return null;
+  const totalWeight = viable.reduce((sum, f)=> sum + Math.max(0, f.prob || 0), 0);
+  if(totalWeight <= 0){
+    const fallback = viable[Math.floor(Math.random() * viable.length)];
+    return fallback.make();
+  }
+  let roll = Math.random() * totalWeight;
+  for(const f of viable){
+    roll -= Math.max(0, f.prob || 0);
+    if(roll <= 0) return f.make();
+  }
+  return viable[viable.length - 1].make();
+}
 function drawOneSkill(u){
   const fset = buildSkillFactoriesForUnit(u);
-  const viable = fset.filter(f=>f.cond());
-  if(viable.length===0) return null;
-  for(let i=0;i<30;i++){ const f=viable[Math.floor(Math.random()*viable.length)]; if(Math.random()<f.prob) return f.make(); }
-  viable.sort((a,b)=> b.prob-a.prob);
-  return viable[0].make();
+  return drawOneSkillFromFactories(fset);
 }
 function drawSkills(u, n){
   let toDraw = Math.max(0, Math.min(n, SKILLPOOL_MAX - u.skillPool.length));
@@ -4157,11 +4172,10 @@ function drawSkills(u, n){
   if(selectedKeys && selectedKeys.size > 0){
     const selectedFactories = buildSkillFactoriesForUnit(u);
     if(selectedFactories.length === 0) return;
-    let index = 0;
     while(toDraw > 0){
-      const sk = selectedFactories[index % selectedFactories.length].make();
+      const sk = drawOneSkillFromFactories(selectedFactories);
+      if(!sk) break;
       u.skillPool.push(sk);
-      index += 1;
       toDraw -= 1;
     }
     trimSkillPool(u);
